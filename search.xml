@@ -183,6 +183,54 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
+    <title>Eureka工作流程小记</title>
+    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
+    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
+<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
+<p><strong>Eureka工作流程</strong></p>
+<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
+<ul>
+<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
+</li>
+<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
+</li>
+<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
+</li>
+<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
+</li>
+<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
+</li>
+<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
+</li>
+<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
+</li>
+<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
+</li>
+<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
+</li>
+<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
+</li>
+</ul>
+<p><strong>点滴：</strong></p>
+<ul>
+<li>客户端主动通知注册中心下线</li>
+</ul>
+<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
+<ul>
+<li>服务器端配置：</li>
+</ul>
+<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
+<p>客户端配置：</p>
+<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java中AQS</title>
     <url>/2019/08/10/AbstractQueuedSynchronized/</url>
     <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
@@ -300,45 +348,79 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>Eureka工作流程小记</title>
-    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
-    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
-<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
-<p><strong>Eureka工作流程</strong></p>
-<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
+    <title>Eureka高可用及数据一致性</title>
+    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p><strong>一致性问题：</strong></p>
+<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
+<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
+<p><strong>Eureka是弱数据一致性的</strong></p>
+<p>两个方面：</p>
 <ul>
-<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
-</li>
-<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
-</li>
-<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
-</li>
-<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
-</li>
-<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
-</li>
-<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
-</li>
-<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
-</li>
-<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
-</li>
-<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
-</li>
-<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
+<li><p>什么是弱一致性</p>
+<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
+<p>分布式系统中存在一个重要理论：CAP</p>
 </li>
 </ul>
-<p><strong>点滴：</strong></p>
+<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
+<p>该理论提到了三个分布式系统的3个特性：</p>
 <ul>
-<li>客户端主动通知注册中心下线</li>
+<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
+<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
+</li>
+<li><p>Availability 可用性</p>
+<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
+</li>
+<li><p>Partition Tolerance 分区容错性</p>
+<p>集群部分节点故障，其他节点仍可用</p>
+</li>
 </ul>
-<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
+<blockquote>
+<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
+</blockquote>
+<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
+<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
+<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
+<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
+<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
+<p><strong>2.Eureka数据同步方式</strong></p>
+<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
 <ul>
-<li>服务器端配置：</li>
+<li><strong>主从复制</strong></li>
 </ul>
-<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
-<p>客户端配置：</p>
-<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
+<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
+<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
+<ul>
+<li><strong>对等复制</strong></li>
+</ul>
+<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
+<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
+<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
+<p><strong>2.2同步过程</strong></p>
+<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
+<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
+<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
+<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
+<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
+<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
+<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
+<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
+<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
+<blockquote>
+<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
+</blockquote>
+<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
+<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
+<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
+<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
+<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
+<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
+<p><strong>汇总：</strong></p>
+<ul>
+<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
+<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
+<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
+<li>Eureka通过心跳机制实现数据修复。</li>
+</ul>
 ]]></content>
       <categories>
         <category>eureka</category>
@@ -643,85 +725,70 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>Eureka高可用及数据一致性</title>
-    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<p><strong>一致性问题：</strong></p>
-<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
-<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
-<p><strong>Eureka是弱数据一致性的</strong></p>
-<p>两个方面：</p>
+    <title>LockSuport简述-1</title>
+    <url>/2019/03/17/Java%20LockSupport/</url>
+    <content><![CDATA[<blockquote>
+<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
+</blockquote>
 <ul>
-<li><p>什么是弱一致性</p>
-<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
-<p>分布式系统中存在一个重要理论：CAP</p>
+<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
+</li>
+<li><p>如果许可尚不可用，则调用unpark使其可用</p>
 </li>
 </ul>
-<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
-<p>该理论提到了三个分布式系统的3个特性：</p>
+<p>注意：</p>
 <ul>
-<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
-<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
+<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
 </li>
-<li><p>Availability 可用性</p>
-<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
+<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
 </li>
-<li><p>Partition Tolerance 分区容错性</p>
-<p>集群部分节点故障，其他节点仍可用</p>
+</ul>
+<p><strong>阻塞线程</strong></p>
+<ul>
+<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
 </li>
+<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
+</li>
+<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
+</li>
+<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+</li>
+<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
+</li>
+</ul>
+<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+<p><strong>唤醒线程</strong></p>
+<ul>
+<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
 </ul>
 <blockquote>
-<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
+<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
 </blockquote>
-<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
-<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
-<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
-<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
-<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
-<p><strong>2.Eureka数据同步方式</strong></p>
-<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
+<pre><code>public class LockSuportTest {
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread t = new Thread(() -&gt; {
+            LockSupport.park();
+            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
+        });
+        t.start();
+        Thread.sleep(3000);
+        LockSupport.unpark(t);
+    }
+}
+</code></pre><p>Synchronized 与LockSupport</p>
 <ul>
-<li><strong>主从复制</strong></li>
-</ul>
-<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
-<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
-<ul>
-<li><strong>对等复制</strong></li>
-</ul>
-<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
-<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
-<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
-<p><strong>2.2同步过程</strong></p>
-<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
-<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
-<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
-<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
-<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
-<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
-<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
-<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
-<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
-<blockquote>
-<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
-</blockquote>
-<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
-<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
-<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
-<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
-<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
-<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
-<p><strong>汇总：</strong></p>
-<ul>
-<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
-<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
-<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
-<li>Eureka通过心跳机制实现数据修复。</li>
+<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
+</li>
+<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
+</li>
 </ul>
 ]]></content>
       <categories>
-        <category>eureka</category>
+        <category>lock</category>
       </categories>
       <tags>
-        <tag>eureka</tag>
+        <tag>lock</tag>
       </tags>
   </entry>
   <entry>
@@ -1011,73 +1078,6 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>LockSuport简述-1</title>
-    <url>/2019/03/17/Java%20LockSupport/</url>
-    <content><![CDATA[<blockquote>
-<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
-</blockquote>
-<ul>
-<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
-</li>
-<li><p>如果许可尚不可用，则调用unpark使其可用</p>
-</li>
-</ul>
-<p>注意：</p>
-<ul>
-<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
-</li>
-<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
-</li>
-</ul>
-<p><strong>阻塞线程</strong></p>
-<ul>
-<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
-</li>
-<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
-</li>
-<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
-</li>
-<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-</li>
-<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
-</li>
-</ul>
-<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-<p><strong>唤醒线程</strong></p>
-<ul>
-<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
-</ul>
-<blockquote>
-<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
-</blockquote>
-<pre><code>public class LockSuportTest {
-
-    public static void main(String[] args) throws InterruptedException {
-        Thread t = new Thread(() -&gt; {
-            LockSupport.park();
-            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
-        });
-        t.start();
-        Thread.sleep(3000);
-        LockSupport.unpark(t);
-    }
-}
-</code></pre><p>Synchronized 与LockSupport</p>
-<ul>
-<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
-</li>
-<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>lock</category>
-      </categories>
-      <tags>
-        <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Linux中搭建maven+nexus仓库</title>
     <url>/2018/09/22/Linux%E4%B8%AD%E6%90%AD%E5%BB%BAmaven+nexus%E7%A7%81%E4%BA%BA%E4%BB%93%E5%BA%93/</url>
     <content><![CDATA[<p>Linux中搭建maven+nexus私人仓库</p>
@@ -1237,95 +1237,6 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
-    <url>/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</url>
-    <content><![CDATA[<p>。</p>
-<p><strong>1.结论</strong></p>
-<p>在RR的隔离级别下，InnoDB使用MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。</p>
-<p><strong>2.幻读是什么</strong></p>
-<p>事务A，先执行：</p>
-<p>update table set name = ‘kkk’ where id &gt; 9 ;</p>
-<p>结果：</p>
-<p>OK row xx表名成功影响多少行数据</p>
-<p>事务B，后执行，并且提交</p>
-<p>insert into table values( 12, uu);</p>
-<p>commit;</p>
-<p>事务A，然后在select一下：</p>
-<p>select * from table where id &gt; 9 ;</p>
-<p>结果集为：</p>
-<p>  …..12,uu….</p>
-<p>事务A懵了，刚才不是id&gt;9全部更新了吗，怎么又出现一个未更新的数据。主要是因为这次是已提交事务B对事务A产生的影响，这个影响叫做幻读。<br>（一个事务范围操作时，另一个事务进行了新增、删除操作）</p>
-<p>幻读、不可重复读区别： </p>
-<ul>
-<li>幻读：一个范围</li>
-<li>不可重复读：本身</li>
-</ul>
-<p><strong>3.怎样解决</strong></p>
-<ul>
-<li><p>3.1当前读</p>
-<p>所谓当前读，指加锁的select(S或X)、update、delete等语句。在RR事务隔离级别下，数据库会使用next-key locks来锁住本条记录以及索引区间。</p>
-</li>
-</ul>
-<p>使用上个例子，在RR的情况下，假设使用的是当前读，加锁了的读 select * from table where id &gt; 3 锁住的就是id = 3 这条记录及id &gt; 3这个区间范围，锁住索引记录之间的范围，避免范围插入记录，已避免产生幻影行记录。</p>
-<ul>
-<li>3.2普通读</li>
-</ul>
-<p>普通读是不会加锁读，故不会有next-key locks的使用，解决幻读的手段是MVCC。<br>MVCC会给每行元组加一些辅助字段，记录创建版本号和删除版本号，。</p>
-<p>每个事务在启动时，都有一个唯一的递增的版本号。每开启一个新事务，事务的版本号就会递增。</p>
-<p><strong>默认的隔离级别（Repeatable Read)下，增删改查 变成了这样：</strong></p>
-<ul>
-<li>SELECT： 读取创建版本小于或等于当前事务版本号，并且删除版本为空或大于当前事务版本号的记录。这样可以保证在读取之前记录是存在的。</li>
-</ul>
-<ul>
-<li>INSERT： 将当前事务的版本号保存至行的创建版本号。</li>
-</ul>
-<ul>
-<li>UPDATE： 新插入一行，并以当前事务的版本号作为新行的创建版本号，同时将原记录行的删除版本号设置为当前事务版本号。</li>
-</ul>
-<ul>
-<li>DELETE： 将当前事务的版本号保存至行的删除版本号。</li>
-</ul>
-<p>如插入一条记录，事务id假设为1，那么记录如下，就是创建版本号就是事务版本号。</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000001.png" alt="Alt text"></p>
-<p>如更新的话，事务id假设是2</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000002.png" alt="Alt text"></p>
-<p>这里是把name更新为taotao，原来的元组deleteversion版本号为这个事务的id，并且新增一条。</p>
-<p>如删除的话，假设事务id=3，</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000003.png" alt="Alt text"></p>
-<p><strong>关键点</strong></p>
-<p>现读取必须满足两个条件：</p>
-<ul>
-<li><p>读取创建版本小于或等于当前事务版本号  意味着数据在这个事务之前被创建。</p>
-</li>
-<li><p>删除版本为空或大于当前事务版本号的记录。意味着删除操作在这个事务之后发生的。</p>
-</li>
-</ul>
-<p>以上面例子，当前数据库的状态</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000004.png" alt="Alt text"></p>
-<p>假设事务A的id=10</p>
-<p>现在update table set name = “kkkkk” where id &gt; 3 ;执行这条语句。</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000005.png" alt="Alt text"></p>
-<p>事务B的id  = 12</p>
-<p>insert into table values(12, uu);</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000006.png" alt="Alt text"></p>
-<p>最后事务A(id = 10)在此读取</p>
-<p> select * from table where id &gt; 3;</p>
-<p>根据上述规则，读取创建版本号小于等于当前事务的-&gt; 那么（4,a)<br>(5,b) (4,hh) (5,hh)</p>
-<p>上面规则的输出作为下面规则的输入的话，删除版本为空或大于当前事务版本号的记录-&gt;（4，hh) (5,hh)<br>读取就没有读到事务B新插入的那行，解决幻读。</p>
-<p>如果事务B是更新id = 4的元组 name = cc呢。同理，根据update的规则</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000007.png" alt="Alt text"></p>
-<p>然后根据select的规则去读取的话，得到的还是(4,hh) (5,hh)<br><strong><br>综述：</strong></p>
-<p>在RC的模式下，MVCC解决不了幻读、不可重复读，因为每次读都会读它自己刷新的快照版本，简单来说就是另一个事务提交，他就刷新一次，去读最新的。</p>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-        <tag>幻读</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>MySQL三大日志(bin log、redo log、undo log)</title>
     <url>/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/</url>
     <content><![CDATA[<p>日志是mysql数据库的重要组成部分，记录着数据库运行期间各种状态信息。mysql日志主要包括错误日志、查询日志、慢查询日志、事务日志、二进制日志几大类。作为后端开发，需要重点关注的是二进制日志(binlog)和事务日志(包括redo log和undo log)，接下来会详细介绍</p>
@@ -1413,6 +1324,95 @@ public class QuartzDemo{
       <tags>
         <tag>mysql</tag>
         <tag>log</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
+    <url>/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</url>
+    <content><![CDATA[<p>。</p>
+<p><strong>1.结论</strong></p>
+<p>在RR的隔离级别下，InnoDB使用MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。</p>
+<p><strong>2.幻读是什么</strong></p>
+<p>事务A，先执行：</p>
+<p>update table set name = ‘kkk’ where id &gt; 9 ;</p>
+<p>结果：</p>
+<p>OK row xx表名成功影响多少行数据</p>
+<p>事务B，后执行，并且提交</p>
+<p>insert into table values( 12, uu);</p>
+<p>commit;</p>
+<p>事务A，然后在select一下：</p>
+<p>select * from table where id &gt; 9 ;</p>
+<p>结果集为：</p>
+<p>  …..12,uu….</p>
+<p>事务A懵了，刚才不是id&gt;9全部更新了吗，怎么又出现一个未更新的数据。主要是因为这次是已提交事务B对事务A产生的影响，这个影响叫做幻读。<br>（一个事务范围操作时，另一个事务进行了新增、删除操作）</p>
+<p>幻读、不可重复读区别： </p>
+<ul>
+<li>幻读：一个范围</li>
+<li>不可重复读：本身</li>
+</ul>
+<p><strong>3.怎样解决</strong></p>
+<ul>
+<li><p>3.1当前读</p>
+<p>所谓当前读，指加锁的select(S或X)、update、delete等语句。在RR事务隔离级别下，数据库会使用next-key locks来锁住本条记录以及索引区间。</p>
+</li>
+</ul>
+<p>使用上个例子，在RR的情况下，假设使用的是当前读，加锁了的读 select * from table where id &gt; 3 锁住的就是id = 3 这条记录及id &gt; 3这个区间范围，锁住索引记录之间的范围，避免范围插入记录，已避免产生幻影行记录。</p>
+<ul>
+<li>3.2普通读</li>
+</ul>
+<p>普通读是不会加锁读，故不会有next-key locks的使用，解决幻读的手段是MVCC。<br>MVCC会给每行元组加一些辅助字段，记录创建版本号和删除版本号，。</p>
+<p>每个事务在启动时，都有一个唯一的递增的版本号。每开启一个新事务，事务的版本号就会递增。</p>
+<p><strong>默认的隔离级别（Repeatable Read)下，增删改查 变成了这样：</strong></p>
+<ul>
+<li>SELECT： 读取创建版本小于或等于当前事务版本号，并且删除版本为空或大于当前事务版本号的记录。这样可以保证在读取之前记录是存在的。</li>
+</ul>
+<ul>
+<li>INSERT： 将当前事务的版本号保存至行的创建版本号。</li>
+</ul>
+<ul>
+<li>UPDATE： 新插入一行，并以当前事务的版本号作为新行的创建版本号，同时将原记录行的删除版本号设置为当前事务版本号。</li>
+</ul>
+<ul>
+<li>DELETE： 将当前事务的版本号保存至行的删除版本号。</li>
+</ul>
+<p>如插入一条记录，事务id假设为1，那么记录如下，就是创建版本号就是事务版本号。</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000001.png" alt="Alt text"></p>
+<p>如更新的话，事务id假设是2</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000002.png" alt="Alt text"></p>
+<p>这里是把name更新为taotao，原来的元组deleteversion版本号为这个事务的id，并且新增一条。</p>
+<p>如删除的话，假设事务id=3，</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000003.png" alt="Alt text"></p>
+<p><strong>关键点</strong></p>
+<p>现读取必须满足两个条件：</p>
+<ul>
+<li><p>读取创建版本小于或等于当前事务版本号  意味着数据在这个事务之前被创建。</p>
+</li>
+<li><p>删除版本为空或大于当前事务版本号的记录。意味着删除操作在这个事务之后发生的。</p>
+</li>
+</ul>
+<p>以上面例子，当前数据库的状态</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000004.png" alt="Alt text"></p>
+<p>假设事务A的id=10</p>
+<p>现在update table set name = “kkkkk” where id &gt; 3 ;执行这条语句。</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000005.png" alt="Alt text"></p>
+<p>事务B的id  = 12</p>
+<p>insert into table values(12, uu);</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000006.png" alt="Alt text"></p>
+<p>最后事务A(id = 10)在此读取</p>
+<p> select * from table where id &gt; 3;</p>
+<p>根据上述规则，读取创建版本号小于等于当前事务的-&gt; 那么（4,a)<br>(5,b) (4,hh) (5,hh)</p>
+<p>上面规则的输出作为下面规则的输入的话，删除版本为空或大于当前事务版本号的记录-&gt;（4，hh) (5,hh)<br>读取就没有读到事务B新插入的那行，解决幻读。</p>
+<p>如果事务B是更新id = 4的元组 name = cc呢。同理，根据update的规则</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000007.png" alt="Alt text"></p>
+<p>然后根据select的规则去读取的话，得到的还是(4,hh) (5,hh)<br><strong><br>综述：</strong></p>
+<p>在RC的模式下，MVCC解决不了幻读、不可重复读，因为每次读都会读它自己刷新的快照版本，简单来说就是另一个事务提交，他就刷新一次，去读最新的。</p>
+]]></content>
+      <categories>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
+        <tag>幻读</tag>
       </tags>
   </entry>
   <entry>
@@ -1616,81 +1616,6 @@ addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filte
       </tags>
   </entry>
   <entry>
-    <title>final、finally、finalize</title>
-    <url>/2015/07/12/final%E3%80%81finally%E3%80%81finalize%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D/</url>
-    <content><![CDATA[<p><strong>final、finally、finalize的区别？</strong></p>
-<p><strong>1.final</strong></p>
-<p>在Java中，final可以用来修改类，方法和变量（成员变量或局部变量）。如下对其详细介绍。</p>
-<p><strong>1.1修饰类</strong></p>
-<p>当用final修饰类的时候，表名该类不能被其他类继承。当需要让一个类永远不被继承，可使用final修改。但要注意：final类中所有的成员方法都会隐式的定义为final方法。</p>
-<p><strong>1.2修饰方法</strong></p>
-<p>使用final方法的原因有二</p>
-<p>（1)把方法锁定，防止继承类对其进行更改。</p>
-<p>（2）效率，在早期java版本中，将final方法转为内嵌调用。但若方法过于庞大，可能在性能上不会有所提升。因此近期版本中，不需使用final方法进行这些优化。</p>
-<p>final方法意味着“最后的、最终的”含义，即此方法不能被重写。</p>
-<p>注意：若父类中final方法的访问权限为private，将导致子类中不能直接继承该方法，因此，此时可以在子类中定义相同方法名的函数，此时不会与重写final的矛盾，而是在子类中重新定义了新方法。</p>
-<pre><code>class A{
-    private final void getName(){}
-}
-
-public class B extends A{
-    public void getName(){}
-
-    public static void main(String[] args){
-        System.err.println(&quot;OK&quot;);
-    }
-}
-</code></pre><p><strong>1.3修饰变量</strong></p>
-<p>final成员变量标识常量，只能被赋值一次，赋值后其值不再改变。</p>
-<p>当final修饰一个基本数据类型时，表示该基本数据类型的值一旦初始化便不能发生变化。如果final修饰一个引用类型时，则在对其初始化之后便不能再让其指向其他对象了，但该引用所指向的对象内是可以改变的。因为引用的值是一个地址，final要求值，即地址的值不发生变化。</p>
-<p> final修饰一个成员变量（属性），必须要显示初始化。有两种初始化方式，一种是在变量声明的时候初始化；二种方法是在声明变量的时候不赋值，但要在这个变量所在的类的所有构造方法中对这个变量赋初始值。</p>
-<p> 当函数的参数类型声明为final时，说明该参数是只读型。可读取使用该参数，但无法改变该参数的值。</p>
-<p><img src="/images/final/1.jpg" alt="Alt text"></p>
-<p>在java中，String被设计成final类，那么为什么平时使用时，String的值可以被改变呢？</p>
-<p> 字符串常量池是java堆内存中一个特殊的存储区域，创建一个String对象时，假设常量池不存在该字符串，创建一个若存在直接引用这个存在的字符串。当改变String对象值时，例如 String a=”A”; a=”B” 。a是String对象的一个引用（我们这里所说的String对象其实是指字符串常量），当a=“B”执行时，并不是原本String对象(“A”)发生改变，而是创建一个新的对象(“B”)，令a引用它。</p>
-<p><strong>2.finally</strong></p>
-<p> finally作为异常处理的一部分，只能用在try/catch语句中，并附带一个语句块，标识这段语句最终一定会被执行（不管有没有抛出异常），经常被用在需要释放资源的情况下（这句话其实存在一定问题）。</p>
-<p> 很多人认为finally语句块一定会执行，但真是这样么？否定的。</p>
-<p><img src="/images/final/2.jpg" alt="Alt text"></p>
-<p><img src="/images/final/3.jpg" alt="Alt text"></p>
-<p>为什么以上两种情况没有执行finally语句呢，说明了问题。</p>
-<p>只有与finally对应的try语句块得到执行的情况下，finally语句块才会执行。以上两种情况在执行try语句块之前已经返回或抛出异常，所以try对应的finally语句并没有执行。</p>
-<p>但在某些情况下，即使try语句执行了，finally语句也不一定执行。如：</p>
-<p><img src="/images/final/4.jpg" alt="Alt text"></p>
-<p>– try语句执行了，也不一定执行finally，使用了system.exit(0);</p>
-<p>finally语句块还是没有执行，因为在try语句块中执行了System.exit(0)语句，终止了Java虚拟机的运行。一般java应用中基本上是不会调用这个System.exit(0)方法的。但是不调用System.exit(0)这个方法，finally语句块就一定执行吗？当然也不一定会执行。当一个线程在执行try语句块或catch语句块时被打断（interrupted）或被终止(killed)，与其相应的finally语句块可能不会执行。还有更极端的情况，就是在线程运行try语句或者catch语句时，突然宕机或断电，finally语句块肯定不会执行了。</p>
-<p><strong>易错点</strong></p>
-<p>在try-catch-finally语句中执行return语句，如下代码？</p>
-<p><img src="/images/final/5.jpg" alt="Alt text"></p>
-<p>返回： 4、4、4，为什么呢？</p>
-<p>首先finally语句在该代码中一定会执行，从运行结果中看，每次return的结果都是4（即finally语句），仿佛其他return语句被屏蔽了。</p>
-<p>事实也是如此，因为finally用法特殊，所以会撤销之前的return语句，继续执行最后的finally块中的代码。</p>
-<p><strong>3.finalize</strong></p>
-<p>finalize()是在java.lang.Object里定义的，即每个对象都有这个方法。这个方法在GC启动，该对象被回收的时候被调用。其实GC可以回收大部分对象（凡是new出来的对象，GC都能搞定，一般情况下我们又不会使用new以外的方式去创建对象），所以一般是不需要程序员去实现finalize的。特殊情况下，需要程序员实现finalize，当对象被回收的时候释放一些资源。如：socket链接，在对象初始化时创建，整个生命周期内有效，那么就需要实现finalize，关闭这个链接。</p>
-<p>　使用finalize还需要注意一个事，调用super.finalize();</p>
-<p>　　一个对象的finalize()方法只会被调用一次，而且finalize()被调用不意味着gc会立即回收该对象，所以有可能调用finalize()后，该对象又不需要被回收了，然后到了真正要被回收的时候，因为前面调用过一次，所以不会调用finalize()，产生问题。 所以，推荐不要使用finalize()方法，它跟析构函数不一样。</p>
-]]></content>
-      <categories>
-        <category>J2SE</category>
-      </categories>
-      <tags>
-        <tag>J2SE</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>基于Hexo和Github搭建博客</title>
-    <url>/2015/06/15/hello-hexo/</url>
-    <content><![CDATA[]]></content>
-      <categories>
-        <category>搭建博客</category>
-      </categories>
-      <tags>
-        <tag>npm</tag>
-        <tag>hexo</tag>
-        <tag>github</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Map简述（一）</title>
     <url>/2018/07/21/hashMap%E7%AE%80%E8%BF%B0%EF%BC%88%E4%B8%80%EF%BC%89/</url>
     <content><![CDATA[<p><strong>HashMNap内存结构</strong></p>
@@ -1858,6 +1783,81 @@ resize();
       </tags>
   </entry>
   <entry>
+    <title>final、finally、finalize</title>
+    <url>/2015/07/12/final%E3%80%81finally%E3%80%81finalize%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D/</url>
+    <content><![CDATA[<p><strong>final、finally、finalize的区别？</strong></p>
+<p><strong>1.final</strong></p>
+<p>在Java中，final可以用来修改类，方法和变量（成员变量或局部变量）。如下对其详细介绍。</p>
+<p><strong>1.1修饰类</strong></p>
+<p>当用final修饰类的时候，表名该类不能被其他类继承。当需要让一个类永远不被继承，可使用final修改。但要注意：final类中所有的成员方法都会隐式的定义为final方法。</p>
+<p><strong>1.2修饰方法</strong></p>
+<p>使用final方法的原因有二</p>
+<p>（1)把方法锁定，防止继承类对其进行更改。</p>
+<p>（2）效率，在早期java版本中，将final方法转为内嵌调用。但若方法过于庞大，可能在性能上不会有所提升。因此近期版本中，不需使用final方法进行这些优化。</p>
+<p>final方法意味着“最后的、最终的”含义，即此方法不能被重写。</p>
+<p>注意：若父类中final方法的访问权限为private，将导致子类中不能直接继承该方法，因此，此时可以在子类中定义相同方法名的函数，此时不会与重写final的矛盾，而是在子类中重新定义了新方法。</p>
+<pre><code>class A{
+    private final void getName(){}
+}
+
+public class B extends A{
+    public void getName(){}
+
+    public static void main(String[] args){
+        System.err.println(&quot;OK&quot;);
+    }
+}
+</code></pre><p><strong>1.3修饰变量</strong></p>
+<p>final成员变量标识常量，只能被赋值一次，赋值后其值不再改变。</p>
+<p>当final修饰一个基本数据类型时，表示该基本数据类型的值一旦初始化便不能发生变化。如果final修饰一个引用类型时，则在对其初始化之后便不能再让其指向其他对象了，但该引用所指向的对象内是可以改变的。因为引用的值是一个地址，final要求值，即地址的值不发生变化。</p>
+<p> final修饰一个成员变量（属性），必须要显示初始化。有两种初始化方式，一种是在变量声明的时候初始化；二种方法是在声明变量的时候不赋值，但要在这个变量所在的类的所有构造方法中对这个变量赋初始值。</p>
+<p> 当函数的参数类型声明为final时，说明该参数是只读型。可读取使用该参数，但无法改变该参数的值。</p>
+<p><img src="/images/final/1.jpg" alt="Alt text"></p>
+<p>在java中，String被设计成final类，那么为什么平时使用时，String的值可以被改变呢？</p>
+<p> 字符串常量池是java堆内存中一个特殊的存储区域，创建一个String对象时，假设常量池不存在该字符串，创建一个若存在直接引用这个存在的字符串。当改变String对象值时，例如 String a=”A”; a=”B” 。a是String对象的一个引用（我们这里所说的String对象其实是指字符串常量），当a=“B”执行时，并不是原本String对象(“A”)发生改变，而是创建一个新的对象(“B”)，令a引用它。</p>
+<p><strong>2.finally</strong></p>
+<p> finally作为异常处理的一部分，只能用在try/catch语句中，并附带一个语句块，标识这段语句最终一定会被执行（不管有没有抛出异常），经常被用在需要释放资源的情况下（这句话其实存在一定问题）。</p>
+<p> 很多人认为finally语句块一定会执行，但真是这样么？否定的。</p>
+<p><img src="/images/final/2.jpg" alt="Alt text"></p>
+<p><img src="/images/final/3.jpg" alt="Alt text"></p>
+<p>为什么以上两种情况没有执行finally语句呢，说明了问题。</p>
+<p>只有与finally对应的try语句块得到执行的情况下，finally语句块才会执行。以上两种情况在执行try语句块之前已经返回或抛出异常，所以try对应的finally语句并没有执行。</p>
+<p>但在某些情况下，即使try语句执行了，finally语句也不一定执行。如：</p>
+<p><img src="/images/final/4.jpg" alt="Alt text"></p>
+<p>– try语句执行了，也不一定执行finally，使用了system.exit(0);</p>
+<p>finally语句块还是没有执行，因为在try语句块中执行了System.exit(0)语句，终止了Java虚拟机的运行。一般java应用中基本上是不会调用这个System.exit(0)方法的。但是不调用System.exit(0)这个方法，finally语句块就一定执行吗？当然也不一定会执行。当一个线程在执行try语句块或catch语句块时被打断（interrupted）或被终止(killed)，与其相应的finally语句块可能不会执行。还有更极端的情况，就是在线程运行try语句或者catch语句时，突然宕机或断电，finally语句块肯定不会执行了。</p>
+<p><strong>易错点</strong></p>
+<p>在try-catch-finally语句中执行return语句，如下代码？</p>
+<p><img src="/images/final/5.jpg" alt="Alt text"></p>
+<p>返回： 4、4、4，为什么呢？</p>
+<p>首先finally语句在该代码中一定会执行，从运行结果中看，每次return的结果都是4（即finally语句），仿佛其他return语句被屏蔽了。</p>
+<p>事实也是如此，因为finally用法特殊，所以会撤销之前的return语句，继续执行最后的finally块中的代码。</p>
+<p><strong>3.finalize</strong></p>
+<p>finalize()是在java.lang.Object里定义的，即每个对象都有这个方法。这个方法在GC启动，该对象被回收的时候被调用。其实GC可以回收大部分对象（凡是new出来的对象，GC都能搞定，一般情况下我们又不会使用new以外的方式去创建对象），所以一般是不需要程序员去实现finalize的。特殊情况下，需要程序员实现finalize，当对象被回收的时候释放一些资源。如：socket链接，在对象初始化时创建，整个生命周期内有效，那么就需要实现finalize，关闭这个链接。</p>
+<p>　使用finalize还需要注意一个事，调用super.finalize();</p>
+<p>　　一个对象的finalize()方法只会被调用一次，而且finalize()被调用不意味着gc会立即回收该对象，所以有可能调用finalize()后，该对象又不需要被回收了，然后到了真正要被回收的时候，因为前面调用过一次，所以不会调用finalize()，产生问题。 所以，推荐不要使用finalize()方法，它跟析构函数不一样。</p>
+]]></content>
+      <categories>
+        <category>J2SE</category>
+      </categories>
+      <tags>
+        <tag>J2SE</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>基于Hexo和Github搭建博客</title>
+    <url>/2015/06/15/hello-hexo/</url>
+    <content><![CDATA[]]></content>
+      <categories>
+        <category>搭建博客</category>
+      </categories>
+      <tags>
+        <tag>npm</tag>
+        <tag>hexo</tag>
+        <tag>github</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中创建对象的五种形式</title>
     <url>/2015/06/18/java%E4%B8%AD%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%BA%94%E7%A7%8D%E5%BD%A2%E5%BC%8F/</url>
     <content><![CDATA[<p>我们每天创建很多对象，通常使用依赖管理，比如Spring去创建对象。然而这里有很多创建对象的方法，我们会在这篇文章中学到。</p>
@@ -2006,6 +2006,49 @@ Employee [name=Akash], hashcode : 63313419
       </tags>
   </entry>
   <entry>
+    <title>java中日期格式规范</title>
+    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
+    <content><![CDATA[<p>日期格式的规范：</p>
+<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
+<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
+<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
+<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
+<p>desc: 日期格式中的这两对字母表示意义：</p>
+<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
+<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
+<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
+<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
+<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
+<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
+<pre><code>正例:
+//获取今年的天数
+int dayOfThisYear = LocalDate.now().lengthOfYear();
+
+//获取指定某年的天数
+LocalDate.of(2011,1,1).lengthOfYear();
+
+反例：
+
+// 第一种情况：在闰年366天时，出现数组越界异常
+int[] dayArray = new int[365];
+
+// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
+Calendar calendar = Calendar.getInstance();
+calendar.set(2020, 1, 26);
+calendar.add(Calendar.DATE, 365);
+</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
+<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
+<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
+<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
+]]></content>
+      <categories>
+        <category>日期格式</category>
+      </categories>
+      <tags>
+        <tag>日期格式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中的锁(偏向锁、轻量锁..）</title>
     <url>/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</url>
     <content><![CDATA[<p><strong>CAS操作：</strong><br>compareAndSwap,比较并替换，实现并发算法常用技术</p>
@@ -2102,49 +2145,6 @@ Employee [name=Akash], hashcode : 63313419
       </categories>
       <tags>
         <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中日期格式规范</title>
-    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
-    <content><![CDATA[<p>日期格式的规范：</p>
-<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
-<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
-<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
-<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
-<p>desc: 日期格式中的这两对字母表示意义：</p>
-<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
-<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
-<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
-<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
-<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
-<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
-<pre><code>正例:
-//获取今年的天数
-int dayOfThisYear = LocalDate.now().lengthOfYear();
-
-//获取指定某年的天数
-LocalDate.of(2011,1,1).lengthOfYear();
-
-反例：
-
-// 第一种情况：在闰年366天时，出现数组越界异常
-int[] dayArray = new int[365];
-
-// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
-Calendar calendar = Calendar.getInstance();
-calendar.set(2020, 1, 26);
-calendar.add(Calendar.DATE, 365);
-</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
-<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
-<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
-<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
-]]></content>
-      <categories>
-        <category>日期格式</category>
-      </categories>
-      <tags>
-        <tag>日期格式</tag>
       </tags>
   </entry>
   <entry>
@@ -2801,6 +2801,73 @@ public News getHystrixNews(@PathVariable(&quot;id&quot;) int id) {
       </tags>
   </entry>
   <entry>
+    <title>java中Orderd接口</title>
+    <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
+    <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
+<blockquote>
+<p>ordered接口和@order注解都可控制类的处理顺序，遵循数字越小，优先加载。</p>
+</blockquote>
+<p><strong>场景：</strong></p>
+<ul>
+<li><p>过滤器filter中可以使用@order注解控制filter的拦截顺序</p>
+</li>
+<li><p>Spring中采用实现Ordered接口来控制拦截顺序。Spring中提供了AnnotationAwareOrderComparator类，只要实现接口ordered或用@order注解都可完成对类的排序。</p>
+</li>
+</ul>
+<p>例：</p>
+<pre><code>public abstract class ReadService {
+
+     public abstract void read();
+
+}
+
+
+public class WriteJavaServiceImpl extends WriteService implements Ordered {
+
+        @Override
+        public void write() {
+            System.err.println(&quot;6.写java&quot;);
+        }
+
+        @Override
+        public int getOrder() {
+
+            return 6;
+        }
+}
+
+@Order(2)
+public class WritePythonServiceImpl extends WriteService {
+
+    @Override
+    public void write() {
+        System.err.println(&quot;2.写Python&quot;);
+    }
+}
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class OrderTest {
+
+    @Test
+    public void orderTest() {
+        List&lt;WriteService&gt; list = new ArrayList&lt;&gt;();
+        list.add(new WriteJavaServiceImpl());
+        list.add(new WritePythonServiceImpl());
+        //对list进行排序
+        AnnotationAwareOrderComparator.sort(list);
+        list.forEach(WriteService::write);
+    }
+}
+</code></pre>]]></content>
+      <categories>
+        <category>orderd</category>
+      </categories>
+      <tags>
+        <tag>orderd</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>索引添加的几种方式</title>
     <url>/2014/03/15/mysql%E6%B7%BB%E5%8A%A0%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/</url>
     <content><![CDATA[<p><strong>索引</strong></p>
@@ -2910,73 +2977,6 @@ drop PRIMARY KEY
       </categories>
       <tags>
         <tag>索引</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中Orderd接口</title>
-    <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
-    <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
-<blockquote>
-<p>ordered接口和@order注解都可控制类的处理顺序，遵循数字越小，优先加载。</p>
-</blockquote>
-<p><strong>场景：</strong></p>
-<ul>
-<li><p>过滤器filter中可以使用@order注解控制filter的拦截顺序</p>
-</li>
-<li><p>Spring中采用实现Ordered接口来控制拦截顺序。Spring中提供了AnnotationAwareOrderComparator类，只要实现接口ordered或用@order注解都可完成对类的排序。</p>
-</li>
-</ul>
-<p>例：</p>
-<pre><code>public abstract class ReadService {
-
-     public abstract void read();
-
-}
-
-
-public class WriteJavaServiceImpl extends WriteService implements Ordered {
-
-        @Override
-        public void write() {
-            System.err.println(&quot;6.写java&quot;);
-        }
-
-        @Override
-        public int getOrder() {
-
-            return 6;
-        }
-}
-
-@Order(2)
-public class WritePythonServiceImpl extends WriteService {
-
-    @Override
-    public void write() {
-        System.err.println(&quot;2.写Python&quot;);
-    }
-}
-
-@RunWith(SpringRunner.class)
-@SpringBootTest
-public class OrderTest {
-
-    @Test
-    public void orderTest() {
-        List&lt;WriteService&gt; list = new ArrayList&lt;&gt;();
-        list.add(new WriteJavaServiceImpl());
-        list.add(new WritePythonServiceImpl());
-        //对list进行排序
-        AnnotationAwareOrderComparator.sort(list);
-        list.forEach(WriteService::write);
-    }
-}
-</code></pre>]]></content>
-      <categories>
-        <category>orderd</category>
-      </categories>
-      <tags>
-        <tag>orderd</tag>
       </tags>
   </entry>
   <entry>
@@ -3171,6 +3171,65 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </categories>
       <tags>
         <tag>synchronized</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>window中将redis注册为本地服务</title>
+    <url>/2016/08/06/window%E4%B8%AD%E5%B0%86redis%E6%B3%A8%E5%86%8C%E4%B8%BA%E6%9C%8D%E5%8A%A1/</url>
+    <content><![CDATA[<p><strong>在window中将redis注册为本地服务</strong></p>
+<p>一般可以通过 redis-server.exe 和配置文件启动redis服务 :</p>
+<p>redis-server.exe  redis.windows.conf </p>
+<p>另外开启一个命令行窗口 redis-cli.exe 即可做一些简单的操作命令行</p>
+<p>但我们关闭控制台，Redis服务也跟随着一起关闭了，想使用的时候又得执行命令重新开启动redis 服务，是非常低效又麻烦的。</p>
+<p>在Windows中有个本地服务的概念，我们的目标就是将Redis注册成这里面的一个服务，然后就可以不受控制台退出的影响了。</p>
+<p><strong>注册为本地服务</strong></p>
+<p>redis-server.exe –service-install redis.windows.conf </p>
+<p><img src="/images/window_install_redis_001/00001.png" alt="图1"></p>
+<p>从图中看到已成功授权并且注册成功，接下来，我们到windows服务中去看一下是否有redis服务：</p>
+<p><img src="/images/window_install_redis_001/00002.png" alt="图2"></p>
+<p>查看已在</p>
+<p><strong>开启Redis服务</strong></p>
+<ul>
+<li>方法一：选中Redis项右击-》启动</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00003.png" alt="图3"></p>
+<ul>
+<li>方法二：redis-server –service-start</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00004.png" alt="图4"></p>
+<p><strong>常用命令：</strong></p>
+<ul>
+<li><p>注册服务   redis-server –service-install redis.windows.conf</p>
+</li>
+<li><p>删除服务   redis-server –service-uninstall</p>
+</li>
+<li><p>开启服务   redis-server –service-start</p>
+</li>
+<li><p>停止服务   redis-server –service-stop</p>
+</li>
+</ul>
+<p><strong>创建多个Redis实例</strong></p>
+<ul>
+<li>1.复制一份redis.windows.conf 配置文件，改名为 redis.windows10001.conf</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00005.png" alt="图5"></p>
+<ul>
+<li>2.更改 redis.windows10001.conf 配置文件的信息 端口号 port 为 10001</li>
+</ul>
+<ul>
+<li>3.注册为window服务</li>
+</ul>
+<p>redis-server.exe –service-install redis.windows10001.conf –service-name redis10001 –port 10001</p>
+<p><img src="/images/window_install_redis_001/00006.png" alt="图6"></p>
+<p>从windows服务中可以看到，有两个redis服务，刚才注册的是redis10001，服务还未开启，如下图所示：</p>
+<p><img src="/images/window_install_redis_001/00007.png" alt="图7"></p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
+        <tag>window</tag>
       </tags>
   </entry>
   <entry>
