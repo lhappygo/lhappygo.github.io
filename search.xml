@@ -60,54 +60,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Eureka工作流程小记</title>
-    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
-    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
-<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
-<p><strong>Eureka工作流程</strong></p>
-<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
-<ul>
-<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
-</li>
-<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
-</li>
-<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
-</li>
-<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
-</li>
-<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
-</li>
-<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
-</li>
-<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
-</li>
-<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
-</li>
-<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
-</li>
-<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
-</li>
-</ul>
-<p><strong>点滴：</strong></p>
-<ul>
-<li>客户端主动通知注册中心下线</li>
-</ul>
-<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
-<ul>
-<li>服务器端配置：</li>
-</ul>
-<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
-<p>客户端配置：</p>
-<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
-]]></content>
-      <categories>
-        <category>eureka</category>
-      </categories>
-      <tags>
-        <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>CAS算法及ABA问题</title>
     <url>/2020/03/07/CAS%E7%AE%97%E6%B3%95%E5%8F%8A%E5%AD%98%E5%9C%A8%E9%97%AE%E9%A2%98/</url>
     <content><![CDATA[<p><strong>CAS算法</strong></p>
@@ -231,79 +183,162 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>Eureka高可用及数据一致性</title>
-    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<p><strong>一致性问题：</strong></p>
-<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
-<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
-<p><strong>Eureka是弱数据一致性的</strong></p>
-<p>两个方面：</p>
+    <title>Java中AQS</title>
+    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
+    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
+<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
+<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
+<p><strong>2.AQS提供了一把密码锁</strong></p>
+<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
 <ul>
-<li><p>什么是弱一致性</p>
-<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
-<p>分布式系统中存在一个重要理论：CAP</p>
+<li>列出了AQS的三个成员变量</li>
+<li>同步队列头结点引用</li>
+<li>同步队列尾结点引用</li>
+<li>同步状态</li>
+</ul>
+<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
+<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
+<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
+<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
+<p><strong>AQS内部两个排队区</strong></p>
+<ul>
+<li>同步队列<ul>
+<li>只有一条</li>
+<li>结点，分别持有前后结点引用</li>
+</ul>
+</li>
+<li>条件队列<ul>
+<li>可有多条</li>
+<li>结点，只有一个指向后继结点的引用</li>
+</ul>
 </li>
 </ul>
-<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
-<p>该理论提到了三个分布式系统的3个特性：</p>
+<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
+<p>注：</p>
 <ul>
-<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
-<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
+<li><p>同步队列节点来源</p>
+<ul>
+<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
+<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
+</ul>
 </li>
-<li><p>Availability 可用性</p>
-<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
+<li><p>条件队列节点来源</p>
+<ul>
+<li>调用await方法阻塞线程。</li>
+<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
+</ul>
 </li>
-<li><p>Partition Tolerance 分区容错性</p>
-<p>集群部分节点故障，其他节点仍可用</p>
+</ul>
+<p><strong>总结：</strong></p>
+<ul>
+<li>同步队列与条件队列节点可互相转化</li>
+<li>一个线程只能存在于两个队列中的一个</li>
+</ul>
+<p>队列每个结点结构</p>
+<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
+<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
+<p><strong>Node:</strong></p>
+<ul>
+<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
+</li>
+<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
+</li>
+<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
+</li>
+<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
+</li>
+<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
+</li>
+<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
+</li>
+<li><p>volatile int waitStatus：当前结点的等待状态</p>
+</li>
+<li><p>volatile Node pre：同步队列中的前继结点</p>
+</li>
+<li><p>volatile Node next：同步队列中的后继结点</p>
+</li>
+<li><p>volatile Thread thread：当前结点持有的线程引用</p>
+</li>
+<li><p>final boolean isShared()：当前结点是否为共享模式</p>
+</li>
+<li><p>final Node predecessor()：返回当前结点的前继结点</p>
+</li>
+<li><p>Node(){}：构造器1</p>
+</li>
+<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
+</li>
+<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
 </li>
 </ul>
 <blockquote>
-<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
+<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
 </blockquote>
-<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
-<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
-<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
-<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
-<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
-<p><strong>2.Eureka数据同步方式</strong></p>
-<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
+<p><strong>4.理解结点锁等待状态</strong></p>
+<p>每个节点都有一个等待状态，共四种等待状态。</p>
 <ul>
-<li><strong>主从复制</strong></li>
+<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
 </ul>
-<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
-<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
 <ul>
-<li><strong>对等复制</strong></li>
+<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
+</li>
+<li><p>CONDITION：该线程在条件队列中排队。</p>
+</li>
+<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
+</li>
 </ul>
-<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
-<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
-<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
-<p><strong>2.2同步过程</strong></p>
-<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
-<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
-<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
-<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
-<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
-<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
-<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
-<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
-<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
-<blockquote>
-<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
-</blockquote>
-<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
-<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
-<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
-<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
-<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
-<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
-<p><strong>汇总：</strong></p>
+<p><strong>5.结点进入同步队列时进行的操作</strong></p>
+<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
+<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
+<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
+<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
+]]></content>
+      <categories>
+        <category>AQS</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Eureka工作流程小记</title>
+    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
+    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
+<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
+<p><strong>Eureka工作流程</strong></p>
+<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
 <ul>
-<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
-<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
-<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
-<li>Eureka通过心跳机制实现数据修复。</li>
+<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
+</li>
+<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
+</li>
+<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
+</li>
+<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
+</li>
+<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
+</li>
+<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
+</li>
+<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
+</li>
+<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
+</li>
+<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
+</li>
+<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
+</li>
 </ul>
+<p><strong>点滴：</strong></p>
+<ul>
+<li>客户端主动通知注册中心下线</li>
+</ul>
+<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
+<ul>
+<li>服务器端配置：</li>
+</ul>
+<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
+<p>客户端配置：</p>
+<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
 ]]></content>
       <categories>
         <category>eureka</category>
@@ -608,6 +643,88 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
+    <title>Eureka高可用及数据一致性</title>
+    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p><strong>一致性问题：</strong></p>
+<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
+<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
+<p><strong>Eureka是弱数据一致性的</strong></p>
+<p>两个方面：</p>
+<ul>
+<li><p>什么是弱一致性</p>
+<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
+<p>分布式系统中存在一个重要理论：CAP</p>
+</li>
+</ul>
+<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
+<p>该理论提到了三个分布式系统的3个特性：</p>
+<ul>
+<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
+<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
+</li>
+<li><p>Availability 可用性</p>
+<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
+</li>
+<li><p>Partition Tolerance 分区容错性</p>
+<p>集群部分节点故障，其他节点仍可用</p>
+</li>
+</ul>
+<blockquote>
+<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
+</blockquote>
+<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
+<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
+<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
+<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
+<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
+<p><strong>2.Eureka数据同步方式</strong></p>
+<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
+<ul>
+<li><strong>主从复制</strong></li>
+</ul>
+<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
+<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
+<ul>
+<li><strong>对等复制</strong></li>
+</ul>
+<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
+<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
+<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
+<p><strong>2.2同步过程</strong></p>
+<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
+<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
+<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
+<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
+<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
+<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
+<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
+<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
+<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
+<blockquote>
+<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
+</blockquote>
+<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
+<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
+<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
+<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
+<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
+<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
+<p><strong>汇总：</strong></p>
+<ul>
+<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
+<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
+<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
+<li>Eureka通过心跳机制实现数据修复。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JMM中happen-before八大规则</title>
     <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
     <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
@@ -894,123 +1011,6 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>Java中AQS</title>
-    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
-    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
-<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
-<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
-<p><strong>2.AQS提供了一把密码锁</strong></p>
-<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
-<ul>
-<li>列出了AQS的三个成员变量</li>
-<li>同步队列头结点引用</li>
-<li>同步队列尾结点引用</li>
-<li>同步状态</li>
-</ul>
-<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
-<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
-<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
-<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
-<p><strong>AQS内部两个排队区</strong></p>
-<ul>
-<li>同步队列<ul>
-<li>只有一条</li>
-<li>结点，分别持有前后结点引用</li>
-</ul>
-</li>
-<li>条件队列<ul>
-<li>可有多条</li>
-<li>结点，只有一个指向后继结点的引用</li>
-</ul>
-</li>
-</ul>
-<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
-<p>注：</p>
-<ul>
-<li><p>同步队列节点来源</p>
-<ul>
-<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
-<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
-</ul>
-</li>
-<li><p>条件队列节点来源</p>
-<ul>
-<li>调用await方法阻塞线程。</li>
-<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
-</ul>
-</li>
-</ul>
-<p><strong>总结：</strong></p>
-<ul>
-<li>同步队列与条件队列节点可互相转化</li>
-<li>一个线程只能存在于两个队列中的一个</li>
-</ul>
-<p>队列每个结点结构</p>
-<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
-<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
-<p><strong>Node:</strong></p>
-<ul>
-<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
-</li>
-<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
-</li>
-<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
-</li>
-<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
-</li>
-<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
-</li>
-<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
-</li>
-<li><p>volatile int waitStatus：当前结点的等待状态</p>
-</li>
-<li><p>volatile Node pre：同步队列中的前继结点</p>
-</li>
-<li><p>volatile Node next：同步队列中的后继结点</p>
-</li>
-<li><p>volatile Thread thread：当前结点持有的线程引用</p>
-</li>
-<li><p>final boolean isShared()：当前结点是否为共享模式</p>
-</li>
-<li><p>final Node predecessor()：返回当前结点的前继结点</p>
-</li>
-<li><p>Node(){}：构造器1</p>
-</li>
-<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
-</li>
-<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
-</li>
-</ul>
-<blockquote>
-<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
-</blockquote>
-<p><strong>4.理解结点锁等待状态</strong></p>
-<p>每个节点都有一个等待状态，共四种等待状态。</p>
-<ul>
-<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
-</ul>
-<ul>
-<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
-</li>
-<li><p>CONDITION：该线程在条件队列中排队。</p>
-</li>
-<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
-</li>
-</ul>
-<p><strong>5.结点进入同步队列时进行的操作</strong></p>
-<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
-<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
-<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
-<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
-]]></content>
-      <categories>
-        <category>AQS</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>LockSuport简述-1</title>
     <url>/2019/03/17/Java%20LockSupport/</url>
     <content><![CDATA[<blockquote>
@@ -1237,6 +1237,95 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
+    <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
+    <url>/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</url>
+    <content><![CDATA[<p>。</p>
+<p><strong>1.结论</strong></p>
+<p>在RR的隔离级别下，InnoDB使用MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。</p>
+<p><strong>2.幻读是什么</strong></p>
+<p>事务A，先执行：</p>
+<p>update table set name = ‘kkk’ where id &gt; 9 ;</p>
+<p>结果：</p>
+<p>OK row xx表名成功影响多少行数据</p>
+<p>事务B，后执行，并且提交</p>
+<p>insert into table values( 12, uu);</p>
+<p>commit;</p>
+<p>事务A，然后在select一下：</p>
+<p>select * from table where id &gt; 9 ;</p>
+<p>结果集为：</p>
+<p>  …..12,uu….</p>
+<p>事务A懵了，刚才不是id&gt;9全部更新了吗，怎么又出现一个未更新的数据。主要是因为这次是已提交事务B对事务A产生的影响，这个影响叫做幻读。<br>（一个事务范围操作时，另一个事务进行了新增、删除操作）</p>
+<p>幻读、不可重复读区别： </p>
+<ul>
+<li>幻读：一个范围</li>
+<li>不可重复读：本身</li>
+</ul>
+<p><strong>3.怎样解决</strong></p>
+<ul>
+<li><p>3.1当前读</p>
+<p>所谓当前读，指加锁的select(S或X)、update、delete等语句。在RR事务隔离级别下，数据库会使用next-key locks来锁住本条记录以及索引区间。</p>
+</li>
+</ul>
+<p>使用上个例子，在RR的情况下，假设使用的是当前读，加锁了的读 select * from table where id &gt; 3 锁住的就是id = 3 这条记录及id &gt; 3这个区间范围，锁住索引记录之间的范围，避免范围插入记录，已避免产生幻影行记录。</p>
+<ul>
+<li>3.2普通读</li>
+</ul>
+<p>普通读是不会加锁读，故不会有next-key locks的使用，解决幻读的手段是MVCC。<br>MVCC会给每行元组加一些辅助字段，记录创建版本号和删除版本号，。</p>
+<p>每个事务在启动时，都有一个唯一的递增的版本号。每开启一个新事务，事务的版本号就会递增。</p>
+<p><strong>默认的隔离级别（Repeatable Read)下，增删改查 变成了这样：</strong></p>
+<ul>
+<li>SELECT： 读取创建版本小于或等于当前事务版本号，并且删除版本为空或大于当前事务版本号的记录。这样可以保证在读取之前记录是存在的。</li>
+</ul>
+<ul>
+<li>INSERT： 将当前事务的版本号保存至行的创建版本号。</li>
+</ul>
+<ul>
+<li>UPDATE： 新插入一行，并以当前事务的版本号作为新行的创建版本号，同时将原记录行的删除版本号设置为当前事务版本号。</li>
+</ul>
+<ul>
+<li>DELETE： 将当前事务的版本号保存至行的删除版本号。</li>
+</ul>
+<p>如插入一条记录，事务id假设为1，那么记录如下，就是创建版本号就是事务版本号。</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000001.png" alt="Alt text"></p>
+<p>如更新的话，事务id假设是2</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000002.png" alt="Alt text"></p>
+<p>这里是把name更新为taotao，原来的元组deleteversion版本号为这个事务的id，并且新增一条。</p>
+<p>如删除的话，假设事务id=3，</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000003.png" alt="Alt text"></p>
+<p><strong>关键点</strong></p>
+<p>现读取必须满足两个条件：</p>
+<ul>
+<li><p>读取创建版本小于或等于当前事务版本号  意味着数据在这个事务之前被创建。</p>
+</li>
+<li><p>删除版本为空或大于当前事务版本号的记录。意味着删除操作在这个事务之后发生的。</p>
+</li>
+</ul>
+<p>以上面例子，当前数据库的状态</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000004.png" alt="Alt text"></p>
+<p>假设事务A的id=10</p>
+<p>现在update table set name = “kkkkk” where id &gt; 3 ;执行这条语句。</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000005.png" alt="Alt text"></p>
+<p>事务B的id  = 12</p>
+<p>insert into table values(12, uu);</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000006.png" alt="Alt text"></p>
+<p>最后事务A(id = 10)在此读取</p>
+<p> select * from table where id &gt; 3;</p>
+<p>根据上述规则，读取创建版本号小于等于当前事务的-&gt; 那么（4,a)<br>(5,b) (4,hh) (5,hh)</p>
+<p>上面规则的输出作为下面规则的输入的话，删除版本为空或大于当前事务版本号的记录-&gt;（4，hh) (5,hh)<br>读取就没有读到事务B新插入的那行，解决幻读。</p>
+<p>如果事务B是更新id = 4的元组 name = cc呢。同理，根据update的规则</p>
+<p><img src="/images/MySQL_InnoDB_RR_001/000007.png" alt="Alt text"></p>
+<p>然后根据select的规则去读取的话，得到的还是(4,hh) (5,hh)<br><strong><br>综述：</strong></p>
+<p>在RC的模式下，MVCC解决不了幻读、不可重复读，因为每次读都会读它自己刷新的快照版本，简单来说就是另一个事务提交，他就刷新一次，去读最新的。</p>
+]]></content>
+      <categories>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
+        <tag>幻读</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>MySQL三大日志(bin log、redo log、undo log)</title>
     <url>/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/</url>
     <content><![CDATA[<p>日志是mysql数据库的重要组成部分，记录着数据库运行期间各种状态信息。mysql日志主要包括错误日志、查询日志、慢查询日志、事务日志、二进制日志几大类。作为后端开发，需要重点关注的是二进制日志(binlog)和事务日志(包括redo log和undo log)，接下来会详细介绍</p>
@@ -1324,95 +1413,6 @@ public class QuartzDemo{
       <tags>
         <tag>mysql</tag>
         <tag>log</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
-    <url>/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</url>
-    <content><![CDATA[<p>。</p>
-<p><strong>1.结论</strong></p>
-<p>在RR的隔离级别下，InnoDB使用MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。</p>
-<p><strong>2.幻读是什么</strong></p>
-<p>事务A，先执行：</p>
-<p>update table set name = ‘kkk’ where id &gt; 9 ;</p>
-<p>结果：</p>
-<p>OK row xx表名成功影响多少行数据</p>
-<p>事务B，后执行，并且提交</p>
-<p>insert into table values( 12, uu);</p>
-<p>commit;</p>
-<p>事务A，然后在select一下：</p>
-<p>select * from table where id &gt; 9 ;</p>
-<p>结果集为：</p>
-<p>  …..12,uu….</p>
-<p>事务A懵了，刚才不是id&gt;9全部更新了吗，怎么又出现一个未更新的数据。主要是因为这次是已提交事务B对事务A产生的影响，这个影响叫做幻读。<br>（一个事务范围操作时，另一个事务进行了新增、删除操作）</p>
-<p>幻读、不可重复读区别： </p>
-<ul>
-<li>幻读：一个范围</li>
-<li>不可重复读：本身</li>
-</ul>
-<p><strong>3.怎样解决</strong></p>
-<ul>
-<li><p>3.1当前读</p>
-<p>所谓当前读，指加锁的select(S或X)、update、delete等语句。在RR事务隔离级别下，数据库会使用next-key locks来锁住本条记录以及索引区间。</p>
-</li>
-</ul>
-<p>使用上个例子，在RR的情况下，假设使用的是当前读，加锁了的读 select * from table where id &gt; 3 锁住的就是id = 3 这条记录及id &gt; 3这个区间范围，锁住索引记录之间的范围，避免范围插入记录，已避免产生幻影行记录。</p>
-<ul>
-<li>3.2普通读</li>
-</ul>
-<p>普通读是不会加锁读，故不会有next-key locks的使用，解决幻读的手段是MVCC。<br>MVCC会给每行元组加一些辅助字段，记录创建版本号和删除版本号，。</p>
-<p>每个事务在启动时，都有一个唯一的递增的版本号。每开启一个新事务，事务的版本号就会递增。</p>
-<p><strong>默认的隔离级别（Repeatable Read)下，增删改查 变成了这样：</strong></p>
-<ul>
-<li>SELECT： 读取创建版本小于或等于当前事务版本号，并且删除版本为空或大于当前事务版本号的记录。这样可以保证在读取之前记录是存在的。</li>
-</ul>
-<ul>
-<li>INSERT： 将当前事务的版本号保存至行的创建版本号。</li>
-</ul>
-<ul>
-<li>UPDATE： 新插入一行，并以当前事务的版本号作为新行的创建版本号，同时将原记录行的删除版本号设置为当前事务版本号。</li>
-</ul>
-<ul>
-<li>DELETE： 将当前事务的版本号保存至行的删除版本号。</li>
-</ul>
-<p>如插入一条记录，事务id假设为1，那么记录如下，就是创建版本号就是事务版本号。</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000001.png" alt="Alt text"></p>
-<p>如更新的话，事务id假设是2</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000002.png" alt="Alt text"></p>
-<p>这里是把name更新为taotao，原来的元组deleteversion版本号为这个事务的id，并且新增一条。</p>
-<p>如删除的话，假设事务id=3，</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000003.png" alt="Alt text"></p>
-<p><strong>关键点</strong></p>
-<p>现读取必须满足两个条件：</p>
-<ul>
-<li><p>读取创建版本小于或等于当前事务版本号  意味着数据在这个事务之前被创建。</p>
-</li>
-<li><p>删除版本为空或大于当前事务版本号的记录。意味着删除操作在这个事务之后发生的。</p>
-</li>
-</ul>
-<p>以上面例子，当前数据库的状态</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000004.png" alt="Alt text"></p>
-<p>假设事务A的id=10</p>
-<p>现在update table set name = “kkkkk” where id &gt; 3 ;执行这条语句。</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000005.png" alt="Alt text"></p>
-<p>事务B的id  = 12</p>
-<p>insert into table values(12, uu);</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000006.png" alt="Alt text"></p>
-<p>最后事务A(id = 10)在此读取</p>
-<p> select * from table where id &gt; 3;</p>
-<p>根据上述规则，读取创建版本号小于等于当前事务的-&gt; 那么（4,a)<br>(5,b) (4,hh) (5,hh)</p>
-<p>上面规则的输出作为下面规则的输入的话，删除版本为空或大于当前事务版本号的记录-&gt;（4，hh) (5,hh)<br>读取就没有读到事务B新插入的那行，解决幻读。</p>
-<p>如果事务B是更新id = 4的元组 name = cc呢。同理，根据update的规则</p>
-<p><img src="/images/MySQL_InnoDB_RR_001/000007.png" alt="Alt text"></p>
-<p>然后根据select的规则去读取的话，得到的还是(4,hh) (5,hh)<br><strong><br>综述：</strong></p>
-<p>在RC的模式下，MVCC解决不了幻读、不可重复读，因为每次读都会读它自己刷新的快照版本，简单来说就是另一个事务提交，他就刷新一次，去读最新的。</p>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-        <tag>幻读</tag>
       </tags>
   </entry>
   <entry>
@@ -1678,6 +1678,19 @@ public class B extends A{
       </tags>
   </entry>
   <entry>
+    <title>基于Hexo和Github搭建博客</title>
+    <url>/2015/06/15/hello-hexo/</url>
+    <content><![CDATA[]]></content>
+      <categories>
+        <category>搭建博客</category>
+      </categories>
+      <tags>
+        <tag>npm</tag>
+        <tag>hexo</tag>
+        <tag>github</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Map简述（一）</title>
     <url>/2018/07/21/hashMap%E7%AE%80%E8%BF%B0%EF%BC%88%E4%B8%80%EF%BC%89/</url>
     <content><![CDATA[<p><strong>HashMNap内存结构</strong></p>
@@ -1845,19 +1858,6 @@ resize();
       </tags>
   </entry>
   <entry>
-    <title>基于Hexo和Github搭建博客</title>
-    <url>/2015/06/15/hello-hexo/</url>
-    <content><![CDATA[]]></content>
-      <categories>
-        <category>搭建博客</category>
-      </categories>
-      <tags>
-        <tag>npm</tag>
-        <tag>hexo</tag>
-        <tag>github</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java中创建对象的五种形式</title>
     <url>/2015/06/18/java%E4%B8%AD%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%BA%94%E7%A7%8D%E5%BD%A2%E5%BC%8F/</url>
     <content><![CDATA[<p>我们每天创建很多对象，通常使用依赖管理，比如Spring去创建对象。然而这里有很多创建对象的方法，我们会在这篇文章中学到。</p>
@@ -2006,49 +2006,6 @@ Employee [name=Akash], hashcode : 63313419
       </tags>
   </entry>
   <entry>
-    <title>java中日期格式规范</title>
-    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
-    <content><![CDATA[<p>日期格式的规范：</p>
-<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
-<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
-<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
-<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
-<p>desc: 日期格式中的这两对字母表示意义：</p>
-<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
-<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
-<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
-<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
-<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
-<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
-<pre><code>正例:
-//获取今年的天数
-int dayOfThisYear = LocalDate.now().lengthOfYear();
-
-//获取指定某年的天数
-LocalDate.of(2011,1,1).lengthOfYear();
-
-反例：
-
-// 第一种情况：在闰年366天时，出现数组越界异常
-int[] dayArray = new int[365];
-
-// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
-Calendar calendar = Calendar.getInstance();
-calendar.set(2020, 1, 26);
-calendar.add(Calendar.DATE, 365);
-</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
-<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
-<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
-<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
-]]></content>
-      <categories>
-        <category>日期格式</category>
-      </categories>
-      <tags>
-        <tag>日期格式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java中的锁(偏向锁、轻量锁..）</title>
     <url>/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</url>
     <content><![CDATA[<p><strong>CAS操作：</strong><br>compareAndSwap,比较并替换，实现并发算法常用技术</p>
@@ -2145,6 +2102,49 @@ calendar.add(Calendar.DATE, 365);
       </categories>
       <tags>
         <tag>lock</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java中日期格式规范</title>
+    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
+    <content><![CDATA[<p>日期格式的规范：</p>
+<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
+<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
+<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
+<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
+<p>desc: 日期格式中的这两对字母表示意义：</p>
+<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
+<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
+<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
+<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
+<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
+<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
+<pre><code>正例:
+//获取今年的天数
+int dayOfThisYear = LocalDate.now().lengthOfYear();
+
+//获取指定某年的天数
+LocalDate.of(2011,1,1).lengthOfYear();
+
+反例：
+
+// 第一种情况：在闰年366天时，出现数组越界异常
+int[] dayArray = new int[365];
+
+// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
+Calendar calendar = Calendar.getInstance();
+calendar.set(2020, 1, 26);
+calendar.add(Calendar.DATE, 365);
+</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
+<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
+<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
+<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
+]]></content>
+      <categories>
+        <category>日期格式</category>
+      </categories>
+      <tags>
+        <tag>日期格式</tag>
       </tags>
   </entry>
   <entry>
@@ -3410,58 +3410,6 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </tags>
   </entry>
   <entry>
-    <title>并发编程设置合适线程数</title>
-    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
-    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
-<ul>
-<li>并发编程在所有场景下都是快的吗？</li>
-<li>快怎样度量</li>
-</ul>
-<p>需要从定性—-&gt;定量的分析过程。</p>
-<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
-<ul>
-<li><p>CPU密集型程序</p>
-<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
-<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
-</li>
-</ul>
-<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
-<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
-<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
-<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
-<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
-<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
-<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
-<ul>
-<li>I/O密集型程序</li>
-</ul>
-<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
-<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
-<p>同样的单核CPU情况下：</p>
-<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
-<p>综合两种情况可总结：</p>
-<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
-<ul>
-<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
-</ul>
-<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
-<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
-<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
-<p> 对于单核CPU计算：</p>
-<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
-<p> 对于多核CPU计算：</p>
-<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
-<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
-<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
-]]></content>
-      <categories>
-        <category>thread</category>
-      </categories>
-      <tags>
-        <tag>线程数</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>redis集群中哨兵机制</title>
     <url>/2018/09/15/%E5%93%A8%E5%85%B5/</url>
     <content><![CDATA[<p><strong>哨兵</strong></p>
@@ -3642,77 +3590,55 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </tags>
   </entry>
   <entry>
-    <title>mysql索引数据结构</title>
-    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<p><strong>树结构</strong>：</p>
-<blockquote>
-<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
-<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
-</blockquote>
-<p><strong>二叉排序树</strong></p>
-<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
-<blockquote>
-<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
-</blockquote>
-<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
-<blockquote>
-<p>有序序列，二叉排序树会退化成链表。</p>
-</blockquote>
-<p><strong>平衡树</strong></p>
-<blockquote>
-<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
-<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
-</blockquote>
-<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
-<p><strong>保证树的平衡性原因</strong></p>
-<blockquote>
-<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
-<p>java中的TreeSet数据结构底层就是红黑树。</p>
-</blockquote>
-<p><strong>B树</strong></p>
-<blockquote>
-<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
-</blockquote>
-<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
-<blockquote>
-<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
-<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
-<p>如果设计成无限多路时，会退化成有序数组。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-</blockquote>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p><strong>使用场景：</strong></p>
-<p>B树一般做文件系统的索引比较多</p>
-<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
-<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
-<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
-<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
-<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
-<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
-<p>查找的时候，每次载入一个节点进内存就行。</p>
-<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
-<p><strong>B+树</strong></p>
-<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
-<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
-<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
-<p><strong>为什么要这样设计</strong></p>
-<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
-<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
-<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
-<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
-<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
-<p>B+树查询时间  log(n)</p>
-<p>hash查询时间 O(1)</p>
+    <title>并发编程设置合适线程数</title>
+    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
+    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
+<ul>
+<li>并发编程在所有场景下都是快的吗？</li>
+<li>快怎样度量</li>
+</ul>
+<p>需要从定性—-&gt;定量的分析过程。</p>
+<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
+<ul>
+<li><p>CPU密集型程序</p>
+<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
+<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
+</li>
+</ul>
+<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
+<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
+<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
+<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
+<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
+<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
+<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
+<ul>
+<li>I/O密集型程序</li>
+</ul>
+<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
+<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
+<p>同样的单核CPU情况下：</p>
+<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
+<p>综合两种情况可总结：</p>
+<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
+<ul>
+<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
+</ul>
+<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
+<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
+<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
+<p> 对于单核CPU计算：</p>
+<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
+<p> 对于多核CPU计算：</p>
+<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
+<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
+<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
 ]]></content>
       <categories>
-        <category>mysql</category>
+        <category>thread</category>
       </categories>
       <tags>
-        <tag>mysql</tag>
-        <tag>B+tree</tag>
+        <tag>线程数</tag>
       </tags>
   </entry>
   <entry>
@@ -3901,6 +3827,80 @@ consumer.shutDown();
       </categories>
       <tags>
         <tag>queue</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>mysql索引数据结构</title>
+    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<p><strong>树结构</strong>：</p>
+<blockquote>
+<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
+<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
+</blockquote>
+<p><strong>二叉排序树</strong></p>
+<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
+<blockquote>
+<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
+</blockquote>
+<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
+<blockquote>
+<p>有序序列，二叉排序树会退化成链表。</p>
+</blockquote>
+<p><strong>平衡树</strong></p>
+<blockquote>
+<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
+<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
+</blockquote>
+<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
+<p><strong>保证树的平衡性原因</strong></p>
+<blockquote>
+<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
+<p>java中的TreeSet数据结构底层就是红黑树。</p>
+</blockquote>
+<p><strong>B树</strong></p>
+<blockquote>
+<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
+</blockquote>
+<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
+<blockquote>
+<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
+<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
+<p>如果设计成无限多路时，会退化成有序数组。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+</blockquote>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p><strong>使用场景：</strong></p>
+<p>B树一般做文件系统的索引比较多</p>
+<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
+<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
+<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
+<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
+<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
+<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
+<p>查找的时候，每次载入一个节点进内存就行。</p>
+<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
+<p><strong>B+树</strong></p>
+<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
+<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
+<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
+<p><strong>为什么要这样设计</strong></p>
+<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
+<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
+<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
+<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
+<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
+<p>B+树查询时间  log(n)</p>
+<p>hash查询时间 O(1)</p>
+]]></content>
+      <categories>
+        <category>mysql</category>
+      </categories>
+      <tags>
+        <tag>mysql</tag>
+        <tag>B+tree</tag>
       </tags>
   </entry>
 </search>
