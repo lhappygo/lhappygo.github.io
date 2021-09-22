@@ -6,7 +6,7 @@
   <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
   
   <link href="http://lhappygo.github.io/"/>
-  <updated>2020-11-30T07:15:40.000Z</updated>
+  <updated>2021-09-22T03:04:18.376Z</updated>
   <id>http://lhappygo.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>jdk8链接mysql问题</title>
+    <link href="http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/"/>
+    <id>http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/</id>
+    <published>2021-09-22T02:25:20.000Z</published>
+    <updated>2021-09-22T03:04:18.376Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;前几天发现一直跑的项目本地无法启动了：&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;line&quot;&gt;</summary>
+      
+    
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/categories/jdk8/"/>
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/tags/jdk8/"/>
+    
+  </entry>
   
   <entry>
     <title>spring-boot中关于jpa异常问题</title>
@@ -506,36 +529,6 @@ public c</summary>
     <category term="maven" scheme="http://lhappygo.github.io/tags/maven/"/>
     
     <category term="nexus" scheme="http://lhappygo.github.io/tags/nexus/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>redis集群中哨兵机制</title>
-    <link href="http://lhappygo.github.io/2018/09/15/%E5%93%A8%E5%85%B5/"/>
-    <id>http://lhappygo.github.io/2018/09/15/%E5%93%A8%E5%85%B5/</id>
-    <published>2018-09-15T13:19:29.000Z</published>
-    <updated>2020-05-28T10:22:00.000Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;哨兵&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/images/sentinel_01/00001.jpg&quot; alt=&quot;Alt text&quot;&gt;&lt;/p&gt;
-&lt;p&gt;定义：哨兵是redis集群机构中重要的一个组件，有以下功能：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;p</summary>
-      
-    
-    
-    
-    <category term="redis" scheme="http://lhappygo.github.io/categories/redis/"/>
-    
-    
-    <category term="reids" scheme="http://lhappygo.github.io/tags/reids/"/>
-    
-    <category term="sentinel" scheme="http://lhappygo.github.io/tags/sentinel/"/>
-    
-    <category term="哨兵" scheme="http://lhappygo.github.io/tags/哨兵/"/>
     
   </entry>
   
