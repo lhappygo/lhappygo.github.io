@@ -428,6 +428,30 @@ public c</summary>
   </entry>
   
   <entry>
+    <title>Eureka的自我保护机制</title>
+    <link href="http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</id>
+    <published>2019-01-05T05:19:32.000Z</published>
+    <updated>2022-02-15T02:28:44.196Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Eureka的自我保护机制&quot;&gt;&lt;a href=&quot;#Eureka的自我保护机制&quot; class=&quot;headerlink&quot; title=&quot;Eureka的自我保护机制&quot;&gt;&lt;/a&gt;Eureka的自我保护机制&lt;/h1&gt;&lt;ul&gt;
+&lt;li&gt;原理：&lt;ul&gt;
+&lt;li&gt;a、默认情况下,</summary>
+      
+    
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Eureka工作流程小记</title>
     <link href="http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/"/>
     <id>http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</id>
@@ -497,29 +521,6 @@ public c</summary>
     <category term="微服务" scheme="http://lhappygo.github.io/tags/微服务/"/>
     
     <category term="SpringCloud" scheme="http://lhappygo.github.io/tags/SpringCloud/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>synchronized关键字的介绍</title>
-    <link href="http://lhappygo.github.io/2018/10/05/synchronized%E5%85%B3%E9%94%AE%E5%AD%97%E7%9A%84%E4%BB%8B%E7%BB%8D/"/>
-    <id>http://lhappygo.github.io/2018/10/05/synchronized%E5%85%B3%E9%94%AE%E5%AD%97%E7%9A%84%E4%BB%8B%E7%BB%8D/</id>
-    <published>2018-10-05T12:58:30.000Z</published>
-    <updated>2020-04-09T09:25:26.000Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;synchronized关键字的介绍&lt;/p&gt;
-&lt;p&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;Java提供了内置锁来支持多线程的同步，JVM根据synchronized关键字来标识同步代码块，当线程进入同步代码块时会自动获取锁，退出同步代码块时</summary>
-      
-    
-    
-    
-    <category term="synchronized" scheme="http://lhappygo.github.io/categories/synchronized/"/>
-    
-    
-    <category term="synchronized" scheme="http://lhappygo.github.io/tags/synchronized/"/>
     
   </entry>
   
