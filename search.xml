@@ -1,6 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>AQS独占模式解析</title>
+    <url>/2019/09/07/AbstractQueuedSynchronized(%E4%BA%8C%EF%BC%89/</url>
+    <content><![CDATA[<p><strong>AbstractQueuedSynchronized独占模式</strong></p>
+<p>概述：独占模式下节点怎样进入同步队列排队，离开同步队列前会进行哪些操作。AQS在独占模式和共享模式下获取锁分别提供了三种方式<br>不响应线程中断获取，响应县城中断获取，设置超时时间获取。三种方式整体步骤大致相同，只少部分不同，重在理解一种方式，后类比。</p>
+<ul>
+<li>不响应线程中断获取锁</li>
+</ul>
+<p><img src="/images/AQS_002/0001.png" alt="Alt text"></p>
+<p>按照顺序执行下图4步骤</p>
+<p><img src="/images/AQS_002/0002.png" alt="Alt text"></p>
+<ol>
+<li><strong>!tryAcquire(arg)</strong></li>
+</ol>
+<p><img src="/images/AQS_002/0003.png" alt="Alt text"></p>
+<p>tryAcquire()此方法是由子类去覆盖，重写里面判断逻辑。如果获取锁失败，则返回false，进行下一步判断。否则直接进入。</p>
+<ol>
+<li><strong>addWaiter(Node.EXCLUSIVE)</strong></li>
+</ol>
+<p><img src="/images/AQS_002/0004.png" alt="Alt text"></p>
+<p><img src="/images/AQS_002/0005.png" alt="Alt text"></p>
+<p>执行到这一步表名第一次获取锁失败，这个线程就被包装成节点放进排队区排队了，包装过程中已声明以什么方式占有锁（独占式、共享模式）此时并未将自己挂起。</p>
+<ol>
+<li><strong>acquireQueued(addWaiter(Node.EXCLUSIVE),arg)</strong></li>
+</ol>
+<p><img src="/images/AQS_002/0006.png" alt="Alt text"></p>
+<blockquote>
+<p><strong>包装成节点进入排队区后会立即执行此方法。</strong></p>
+</blockquote>
+<ul>
+<li>当一个节点首次进入排队区后有两种情况，<ul>
+<li>一种是前节点已经获取锁，此节点直接尝试获取锁，看是否前节点释放锁。如果前节点正好释放锁，正好此节点可以直接获取锁。否则要在队列中进行挂起等待，此时会给前继结点标识为signal，表明前继结点释放锁后，会唤醒当前结点。</li>
+</ul>
+</li>
+</ul>
+<p>另一种情况，节点进入排队区发现前边有多个节点在排队区排队，那它可安心挂起，挂起之前会将前继结点标识为signal，好让前继结点释放锁之后，唤醒当前节点。注意，我们看到整个for循环就只有一个出口，那就是等线程成功的获取到锁之后才能出去，在没有获取到锁之前就一直是挂在for循环的parkAndCheckInterrupt()方法里头。线程被唤醒后也是从这个地方继续执行for循环。</p>
+<ol>
+<li><strong>selfInterrupt()</strong></li>
+</ol>
+<p><img src="/images/AQS_002/0007.png" alt="Alt text"></p>
+<p>由于上面整个线程一直是挂在for循环的parkAndCheckInterrupt()方法里头，没有成功获取到锁之前不响应任何形式的线程中断，只有当线程成功获取到锁并从for循环出来后，他才会查看在这期间是否有人要求中断线程，如果是的话再去调用selfInterrupt()方法将自己挂起</p>
+<p><strong>2.以可中断模式获取锁（独占式）</strong></p>
+<p><img src="/images/AQS_002/0008.png" alt="Alt text"></p>
+<p>响应线程中断方式和不响应线程中断方式获取流程大致相同。区别只是线程从parkAndCheckInterrupt方法中醒来后会检查线程是否中断，如果中断就抛出InterruptedException异常,而不响应线程中断获取锁是在收到中断请求后只设置一下中断状态，并不会立马结束当前获取锁的方法，一直到节点成功获取锁之后才会根据中断状态决定是否将自己挂起。</p>
+<p><strong>3.设置超时时间获取锁</strong></p>
+<p><img src="/images/AQS_002/0009.png" alt="Alt text"></p>
+<p>设置超时时间获取，首先会先尝试获取锁，第一次获取锁失败后根据情况，如传入的超时时间大于自旋时间，那么就会将线程挂起一段时间，否则会进行自旋，每次获取锁之后都会讲超时时间减去获取一次锁所用的时间。一直到超时时间小于0，也就说明超时时间用完了，此时会结束获取锁的操作，然后返回获取失败标识。在以超时获取锁的过程中，能用以响应线程中断请求的。</p>
+<p><strong>4.线程释放锁并离开同步队列操作情况</strong></p>
+<p><img src="/images/AQS_002/0010.png" alt="Alt text"></p>
+<p>线程持有锁进行同步操作，操作后会释放锁。通过tryRelease方法可解锁，tryRelease方法是要让子类覆盖的，不同子类实现规则不一，如ReentrantLock，每调用一次tryRelease方法一次，state减一（同步状态减一）直到state减到0时进行锁释放。</p>
+]]></content>
+      <categories>
+        <category>AQS</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+        <tag>Lock</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java中AQS</title>
     <url>/2019/08/10/AbstractQueuedSynchronized/</url>
     <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
@@ -115,65 +174,6 @@
       </categories>
       <tags>
         <tag>AQS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>AQS独占模式解析</title>
-    <url>/2019/09/07/AbstractQueuedSynchronized(%E4%BA%8C%EF%BC%89/</url>
-    <content><![CDATA[<p><strong>AbstractQueuedSynchronized独占模式</strong></p>
-<p>概述：独占模式下节点怎样进入同步队列排队，离开同步队列前会进行哪些操作。AQS在独占模式和共享模式下获取锁分别提供了三种方式<br>不响应线程中断获取，响应县城中断获取，设置超时时间获取。三种方式整体步骤大致相同，只少部分不同，重在理解一种方式，后类比。</p>
-<ul>
-<li>不响应线程中断获取锁</li>
-</ul>
-<p><img src="/images/AQS_002/0001.png" alt="Alt text"></p>
-<p>按照顺序执行下图4步骤</p>
-<p><img src="/images/AQS_002/0002.png" alt="Alt text"></p>
-<ol>
-<li><strong>!tryAcquire(arg)</strong></li>
-</ol>
-<p><img src="/images/AQS_002/0003.png" alt="Alt text"></p>
-<p>tryAcquire()此方法是由子类去覆盖，重写里面判断逻辑。如果获取锁失败，则返回false，进行下一步判断。否则直接进入。</p>
-<ol>
-<li><strong>addWaiter(Node.EXCLUSIVE)</strong></li>
-</ol>
-<p><img src="/images/AQS_002/0004.png" alt="Alt text"></p>
-<p><img src="/images/AQS_002/0005.png" alt="Alt text"></p>
-<p>执行到这一步表名第一次获取锁失败，这个线程就被包装成节点放进排队区排队了，包装过程中已声明以什么方式占有锁（独占式、共享模式）此时并未将自己挂起。</p>
-<ol>
-<li><strong>acquireQueued(addWaiter(Node.EXCLUSIVE),arg)</strong></li>
-</ol>
-<p><img src="/images/AQS_002/0006.png" alt="Alt text"></p>
-<blockquote>
-<p><strong>包装成节点进入排队区后会立即执行此方法。</strong></p>
-</blockquote>
-<ul>
-<li>当一个节点首次进入排队区后有两种情况，<ul>
-<li>一种是前节点已经获取锁，此节点直接尝试获取锁，看是否前节点释放锁。如果前节点正好释放锁，正好此节点可以直接获取锁。否则要在队列中进行挂起等待，此时会给前继结点标识为signal，表明前继结点释放锁后，会唤醒当前结点。</li>
-</ul>
-</li>
-</ul>
-<p>另一种情况，节点进入排队区发现前边有多个节点在排队区排队，那它可安心挂起，挂起之前会将前继结点标识为signal，好让前继结点释放锁之后，唤醒当前节点。注意，我们看到整个for循环就只有一个出口，那就是等线程成功的获取到锁之后才能出去，在没有获取到锁之前就一直是挂在for循环的parkAndCheckInterrupt()方法里头。线程被唤醒后也是从这个地方继续执行for循环。</p>
-<ol>
-<li><strong>selfInterrupt()</strong></li>
-</ol>
-<p><img src="/images/AQS_002/0007.png" alt="Alt text"></p>
-<p>由于上面整个线程一直是挂在for循环的parkAndCheckInterrupt()方法里头，没有成功获取到锁之前不响应任何形式的线程中断，只有当线程成功获取到锁并从for循环出来后，他才会查看在这期间是否有人要求中断线程，如果是的话再去调用selfInterrupt()方法将自己挂起</p>
-<p><strong>2.以可中断模式获取锁（独占式）</strong></p>
-<p><img src="/images/AQS_002/0008.png" alt="Alt text"></p>
-<p>响应线程中断方式和不响应线程中断方式获取流程大致相同。区别只是线程从parkAndCheckInterrupt方法中醒来后会检查线程是否中断，如果中断就抛出InterruptedException异常,而不响应线程中断获取锁是在收到中断请求后只设置一下中断状态，并不会立马结束当前获取锁的方法，一直到节点成功获取锁之后才会根据中断状态决定是否将自己挂起。</p>
-<p><strong>3.设置超时时间获取锁</strong></p>
-<p><img src="/images/AQS_002/0009.png" alt="Alt text"></p>
-<p>设置超时时间获取，首先会先尝试获取锁，第一次获取锁失败后根据情况，如传入的超时时间大于自旋时间，那么就会将线程挂起一段时间，否则会进行自旋，每次获取锁之后都会讲超时时间减去获取一次锁所用的时间。一直到超时时间小于0，也就说明超时时间用完了，此时会结束获取锁的操作，然后返回获取失败标识。在以超时获取锁的过程中，能用以响应线程中断请求的。</p>
-<p><strong>4.线程释放锁并离开同步队列操作情况</strong></p>
-<p><img src="/images/AQS_002/0010.png" alt="Alt text"></p>
-<p>线程持有锁进行同步操作，操作后会释放锁。通过tryRelease方法可解锁，tryRelease方法是要让子类覆盖的，不同子类实现规则不一，如ReentrantLock，每调用一次tryRelease方法一次，state减一（同步状态减一）直到state减到0时进行锁释放。</p>
-]]></content>
-      <categories>
-        <category>AQS</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-        <tag>Lock</tag>
       </tags>
   </entry>
   <entry>
@@ -300,45 +300,61 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>Eureka工作流程小记</title>
-    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
-    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
-<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
-<p><strong>Eureka工作流程</strong></p>
-<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
-<ul>
-<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
-</li>
-<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
-</li>
-<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
-</li>
-<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
-</li>
-<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
-</li>
-<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
-</li>
-<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
-</li>
-<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
-</li>
-<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
-</li>
-<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
-</li>
+    <title>Eureka的自我保护机制</title>
+    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
+<li>原理：<ul>
+<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
+<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
 </ul>
-<p><strong>点滴：</strong></p>
-<ul>
-<li>客户端主动通知注册中心下线</li>
+</li>
+<li><p>产生原因</p>
+<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
+</li>
+<li><p>何时使用</p>
+<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
+</li>
+<li><p>如何配置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+<span class="line">8</span>
+<span class="line">9</span>
+<span class="line">10</span>
+<span class="line">11</span>
+<span class="line">12</span>
+<span class="line">13</span>
+<span class="line">14</span>
+<span class="line">15</span>
+<span class="line">16</span>
+<span class="line">17</span>
+<span class="line">18</span>
+<span class="line">19</span>
+</pre></td><td class="code"><pre><span class="line">服务端</span>
+<span class="line">server:</span>
+<span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span>
+<span class="line">    enable-self-preservation: false</span>
+<span class="line">    ##剔除失效服务间隔</span>
+<span class="line">    eviction-interval-timer-in-ms: 2000</span>
+<span class="line"></span>
+<span class="line">客户端：</span>
+<span class="line">eureka:</span>
+<span class="line"># 心跳检测检测与续约时间</span>
+<span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span>
+<span class="line">	client:</span>
+<span class="line">		service-url:</span>
+<span class="line">			defaultZone: http://localhost:8081/eureka/</span>
+<span class="line">	instance:</span>
+<span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span>
+<span class="line">    	lease-renewal-interval-in-seconds: 1</span>
+<span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span>
+<span class="line">    	lease-expiration-duration-in-seconds: 2</span>
+</pre></td></tr></table></figure></li>
 </ul>
-<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
-<ul>
-<li>服务器端配置：</li>
-</ul>
-<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
-<p>客户端配置：</p>
-<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
 ]]></content>
       <categories>
         <category>eureka</category>
@@ -421,6 +437,54 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
 <li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
 <li>Eureka通过心跳机制实现数据修复。</li>
 </ul>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Eureka工作流程小记</title>
+    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
+    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
+<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
+<p><strong>Eureka工作流程</strong></p>
+<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
+<ul>
+<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
+</li>
+<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
+</li>
+<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
+</li>
+<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
+</li>
+<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
+</li>
+<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
+</li>
+<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
+</li>
+<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
+</li>
+<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
+</li>
+<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
+</li>
+</ul>
+<p><strong>点滴：</strong></p>
+<ul>
+<li>客户端主动通知注册中心下线</li>
+</ul>
+<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
+<ul>
+<li>服务器端配置：</li>
+</ul>
+<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
+<p>客户端配置：</p>
+<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
 ]]></content>
       <categories>
         <category>eureka</category>
@@ -580,67 +644,39 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>Eureka的自我保护机制</title>
-    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
-<li>原理：<ul>
-<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
-<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
+    <title>JMM中happen-before八大规则</title>
+    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
+<blockquote>
+<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
+</blockquote>
+<ul>
+<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
+</li>
+<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
+</li>
+<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
+</li>
+<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
+</li>
+<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
+</li>
+<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
+</li>
 </ul>
+<ul>
+<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
 </li>
-<li><p>产生原因</p>
-<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
+<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
 </li>
-<li><p>何时使用</p>
-<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
-</li>
-<li><p>如何配置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
-<span class="line">2</span>
-<span class="line">3</span>
-<span class="line">4</span>
-<span class="line">5</span>
-<span class="line">6</span>
-<span class="line">7</span>
-<span class="line">8</span>
-<span class="line">9</span>
-<span class="line">10</span>
-<span class="line">11</span>
-<span class="line">12</span>
-<span class="line">13</span>
-<span class="line">14</span>
-<span class="line">15</span>
-<span class="line">16</span>
-<span class="line">17</span>
-<span class="line">18</span>
-<span class="line">19</span>
-</pre></td><td class="code"><pre><span class="line">服务端</span>
-<span class="line">server:</span>
-<span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span>
-<span class="line">    enable-self-preservation: false</span>
-<span class="line">    ##剔除失效服务间隔</span>
-<span class="line">    eviction-interval-timer-in-ms: 2000</span>
-<span class="line"></span>
-<span class="line">客户端：</span>
-<span class="line">eureka:</span>
-<span class="line"># 心跳检测检测与续约时间</span>
-<span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span>
-<span class="line">	client:</span>
-<span class="line">		service-url:</span>
-<span class="line">			defaultZone: http://localhost:8081/eureka/</span>
-<span class="line">	instance:</span>
-<span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span>
-<span class="line">    	lease-renewal-interval-in-seconds: 1</span>
-<span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span>
-<span class="line">    	lease-expiration-duration-in-seconds: 2</span>
-</pre></td></tr></table></figure></li>
 </ul>
 ]]></content>
       <categories>
-        <category>eureka</category>
+        <category>JMM</category>
       </categories>
       <tags>
-        <tag>eureka</tag>
+        <tag>JMM</tag>
+        <tag>happen-before</tag>
       </tags>
   </entry>
   <entry>
@@ -786,42 +822,6 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>JDK</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>JMM中happen-before八大规则</title>
-    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
-<blockquote>
-<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
-</blockquote>
-<ul>
-<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
-</li>
-<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
-</li>
-<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
-</li>
-<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
-</li>
-<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
-</li>
-<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
-</li>
-</ul>
-<ul>
-<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
-</li>
-<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>JMM</category>
-      </categories>
-      <tags>
-        <tag>JMM</tag>
-        <tag>happen-before</tag>
       </tags>
   </entry>
   <entry>
@@ -1075,6 +1075,91 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
+    <title>Linux之lsof命令</title>
+    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
+<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
+<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
+<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
+<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
+<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
+<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i tcp@192.168.1.111:ftp -r</p>
+]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>LockSuport简述-1</title>
+    <url>/2019/03/17/Java%20LockSupport/</url>
+    <content><![CDATA[<blockquote>
+<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
+</blockquote>
+<ul>
+<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
+</li>
+<li><p>如果许可尚不可用，则调用unpark使其可用</p>
+</li>
+</ul>
+<p>注意：</p>
+<ul>
+<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
+</li>
+<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
+</li>
+</ul>
+<p><strong>阻塞线程</strong></p>
+<ul>
+<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
+</li>
+<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
+</li>
+<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
+</li>
+<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+</li>
+<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
+</li>
+</ul>
+<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+<p><strong>唤醒线程</strong></p>
+<ul>
+<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
+</ul>
+<blockquote>
+<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
+</blockquote>
+<pre><code>public class LockSuportTest {
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread t = new Thread(() -&gt; {
+            LockSupport.park();
+            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
+        });
+        t.start();
+        Thread.sleep(3000);
+        LockSupport.unpark(t);
+    }
+}
+</code></pre><p>Synchronized 与LockSupport</p>
+<ul>
+<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
+</li>
+<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>lock</category>
+      </categories>
+      <tags>
+        <tag>lock</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Linux中搭建maven+nexus仓库</title>
     <url>/2018/09/22/Linux%E4%B8%AD%E6%90%AD%E5%BB%BAmaven+nexus%E7%A7%81%E4%BA%BA%E4%BB%93%E5%BA%93/</url>
     <content><![CDATA[<p>Linux中搭建maven+nexus私人仓库</p>
@@ -1152,91 +1237,6 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>LockSuport简述-1</title>
-    <url>/2019/03/17/Java%20LockSupport/</url>
-    <content><![CDATA[<blockquote>
-<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
-</blockquote>
-<ul>
-<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
-</li>
-<li><p>如果许可尚不可用，则调用unpark使其可用</p>
-</li>
-</ul>
-<p>注意：</p>
-<ul>
-<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
-</li>
-<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
-</li>
-</ul>
-<p><strong>阻塞线程</strong></p>
-<ul>
-<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
-</li>
-<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
-</li>
-<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
-</li>
-<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-</li>
-<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
-</li>
-</ul>
-<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-<p><strong>唤醒线程</strong></p>
-<ul>
-<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
-</ul>
-<blockquote>
-<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
-</blockquote>
-<pre><code>public class LockSuportTest {
-
-    public static void main(String[] args) throws InterruptedException {
-        Thread t = new Thread(() -&gt; {
-            LockSupport.park();
-            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
-        });
-        t.start();
-        Thread.sleep(3000);
-        LockSupport.unpark(t);
-    }
-}
-</code></pre><p>Synchronized 与LockSupport</p>
-<ul>
-<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
-</li>
-<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>lock</category>
-      </categories>
-      <tags>
-        <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Linux之lsof命令</title>
-    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
-    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
-<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
-<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
-<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
-<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
-<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
-<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i tcp@192.168.1.111:ftp -r</p>
-]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Linux修改防火墙</title>
     <url>/2015/06/22/Linux%E4%BF%AE%E6%94%B9%E9%98%B2%E7%81%AB%E5%A2%99/</url>
     <content><![CDATA[<p><strong>虚拟机为CentOs7,修改防火墙配置时找不到iptables文件。</strong></p>
@@ -1298,6 +1298,31 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>maven</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SpringBoot中定时任务配置多线程</title>
+    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
+    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
+<pre><code>//多线程执行定时任务
+@Slf4j
+@Configuration
+public class ScheduleConfig implements SchedulingConfigurer {
+@Override
+public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+  log.info(&quot;定时任务配置10个线程&quot;);
+taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
+}
+}
+</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
+]]></content>
+      <categories>
+        <category>定时任务</category>
+      </categories>
+      <tags>
+        <tag>定时任务</tag>
+        <tag>多线程</tag>
+        <tag>SpringBoot</tag>
       </tags>
   </entry>
   <entry>
@@ -1582,31 +1607,6 @@ addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filte
       </tags>
   </entry>
   <entry>
-    <title>SpringBoot中定时任务配置多线程</title>
-    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
-    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
-<pre><code>//多线程执行定时任务
-@Slf4j
-@Configuration
-public class ScheduleConfig implements SchedulingConfigurer {
-@Override
-public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-  log.info(&quot;定时任务配置10个线程&quot;);
-taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
-}
-}
-</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
-]]></content>
-      <categories>
-        <category>定时任务</category>
-      </categories>
-      <tags>
-        <tag>定时任务</tag>
-        <tag>多线程</tag>
-        <tag>SpringBoot</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Spring传播机制及隔离级别</title>
     <url>/2015/09/20/Spring%E4%BC%A0%E6%92%AD%E6%9C%BA%E5%88%B6%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
     <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
@@ -1677,6 +1677,109 @@ taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
       </categories>
       <tags>
         <tag>事务</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Docker日志实时查看和清理</title>
+    <url>/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/</url>
+    <content><![CDATA[<h1 id="Docker日志实时查看和清理"><a href="#Docker日志实时查看和清理" class="headerlink" title="Docker日志实时查看和清理"></a>Docker日志实时查看和清理</h1><h2 id="一、docker-logs-查看实时日志"><a href="#一、docker-logs-查看实时日志" class="headerlink" title="一、docker logs 查看实时日志"></a>一、docker logs 查看实时日志</h2><p>docker logs -f -t –since=“2021-09-25” –tail=10 edu_web_1</p>
+<p>命令说明： –since : 此参数指定了输出日志开始日期，即只输出指定日期之后的日志。 -f : 查看实时日志 -t : 查看日志产生的日期 -tail=10 : 查看最后的10条日志。 edu_web_1 : 容器名称</p>
+<h2 id="二、docker容器日志"><a href="#二、docker容器日志" class="headerlink" title="二、docker容器日志"></a>二、docker容器日志</h2><ul>
+<li><p>1.问题： docker容器日志导致主机磁盘空间满了。docker logs -f container_name很占用空间，不用的日志可以清理掉了。</p>
+</li>
+<li><p>2.查找容器日志: 在linux上，容器日志一般存放在/var/lib/docker/containers/container_id/下面， 以json.log结尾的文件（业务日志）很大，查看各个日志文件大小的脚本docker_log_size.sh，内容如下：</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+<span class="line">8</span>
+<span class="line">9</span>
+<span class="line">10</span>
+<span class="line">11</span>
+<span class="line">12</span>
+<span class="line">13</span>
+</pre></td><td class="code"><pre><span class="line">!/bin/sh</span>
+<span class="line"></span>
+<span class="line">echo &quot;======== docker containers logs file size ========&quot;  </span>
+<span class="line"></span>
+<span class="line">logs=$(find /var/lib/docker/containers/ -name *-json.log)  </span>
+<span class="line"></span>
+<span class="line">for log in $logs  </span>
+<span class="line">        do  </span>
+<span class="line">             ls -lh $log   </span>
+<span class="line">        done  </span>
+<span class="line">chmod +x docker_log_size.sh</span>
+<span class="line"></span>
+<span class="line">./docker_log_size.sh</span>
+</pre></td></tr></table></figure>
+<ul>
+<li style="list-style: none"><input type="checkbox" checked> 2.2 清理Docker容器日志（治标）<br>如果docker容器正在运行，那么使用rm -rf方式删除日志后，通过df -h会发现磁盘空间并没有释放。原因是在Linux或者Unix系统中，通过rm -rf或者文件管理器删除文件，将会从文件系统的目录结构上解除链接（unlink）。如果文件是被打开的（有一个进程正在使用），那么进程将仍然可以读取该文件，磁盘空间也一直被占用。正确姿势是cat /dev/null &gt; *-json.log，当然你也可以通过rm -rf删除后重启docker。接下来，提供一个日志清理脚本clean_docker_log.sh，内容如下：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+<span class="line">8</span>
+<span class="line">9</span>
+<span class="line">10</span>
+<span class="line">11</span>
+<span class="line">12</span>
+<span class="line">13</span>
+</pre></td><td class="code"><pre><span class="line">!/bin/sh</span>
+<span class="line"></span>
+<span class="line">echo &quot;======== docker containers logs file size ========&quot;  </span>
+<span class="line"></span>
+<span class="line">logs=$(find /var/lib/docker/containers/ -name *-json.log)  </span>
+<span class="line"></span>
+<span class="line">for log in $logs  </span>
+<span class="line">        do  </span>
+<span class="line">             ls -lh $log   </span>
+<span class="line">        done  </span>
+<span class="line">chmod +x docker_log_size.sh</span>
+<span class="line"></span>
+<span class="line">./docker_log_size.sh</span>
+</pre></td></tr></table></figure>
+<p>但是，这样清理之后，随着时间的推移，容器日志会像杂草一样，卷土重来。</p>
+<ul>
+<li style="list-style: none"><input type="checkbox" checked> 2.3 设置Docker容器日志大小（治本）</li>
+</ul>
+<p>设置一个容器服务的日志大小上限 上述方法，日志文件迟早又会涨回来。要从根本上解决问题，需要限制容器服务的日志大小上限。这个通过配置容器docker-compose的max-size选项来实现</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+</pre></td><td class="code"><pre><span class="line">nginx: </span>
+<span class="line">  image: nginx:1.12.1 </span>
+<span class="line">  restart: always </span>
+<span class="line">  logging: </span>
+<span class="line">    driver: “json-file” </span>
+<span class="line">    options: </span>
+<span class="line">      max-size: “5g”</span>
+</pre></td></tr></table></figure>
+<p>重启nginx容器之后，其日志文件的大小就被限制在5GB，再也不用担心了。<br>全局设置 新建/etc/docker/daemon.json，若有就不用新建了。添加log-dirver和log-opts参数，样例如下：</p>
+<p>```<br>vim /etc/docker/daemon.json</p>
+<p>{<br>  “registry-mirrors”: [“<a href="http://f613ce8f.m.daocloud.io" target="_blank" rel="noopener">http://f613ce8f.m.daocloud.io</a>“],<br>  “log-driver”:”json-file”,<br>  “log-opts”: {“max-size”:”500m”, “max-file”:”3”}<br>}<br>max-size=500m，意味着一个容器日志大小上限是500M， max-file=3，意味着一个容器有三个日志，分别是id+.json、id+1.json、id+2.json。</p>
+<p>//重启docker守护进程</p>
+<p>#systemctl daemon-reload</p>
+<p>#systemctl restart docker</p>
+<p>```注意：设置的日志大小，只对新建的容器有效</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>log</tag>
       </tags>
   </entry>
   <entry>
@@ -2070,6 +2173,49 @@ Employee [name=Akash], hashcode : 63313419
       </tags>
   </entry>
   <entry>
+    <title>java中日期格式规范</title>
+    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
+    <content><![CDATA[<p>日期格式的规范：</p>
+<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
+<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
+<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
+<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
+<p>desc: 日期格式中的这两对字母表示意义：</p>
+<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
+<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
+<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
+<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
+<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
+<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
+<pre><code>正例:
+//获取今年的天数
+int dayOfThisYear = LocalDate.now().lengthOfYear();
+
+//获取指定某年的天数
+LocalDate.of(2011,1,1).lengthOfYear();
+
+反例：
+
+// 第一种情况：在闰年366天时，出现数组越界异常
+int[] dayArray = new int[365];
+
+// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
+Calendar calendar = Calendar.getInstance();
+calendar.set(2020, 1, 26);
+calendar.add(Calendar.DATE, 365);
+</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
+<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
+<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
+<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
+]]></content>
+      <categories>
+        <category>日期格式</category>
+      </categories>
+      <tags>
+        <tag>日期格式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中的锁(偏向锁、轻量锁..）</title>
     <url>/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</url>
     <content><![CDATA[<p><strong>CAS操作：</strong><br>compareAndSwap,比较并替换，实现并发算法常用技术</p>
@@ -2166,6 +2312,111 @@ Employee [name=Akash], hashcode : 63313419
       </categories>
       <tags>
         <tag>lock</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java类加载过程-jvm class loading 加载类机制</title>
+    <url>/2015/07/12/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B%E8%AF%A6%E7%BB%86%E8%A7%A3%E8%AF%BB/</url>
+    <content><![CDATA[<ul>
+<li><p>什么是类的加载</p>
+</li>
+<li><p>类的生命周期</p>
+</li>
+<li><p>运行时（晚期）绑定</p>
+<p>java源文件被javac编译为class字节码文件。<br>javac编译时不进行连接分配内存工作，而是在jvm运行时才动态加载和动态连接。</p>
+</li>
+</ul>
+<ul>
+<li>什么是类的加载</li>
+</ul>
+<blockquote>
+<p>JVM将class文件读取到内存中，经过对class文件的校验、转换、解析、初始化，最终在jvm<br>的heap和方法区分配内存形成可以被jvm直接使用的类型的过程。</p>
+</blockquote>
+<p>  <strong>类的生命周期</strong></p>
+<p>  7个阶段依次为：loading verification preparation resolution initialization using unloading</p>
+<p><img src="/images/classload_001/0001.jpg" alt="Alt text"></p>
+<p>  加载、验证、准备、初始化、卸载的顺序是确定的，“解析”不一定在初始化之前，也可能是在初始化之后。</p>
+<p>  <strong>运行时（晚期）绑定</strong></p>
+<p>  一个阶段的执行过程中会调用或激活另一个阶段</p>
+<p>  <strong>分阶段</strong></p>
+<ul>
+<li>1、加载loading</li>
+</ul>
+<blockquote>
+<p>这个阶段jvm完成如下工作：<br>首先  类加载器通过类的全路径限定名读取类的二进制字节流。<br>然后  将二进制字节流代表的类结构转化到运行时数据区的 方法区中。<br>最后  jvm heap中生成代表这个类的java.lang.class实例（不是这个类的实例）。</p>
+</blockquote>
+<p>  类加载器: </p>
+<blockquote>
+<p>获取类的二进制流可以使用jvm自带的类加载器，也可以使用自己写的类加载器，这是可控的。不同的类加载器<br>可以从各种地方读取：zip包、jar包、class文件、网络流等读取类的二进制字节流。<br>同一个加载器加载的同源类才是真的同类。不同加载器加载同源类，不是同类！ instanceof为false</p>
+</blockquote>
+<p>类加载的双亲委派模型:</p>
+<blockquote>
+<p>各个加载器都是先委托自己的父加载器加载类，若确实没加载到再自己来加载。<br>于是java默认的类查找加载顺序是自顶向下的，树状结构。<br>双亲委托的意图是保证java类型体系中最基础的行为一致，优先加载jdk中的类。</p>
+</blockquote>
+<p><img src="/images/classload_001/0002.jpg" alt="Alt text"></p>
+<p>加载器主要有四种：</p>
+<blockquote>
+<p>jvm启动类加载器bootstrap loader，用c++实现为jvm的一部分（仅指sun的hotspot)，负责JAVA_HOME/lib下面<br>的类库中的类的加载，这个加载器，java程序无法引用到。</p>
+<p>扩展类加载器 Extension loader，由sun.misc.Launcher$ExtClassLoader类实现，可在java中使用，<br>负责JAVA_HOME/lib/ext目录和java.ext.dir目录中类库的类的加载。</p>
+<p>应用系统类加载器Application System Loader，由sum.misc.Louncher$AppClassLoader实现，负责加载<br>用户类路径中类库中的类，如果没有使用自定义的加载器，这个就是默认加载器。</p>
+</blockquote>
+<p>OSGI的网状加载模型</p>
+<p><img src="/images/classload_001/0003.jpg" alt="Alt text"></p>
+<ul>
+<li>2、验证verification</li>
+</ul>
+<blockquote>
+<p>Loading和验证是交叉进行的，验证二进制字节流代表的字节码文件是否合格，从以下几个方面判断：<br>文件格式：参看class文件格式详解，经过文件格式验证之后的字节流才能进入方法区分配内存来储存。<br>元数据验证：数据流和控制流的分析，最复杂。<br>符号引用验证：符号引用转化为直接引用时（解析阶段），检测对类自身以外的信息进行存在性，可访问性验证<br>如果确认代码安全，可用-Xverify:none关闭大部分类的验证，加快雷佳在时间。</p>
+</blockquote>
+<ul>
+<li>3、准备preparation</li>
+</ul>
+<blockquote>
+<p>在方法区中类的类变量（static修饰）分配内存。<br>然后初始化其值，如果类变量是常量，则直接赋值为该变量值否则为java类型的默认的零值。</p>
+</blockquote>
+<ul>
+<li>4、解析resolution</li>
+</ul>
+<blockquote>
+<p>指将常量池内的符号引用替换为直接引用的过程。</p>
+</blockquote>
+<ul>
+<li>5、初始化initialization</li>
+</ul>
+<blockquote>
+<p>这个阶段才真正开始执行java代码，静态代码块和设置变量的初始化值为程序员设定的值。</p>
+</blockquote>
+<p><strong>主动引用</strong></p>
+<blockquote>
+<p>有且只有下面五种情况才会立即初始化类，成为主动引用：</p>
+<ol>
+<li><p>new 对象时</p>
+</li>
+<li><p>读取或设置类的静态字段（除了被final，已在编译期把结果放入常量池的静态字段）或调用类的</p>
+</li>
+<li><p>静态方法时；用java.lang.reflect包的方法对类进行反射调用没初始化过的类时</p>
+</li>
+<li><p>初始化一个雷时发现其父类没初始化，则要先初始化其父类。含main方法的那个类，jvm启动时，</p>
+</li>
+<li><p>需要指定一个执行主类，jvm先初始化这个类，其他对类的引用成为被动引用，加载类时不会进行初始化。</p>
+</li>
+</ol>
+<p><strong>子类继承父类时的初始化顺序</strong></p>
+<ol>
+<li>首先初始化父类的static变量和static块，按出现顺序。</li>
+<li>初始化子类的static变量和static块，按出现顺序。</li>
+<li>初始化父类的普通变量，调用父类的构造函数。</li>
+<li>初始化子类的普通变量，调用子类的构造函数。</li>
+</ol>
+</blockquote>
+<p><a href="https://blog.csdn.net/tangdong3415/article/details/53768099" target="_blank" rel="noopener">https://blog.csdn.net/tangdong3415/article/details/53768099</a></p>
+]]></content>
+      <categories>
+        <category>classloader</category>
+      </categories>
+      <tags>
+        <tag>classloader</tag>
+        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>
@@ -2370,361 +2621,6 @@ public static void main(String[] args) {
       </tags>
   </entry>
   <entry>
-    <title>java中日期格式规范</title>
-    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
-    <content><![CDATA[<p>日期格式的规范：</p>
-<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
-<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
-<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
-<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
-<p>desc: 日期格式中的这两对字母表示意义：</p>
-<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
-<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
-<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
-<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
-<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
-<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
-<pre><code>正例:
-//获取今年的天数
-int dayOfThisYear = LocalDate.now().lengthOfYear();
-
-//获取指定某年的天数
-LocalDate.of(2011,1,1).lengthOfYear();
-
-反例：
-
-// 第一种情况：在闰年366天时，出现数组越界异常
-int[] dayArray = new int[365];
-
-// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
-Calendar calendar = Calendar.getInstance();
-calendar.set(2020, 1, 26);
-calendar.add(Calendar.DATE, 365);
-</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
-<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
-<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
-<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
-]]></content>
-      <categories>
-        <category>日期格式</category>
-      </categories>
-      <tags>
-        <tag>日期格式</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java类加载过程-jvm class loading 加载类机制</title>
-    <url>/2015/07/12/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B%E8%AF%A6%E7%BB%86%E8%A7%A3%E8%AF%BB/</url>
-    <content><![CDATA[<ul>
-<li><p>什么是类的加载</p>
-</li>
-<li><p>类的生命周期</p>
-</li>
-<li><p>运行时（晚期）绑定</p>
-<p>java源文件被javac编译为class字节码文件。<br>javac编译时不进行连接分配内存工作，而是在jvm运行时才动态加载和动态连接。</p>
-</li>
-</ul>
-<ul>
-<li>什么是类的加载</li>
-</ul>
-<blockquote>
-<p>JVM将class文件读取到内存中，经过对class文件的校验、转换、解析、初始化，最终在jvm<br>的heap和方法区分配内存形成可以被jvm直接使用的类型的过程。</p>
-</blockquote>
-<p>  <strong>类的生命周期</strong></p>
-<p>  7个阶段依次为：loading verification preparation resolution initialization using unloading</p>
-<p><img src="/images/classload_001/0001.jpg" alt="Alt text"></p>
-<p>  加载、验证、准备、初始化、卸载的顺序是确定的，“解析”不一定在初始化之前，也可能是在初始化之后。</p>
-<p>  <strong>运行时（晚期）绑定</strong></p>
-<p>  一个阶段的执行过程中会调用或激活另一个阶段</p>
-<p>  <strong>分阶段</strong></p>
-<ul>
-<li>1、加载loading</li>
-</ul>
-<blockquote>
-<p>这个阶段jvm完成如下工作：<br>首先  类加载器通过类的全路径限定名读取类的二进制字节流。<br>然后  将二进制字节流代表的类结构转化到运行时数据区的 方法区中。<br>最后  jvm heap中生成代表这个类的java.lang.class实例（不是这个类的实例）。</p>
-</blockquote>
-<p>  类加载器: </p>
-<blockquote>
-<p>获取类的二进制流可以使用jvm自带的类加载器，也可以使用自己写的类加载器，这是可控的。不同的类加载器<br>可以从各种地方读取：zip包、jar包、class文件、网络流等读取类的二进制字节流。<br>同一个加载器加载的同源类才是真的同类。不同加载器加载同源类，不是同类！ instanceof为false</p>
-</blockquote>
-<p>类加载的双亲委派模型:</p>
-<blockquote>
-<p>各个加载器都是先委托自己的父加载器加载类，若确实没加载到再自己来加载。<br>于是java默认的类查找加载顺序是自顶向下的，树状结构。<br>双亲委托的意图是保证java类型体系中最基础的行为一致，优先加载jdk中的类。</p>
-</blockquote>
-<p><img src="/images/classload_001/0002.jpg" alt="Alt text"></p>
-<p>加载器主要有四种：</p>
-<blockquote>
-<p>jvm启动类加载器bootstrap loader，用c++实现为jvm的一部分（仅指sun的hotspot)，负责JAVA_HOME/lib下面<br>的类库中的类的加载，这个加载器，java程序无法引用到。</p>
-<p>扩展类加载器 Extension loader，由sun.misc.Launcher$ExtClassLoader类实现，可在java中使用，<br>负责JAVA_HOME/lib/ext目录和java.ext.dir目录中类库的类的加载。</p>
-<p>应用系统类加载器Application System Loader，由sum.misc.Louncher$AppClassLoader实现，负责加载<br>用户类路径中类库中的类，如果没有使用自定义的加载器，这个就是默认加载器。</p>
-</blockquote>
-<p>OSGI的网状加载模型</p>
-<p><img src="/images/classload_001/0003.jpg" alt="Alt text"></p>
-<ul>
-<li>2、验证verification</li>
-</ul>
-<blockquote>
-<p>Loading和验证是交叉进行的，验证二进制字节流代表的字节码文件是否合格，从以下几个方面判断：<br>文件格式：参看class文件格式详解，经过文件格式验证之后的字节流才能进入方法区分配内存来储存。<br>元数据验证：数据流和控制流的分析，最复杂。<br>符号引用验证：符号引用转化为直接引用时（解析阶段），检测对类自身以外的信息进行存在性，可访问性验证<br>如果确认代码安全，可用-Xverify:none关闭大部分类的验证，加快雷佳在时间。</p>
-</blockquote>
-<ul>
-<li>3、准备preparation</li>
-</ul>
-<blockquote>
-<p>在方法区中类的类变量（static修饰）分配内存。<br>然后初始化其值，如果类变量是常量，则直接赋值为该变量值否则为java类型的默认的零值。</p>
-</blockquote>
-<ul>
-<li>4、解析resolution</li>
-</ul>
-<blockquote>
-<p>指将常量池内的符号引用替换为直接引用的过程。</p>
-</blockquote>
-<ul>
-<li>5、初始化initialization</li>
-</ul>
-<blockquote>
-<p>这个阶段才真正开始执行java代码，静态代码块和设置变量的初始化值为程序员设定的值。</p>
-</blockquote>
-<p><strong>主动引用</strong></p>
-<blockquote>
-<p>有且只有下面五种情况才会立即初始化类，成为主动引用：</p>
-<ol>
-<li><p>new 对象时</p>
-</li>
-<li><p>读取或设置类的静态字段（除了被final，已在编译期把结果放入常量池的静态字段）或调用类的</p>
-</li>
-<li><p>静态方法时；用java.lang.reflect包的方法对类进行反射调用没初始化过的类时</p>
-</li>
-<li><p>初始化一个雷时发现其父类没初始化，则要先初始化其父类。含main方法的那个类，jvm启动时，</p>
-</li>
-<li><p>需要指定一个执行主类，jvm先初始化这个类，其他对类的引用成为被动引用，加载类时不会进行初始化。</p>
-</li>
-</ol>
-<p><strong>子类继承父类时的初始化顺序</strong></p>
-<ol>
-<li>首先初始化父类的static变量和static块，按出现顺序。</li>
-<li>初始化子类的static变量和static块，按出现顺序。</li>
-<li>初始化父类的普通变量，调用父类的构造函数。</li>
-<li>初始化子类的普通变量，调用子类的构造函数。</li>
-</ol>
-</blockquote>
-<p><a href="https://blog.csdn.net/tangdong3415/article/details/53768099" target="_blank" rel="noopener">https://blog.csdn.net/tangdong3415/article/details/53768099</a></p>
-]]></content>
-      <categories>
-        <category>classloader</category>
-      </categories>
-      <tags>
-        <tag>classloader</tag>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>JVM精简知识点(一)</title>
-    <url>/2016/07/02/jvm%E7%B2%BE%E7%AE%80%E7%9F%A5%E8%AF%86%E7%82%B9(%E4%B8%80)/</url>
-    <content><![CDATA[<p>  java的垃圾回收是不需要程序员进行手动控制的，而是由JVM去完成。以下是JVM进行垃圾回收的<br>  各种算法。</p>
-<p>  1.如何确定某对象是垃圾</p>
-<pre><code>* 引用计数算法：java中，引用和对象是有关联的。操作对象必须用引用进行，所以
-通过引用计数来判断一个对象是否可回收。一个对象没有任何与之关联的引用，说明对象不
-太可能再被用到，这个对象就是可回收对象。这种方式为引用计数法。但是这种方式无法解
-决循环引用的问题，如：
-   public static void main(String[] args) {
-    Object obj1 = new Object();
-    Object obj2 = new Object();
-    obj1.object = obj2;
-    obj2.object = obj1;
-    obj1 = null;
-    obj2 = null;
-    } 
-
-最后obj1和obj2的内存块都不能在被访问到了，但它们的引用计数不为0，这样会使它们永远不能被清楚。
-
-
-* 可达分析算法
-   为了解决引用计数法的循环引用问题，java使用的可达性分析方法。通过一系列的&quot;GC ROOT&quot; 对象作
-   为起点搜索。如果在&quot;GC ROOTS&quot;和一个对象之间没有可达路径，则称该对象是不可达。注意：不可达对象
-   不等价于可回收对象，不可达对象变为可回收对象至少要经过两次标记过程。两次标记后仍是可回收对象，
-   则将面临回收。
-
-比较常见的将对象视为可回收对象的原因：
-  *  显示地将对象的唯一强引用指向新的对象。
-  *  显示地将对象的唯一弱引用赋值为null。
-  *  局部引用所指向的对象（如，方法内对象）。
-
-以下代码，每次循环结束，object都会被视为可回收对象。
-void function(){
-
-for(int i=0;i&lt;10;i++){
-    Object obj = new Object();
-    System.out.println(ojb.getClass());
-}
-}
-
-  * 只有弱引用于其关联的对象。
-
-典型的垃圾回收算法
-
-* 标记-清除算法（mark-sweep)
-最基础的垃圾回收算法，分为两个阶段，标记和清楚。标记阶段标记出所有需要回收的对象，清除阶段
-回收被标记的对象所占用的空间。
-</code></pre><p> <img src="/images/jvm/mark-sweep.jpg" alt="Alt text"></p>
-<pre><code>缺点： 内存碎片化严重，后续可能发生大对象不能找到可利用空间的问题。
-
-* 复制算法(copying)
-为了解决mark-sweep 算法内存碎片化的缺陷而被提出的算法。按内存容量将内存划分为等大小的两块。
-每次只使用其中一块，当这一块内存满后将尚存活的对象复制到另一块上去，把已使用的内存清掉。
-
-
-
-
-    * 标记-整理算法(mark-compact)
-  综合标记删除、复制算法，为了避免缺陷而得出。标记阶段和mark-sweep算法相同，标记后不是清理
-  对象。而是将存活对象移向内存的一端。然后清除端边界外的对象。
-</code></pre><p> <img src="/images/jvm/mark-compact.jpg" alt="Alt text"></p>
-<pre><code>    * 分代收集算法
-  目前大部分JVM采用的方法，核心思想是根据对象存活的不同生命周期将内存划分为不同的域，一般情况
-下将GC堆划分为老年代(Tenured/Old GEneration)和新生代(Young Generation).老年代的特点是每次垃圾回收
-时只有少量对象需要被回收，新生代的特点每次垃圾回收时都有大量垃圾需要被回收,因此可根据不同区域选择
-不同的算法。
-   目前大部分JVM的GC对于新生代都采用copying算法，因为新生代中每次垃圾回收都需要回收大部分对
-象，即复制的操作比较少，但通常不是按照1:1来划分新生代。一般将新生代划分为一块较大的Eden空间
-和两块较小的Survivor空间(From Space,To Space),每次使用Eden空间和其中一块Survivor空间，当进行
-垃圾回收时，将该两块空间中还存活的对象复制到另一块survivor空间中。
-</code></pre><p> <img src="/images/jvm/young-generation.jpg" alt="Alt text">    </p>
-<pre><code>而老年代因为每次只回收少量对象，因而采用mark-compact 标记整理算法。
-
-处于方法区的永久代(Permanet Generation)。它用来存储class类，常量，方法等。对于永久代的回收主要包括
-废弃常量和无用的类。
-
-对象的内存分配主要在新生代的Eden Space 和Survivor Space的From Space(Survivor目前存放
-对象那一块)，
-</code></pre><p>少数情况直接分配到老年代。当新生代的Eden Space和From Space空间不足时就会发生一次GC,进行GC后,Eden Space<br>和From Space区存活对象会被挪到To Space,然后将Eden Space和From Space进行清理。如果To Space无法足够存储某个<br>对象，则将这个对象存储到老年代。在进行GC后，使用的便是Eden Space和To Space了，如此反复循环。当对象在<br>Survivor区躲过一次GC后，其年龄就会+1。默认情况下年龄达到15的对象会被移到老年代中。</p>
-<p>  垃圾收集算法是垃圾收集器的理论基础，而垃圾收集器就是其具体实现。下面介绍HotSpot虚拟机提供的几种垃圾收集器。<br>3.1. Serial/Serial Old<br>最古老的一个单线程收集器，进行垃圾回收时，必须暂停所有用户线程。Serial是针对新生代的收集器，采用Copying-复制算法；而Serial Old是针对老生代的收集器，采用Mark-Compact-标记整理算法。优点是简单高效，缺点是需要暂停用户线程。<br>3.2. ParNew<br>Seral/Serial Old的多线程版本，使用多个线程进行垃圾收集。<br>3.3. Parallel Scavenge<br>新生代的并行收集器，回收期间不需要暂停其他线程，采用Copying-复制算法。该收集器与前两个收集器不同，主要为了达到一个可控的吞吐量。<br>3.4. Parallel Old<br>Parallel Scavenge的老生代版本，采用Mark-Compact算法和多线程。<br>3.5. CMS<br>Current Mark Sweep收集器是一种以最小回收时间停顿为目标的并发回收器，因而采用Mark-Sweep算法。<br>3.6. G1<br>G1(Garbage First)收集器技术的前沿成果，是面向服务端的收集器，能充分利用CPU和多核环境。是一款并行与并发收集器，它能够建立可预测的停顿时间模型。</p>
-]]></content>
-      <categories>
-        <category>JVM</category>
-      </categories>
-      <tags>
-        <tag>JVM</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Docker日志实时查看和清理</title>
-    <url>/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/</url>
-    <content><![CDATA[<h1 id="Docker日志实时查看和清理"><a href="#Docker日志实时查看和清理" class="headerlink" title="Docker日志实时查看和清理"></a>Docker日志实时查看和清理</h1><h2 id="一、docker-logs-查看实时日志"><a href="#一、docker-logs-查看实时日志" class="headerlink" title="一、docker logs 查看实时日志"></a>一、docker logs 查看实时日志</h2><p>docker logs -f -t –since=“2021-09-25” –tail=10 edu_web_1</p>
-<p>命令说明： –since : 此参数指定了输出日志开始日期，即只输出指定日期之后的日志。 -f : 查看实时日志 -t : 查看日志产生的日期 -tail=10 : 查看最后的10条日志。 edu_web_1 : 容器名称</p>
-<h2 id="二、docker容器日志"><a href="#二、docker容器日志" class="headerlink" title="二、docker容器日志"></a>二、docker容器日志</h2><ul>
-<li><p>1.问题： docker容器日志导致主机磁盘空间满了。docker logs -f container_name很占用空间，不用的日志可以清理掉了。</p>
-</li>
-<li><p>2.查找容器日志: 在linux上，容器日志一般存放在/var/lib/docker/containers/container_id/下面， 以json.log结尾的文件（业务日志）很大，查看各个日志文件大小的脚本docker_log_size.sh，内容如下：</p>
-</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
-<span class="line">2</span>
-<span class="line">3</span>
-<span class="line">4</span>
-<span class="line">5</span>
-<span class="line">6</span>
-<span class="line">7</span>
-<span class="line">8</span>
-<span class="line">9</span>
-<span class="line">10</span>
-<span class="line">11</span>
-<span class="line">12</span>
-<span class="line">13</span>
-</pre></td><td class="code"><pre><span class="line">!/bin/sh</span>
-<span class="line"></span>
-<span class="line">echo &quot;======== docker containers logs file size ========&quot;  </span>
-<span class="line"></span>
-<span class="line">logs=$(find /var/lib/docker/containers/ -name *-json.log)  </span>
-<span class="line"></span>
-<span class="line">for log in $logs  </span>
-<span class="line">        do  </span>
-<span class="line">             ls -lh $log   </span>
-<span class="line">        done  </span>
-<span class="line">chmod +x docker_log_size.sh</span>
-<span class="line"></span>
-<span class="line">./docker_log_size.sh</span>
-</pre></td></tr></table></figure>
-<ul>
-<li style="list-style: none"><input type="checkbox" checked> 2.2 清理Docker容器日志（治标）<br>如果docker容器正在运行，那么使用rm -rf方式删除日志后，通过df -h会发现磁盘空间并没有释放。原因是在Linux或者Unix系统中，通过rm -rf或者文件管理器删除文件，将会从文件系统的目录结构上解除链接（unlink）。如果文件是被打开的（有一个进程正在使用），那么进程将仍然可以读取该文件，磁盘空间也一直被占用。正确姿势是cat /dev/null &gt; *-json.log，当然你也可以通过rm -rf删除后重启docker。接下来，提供一个日志清理脚本clean_docker_log.sh，内容如下：</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
-<span class="line">2</span>
-<span class="line">3</span>
-<span class="line">4</span>
-<span class="line">5</span>
-<span class="line">6</span>
-<span class="line">7</span>
-<span class="line">8</span>
-<span class="line">9</span>
-<span class="line">10</span>
-<span class="line">11</span>
-<span class="line">12</span>
-<span class="line">13</span>
-</pre></td><td class="code"><pre><span class="line">!/bin/sh</span>
-<span class="line"></span>
-<span class="line">echo &quot;======== docker containers logs file size ========&quot;  </span>
-<span class="line"></span>
-<span class="line">logs=$(find /var/lib/docker/containers/ -name *-json.log)  </span>
-<span class="line"></span>
-<span class="line">for log in $logs  </span>
-<span class="line">        do  </span>
-<span class="line">             ls -lh $log   </span>
-<span class="line">        done  </span>
-<span class="line">chmod +x docker_log_size.sh</span>
-<span class="line"></span>
-<span class="line">./docker_log_size.sh</span>
-</pre></td></tr></table></figure>
-<p>但是，这样清理之后，随着时间的推移，容器日志会像杂草一样，卷土重来。</p>
-<ul>
-<li style="list-style: none"><input type="checkbox" checked> 2.3 设置Docker容器日志大小（治本）</li>
-</ul>
-<p>设置一个容器服务的日志大小上限 上述方法，日志文件迟早又会涨回来。要从根本上解决问题，需要限制容器服务的日志大小上限。这个通过配置容器docker-compose的max-size选项来实现</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
-<span class="line">2</span>
-<span class="line">3</span>
-<span class="line">4</span>
-<span class="line">5</span>
-<span class="line">6</span>
-<span class="line">7</span>
-</pre></td><td class="code"><pre><span class="line">nginx: </span>
-<span class="line">  image: nginx:1.12.1 </span>
-<span class="line">  restart: always </span>
-<span class="line">  logging: </span>
-<span class="line">    driver: “json-file” </span>
-<span class="line">    options: </span>
-<span class="line">      max-size: “5g”</span>
-</pre></td></tr></table></figure>
-<p>重启nginx容器之后，其日志文件的大小就被限制在5GB，再也不用担心了。<br>全局设置 新建/etc/docker/daemon.json，若有就不用新建了。添加log-dirver和log-opts参数，样例如下：</p>
-<p>```<br>vim /etc/docker/daemon.json</p>
-<p>{<br>  “registry-mirrors”: [“<a href="http://f613ce8f.m.daocloud.io" target="_blank" rel="noopener">http://f613ce8f.m.daocloud.io</a>“],<br>  “log-driver”:”json-file”,<br>  “log-opts”: {“max-size”:”500m”, “max-file”:”3”}<br>}<br>max-size=500m，意味着一个容器日志大小上限是500M， max-file=3，意味着一个容器有三个日志，分别是id+.json、id+1.json、id+2.json。</p>
-<p>//重启docker守护进程</p>
-<p>#systemctl daemon-reload</p>
-<p>#systemctl restart docker</p>
-<p>```注意：设置的日志大小，只对新建的容器有效</p>
-]]></content>
-      <categories>
-        <category>docker</category>
-      </categories>
-      <tags>
-        <tag>log</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>linux开放新端口</title>
-    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
-    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
-<p>2.查找iptables的位置<br>find -name iptables</p>
-<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
-]]></content>
-      <categories>
-        <category>开放端口</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-        <tag>port</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>jdk8链接mysql问题</title>
     <url>/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/</url>
     <content><![CDATA[<p>前几天发现一直跑的项目本地无法启动了：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
@@ -2867,39 +2763,107 @@ for(int i=0;i&lt;10;i++){
       </tags>
   </entry>
   <entry>
-    <title>linux配置调度任务</title>
-    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
-    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
-<pre><code># crontab
--bash: crontab: command not found
-</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
-<pre><code># yum -y install vixie-cron
- Loaded plusgins:security
- ........
-</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
-<pre><code># service crond start
-# service crond stop
-# service crond restart
-# service crond reload
-# service crond status 
-</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
-<ol>
-<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
-</ol>
-<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
-<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
-</code></pre><p>4.授权project-job.sh文件</p>
-<p>  chmod 755 *</p>
-<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
+    <title>linux开放新端口</title>
+    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
+    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
+<p>2.查找iptables的位置<br>find -name iptables</p>
+<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
 ]]></content>
       <categories>
-        <category>linux</category>
+        <category>开放端口</category>
       </categories>
       <tags>
         <tag>linux</tag>
-        <tag>crontab</tag>
+        <tag>port</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JVM精简知识点(一)</title>
+    <url>/2016/07/02/jvm%E7%B2%BE%E7%AE%80%E7%9F%A5%E8%AF%86%E7%82%B9(%E4%B8%80)/</url>
+    <content><![CDATA[<p>  java的垃圾回收是不需要程序员进行手动控制的，而是由JVM去完成。以下是JVM进行垃圾回收的<br>  各种算法。</p>
+<p>  1.如何确定某对象是垃圾</p>
+<pre><code>* 引用计数算法：java中，引用和对象是有关联的。操作对象必须用引用进行，所以
+通过引用计数来判断一个对象是否可回收。一个对象没有任何与之关联的引用，说明对象不
+太可能再被用到，这个对象就是可回收对象。这种方式为引用计数法。但是这种方式无法解
+决循环引用的问题，如：
+   public static void main(String[] args) {
+    Object obj1 = new Object();
+    Object obj2 = new Object();
+    obj1.object = obj2;
+    obj2.object = obj1;
+    obj1 = null;
+    obj2 = null;
+    } 
+
+最后obj1和obj2的内存块都不能在被访问到了，但它们的引用计数不为0，这样会使它们永远不能被清楚。
+
+
+* 可达分析算法
+   为了解决引用计数法的循环引用问题，java使用的可达性分析方法。通过一系列的&quot;GC ROOT&quot; 对象作
+   为起点搜索。如果在&quot;GC ROOTS&quot;和一个对象之间没有可达路径，则称该对象是不可达。注意：不可达对象
+   不等价于可回收对象，不可达对象变为可回收对象至少要经过两次标记过程。两次标记后仍是可回收对象，
+   则将面临回收。
+
+比较常见的将对象视为可回收对象的原因：
+  *  显示地将对象的唯一强引用指向新的对象。
+  *  显示地将对象的唯一弱引用赋值为null。
+  *  局部引用所指向的对象（如，方法内对象）。
+
+以下代码，每次循环结束，object都会被视为可回收对象。
+void function(){
+
+for(int i=0;i&lt;10;i++){
+    Object obj = new Object();
+    System.out.println(ojb.getClass());
+}
+}
+
+  * 只有弱引用于其关联的对象。
+
+典型的垃圾回收算法
+
+* 标记-清除算法（mark-sweep)
+最基础的垃圾回收算法，分为两个阶段，标记和清楚。标记阶段标记出所有需要回收的对象，清除阶段
+回收被标记的对象所占用的空间。
+</code></pre><p> <img src="/images/jvm/mark-sweep.jpg" alt="Alt text"></p>
+<pre><code>缺点： 内存碎片化严重，后续可能发生大对象不能找到可利用空间的问题。
+
+* 复制算法(copying)
+为了解决mark-sweep 算法内存碎片化的缺陷而被提出的算法。按内存容量将内存划分为等大小的两块。
+每次只使用其中一块，当这一块内存满后将尚存活的对象复制到另一块上去，把已使用的内存清掉。
+
+
+
+
+    * 标记-整理算法(mark-compact)
+  综合标记删除、复制算法，为了避免缺陷而得出。标记阶段和mark-sweep算法相同，标记后不是清理
+  对象。而是将存活对象移向内存的一端。然后清除端边界外的对象。
+</code></pre><p> <img src="/images/jvm/mark-compact.jpg" alt="Alt text"></p>
+<pre><code>    * 分代收集算法
+  目前大部分JVM采用的方法，核心思想是根据对象存活的不同生命周期将内存划分为不同的域，一般情况
+下将GC堆划分为老年代(Tenured/Old GEneration)和新生代(Young Generation).老年代的特点是每次垃圾回收
+时只有少量对象需要被回收，新生代的特点每次垃圾回收时都有大量垃圾需要被回收,因此可根据不同区域选择
+不同的算法。
+   目前大部分JVM的GC对于新生代都采用copying算法，因为新生代中每次垃圾回收都需要回收大部分对
+象，即复制的操作比较少，但通常不是按照1:1来划分新生代。一般将新生代划分为一块较大的Eden空间
+和两块较小的Survivor空间(From Space,To Space),每次使用Eden空间和其中一块Survivor空间，当进行
+垃圾回收时，将该两块空间中还存活的对象复制到另一块survivor空间中。
+</code></pre><p> <img src="/images/jvm/young-generation.jpg" alt="Alt text">    </p>
+<pre><code>而老年代因为每次只回收少量对象，因而采用mark-compact 标记整理算法。
+
+处于方法区的永久代(Permanet Generation)。它用来存储class类，常量，方法等。对于永久代的回收主要包括
+废弃常量和无用的类。
+
+对象的内存分配主要在新生代的Eden Space 和Survivor Space的From Space(Survivor目前存放
+对象那一块)，
+</code></pre><p>少数情况直接分配到老年代。当新生代的Eden Space和From Space空间不足时就会发生一次GC,进行GC后,Eden Space<br>和From Space区存活对象会被挪到To Space,然后将Eden Space和From Space进行清理。如果To Space无法足够存储某个<br>对象，则将这个对象存储到老年代。在进行GC后，使用的便是Eden Space和To Space了，如此反复循环。当对象在<br>Survivor区躲过一次GC后，其年龄就会+1。默认情况下年龄达到15的对象会被移到老年代中。</p>
+<p>  垃圾收集算法是垃圾收集器的理论基础，而垃圾收集器就是其具体实现。下面介绍HotSpot虚拟机提供的几种垃圾收集器。<br>3.1. Serial/Serial Old<br>最古老的一个单线程收集器，进行垃圾回收时，必须暂停所有用户线程。Serial是针对新生代的收集器，采用Copying-复制算法；而Serial Old是针对老生代的收集器，采用Mark-Compact-标记整理算法。优点是简单高效，缺点是需要暂停用户线程。<br>3.2. ParNew<br>Seral/Serial Old的多线程版本，使用多个线程进行垃圾收集。<br>3.3. Parallel Scavenge<br>新生代的并行收集器，回收期间不需要暂停其他线程，采用Copying-复制算法。该收集器与前两个收集器不同，主要为了达到一个可控的吞吐量。<br>3.4. Parallel Old<br>Parallel Scavenge的老生代版本，采用Mark-Compact算法和多线程。<br>3.5. CMS<br>Current Mark Sweep收集器是一种以最小回收时间停顿为目标的并发回收器，因而采用Mark-Sweep算法。<br>3.6. G1<br>G1(Garbage First)收集器技术的前沿成果，是面向服务端的收集器，能充分利用CPU和多核环境。是一款并行与并发收集器，它能够建立可预测的停顿时间模型。</p>
+]]></content>
+      <categories>
+        <category>JVM</category>
+      </categories>
+      <tags>
+        <tag>JVM</tag>
       </tags>
   </entry>
   <entry>
@@ -3289,6 +3253,42 @@ public class OrderTest {
       </tags>
   </entry>
   <entry>
+    <title>linux配置调度任务</title>
+    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
+<pre><code># crontab
+-bash: crontab: command not found
+</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
+<pre><code># yum -y install vixie-cron
+ Loaded plusgins:security
+ ........
+</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
+<pre><code># service crond start
+# service crond stop
+# service crond restart
+# service crond reload
+# service crond status 
+</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
+<ol>
+<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
+</ol>
+<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
+<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
+</code></pre><p>4.授权project-job.sh文件</p>
+<p>  chmod 755 *</p>
+<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
+]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+        <tag>crontab</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>redis内存管理及数据淘汰机制</title>
     <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
     <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
@@ -3542,114 +3542,6 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </tags>
   </entry>
   <entry>
-    <title>事务传播机制及隔离级别</title>
-    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
-    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
-<ol>
-<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
-<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
-<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
-<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
-<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
-</ol>
-<blockquote>
-<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
-</blockquote>
-<p><strong>四种隔离级别</strong></p>
-<blockquote>
-<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th>事务隔离级别</th>
-<th>脏读</th>
-<th>不可重复读</th>
-<th>幻读</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>读未提交（read-uncommitted</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>读已提交（read-commit)</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>重复读（repeatable-read)</td>
-<td>否</td>
-<td>否</td>
-<td>是</td>
-</tr>
-<tr>
-<td>串行化(seriablizable)</td>
-<td>否</td>
-<td>否</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
-<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
-<p>事务的并发问题(事务A: A  事务B: B)</p>
-<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
-<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
-<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
-<blockquote>
-<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>多线程中ThreadLocal</title>
-    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
-    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
-<p><strong><em>变量的种类：</em></strong> </p>
-<ol>
-<li>成员变量：整个类中可以访问</li>
-<li>局部变量：代码块中可以访问</li>
-<li>线程局部的变量</li>
-</ol>
-<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
-<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
-<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
-<p><strong>ThreadLocal中的方法</strong></p>
-<ul>
-<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
-</li>
-<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
-</li>
-<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
-</li>
-<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
-</li>
-</ul>
-<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
-<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
-<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
-]]></content>
-      <categories>
-        <category>ThreadLocal</category>
-      </categories>
-      <tags>
-        <tag>ThreadLocal</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>初步理解线程池核心知识</title>
     <url>/2017/06/25/%E5%88%9D%E6%AD%A5%E7%90%86%E8%A7%A3%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/</url>
     <content><![CDATA[<p>  先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。</p>
@@ -3780,6 +3672,79 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </categories>
       <tags>
         <tag>线程池</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>事务传播机制及隔离级别</title>
+    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
+    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
+<ol>
+<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
+<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
+<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
+<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
+<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
+</ol>
+<blockquote>
+<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
+</blockquote>
+<p><strong>四种隔离级别</strong></p>
+<blockquote>
+<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>事务隔离级别</th>
+<th>脏读</th>
+<th>不可重复读</th>
+<th>幻读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读未提交（read-uncommitted</td>
+<td>是</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>读已提交（read-commit)</td>
+<td>否</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>重复读（repeatable-read)</td>
+<td>否</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>串行化(seriablizable)</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
+<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
+<p>事务的并发问题(事务A: A  事务B: B)</p>
+<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
+<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
+<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
+<blockquote>
+<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
       </tags>
   </entry>
   <entry>
@@ -3983,6 +3948,41 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </tags>
   </entry>
   <entry>
+    <title>多线程中ThreadLocal</title>
+    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
+    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
+<p><strong><em>变量的种类：</em></strong> </p>
+<ol>
+<li>成员变量：整个类中可以访问</li>
+<li>局部变量：代码块中可以访问</li>
+<li>线程局部的变量</li>
+</ol>
+<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
+<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
+<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
+<p><strong>ThreadLocal中的方法</strong></p>
+<ul>
+<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
+</li>
+<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
+</li>
+<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
+</li>
+<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
+</li>
+</ul>
+<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
+<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
+<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
+]]></content>
+      <categories>
+        <category>ThreadLocal</category>
+      </categories>
+      <tags>
+        <tag>ThreadLocal</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>并发编程设置合适线程数</title>
     <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
     <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
@@ -4032,80 +4032,6 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </categories>
       <tags>
         <tag>线程数</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>mysql索引数据结构</title>
-    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<p><strong>树结构</strong>：</p>
-<blockquote>
-<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
-<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
-</blockquote>
-<p><strong>二叉排序树</strong></p>
-<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
-<blockquote>
-<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
-</blockquote>
-<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
-<blockquote>
-<p>有序序列，二叉排序树会退化成链表。</p>
-</blockquote>
-<p><strong>平衡树</strong></p>
-<blockquote>
-<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
-<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
-</blockquote>
-<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
-<p><strong>保证树的平衡性原因</strong></p>
-<blockquote>
-<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
-<p>java中的TreeSet数据结构底层就是红黑树。</p>
-</blockquote>
-<p><strong>B树</strong></p>
-<blockquote>
-<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
-</blockquote>
-<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
-<blockquote>
-<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
-<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
-<p>如果设计成无限多路时，会退化成有序数组。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-</blockquote>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p><strong>使用场景：</strong></p>
-<p>B树一般做文件系统的索引比较多</p>
-<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
-<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
-<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
-<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
-<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
-<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
-<p>查找的时候，每次载入一个节点进内存就行。</p>
-<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
-<p><strong>B+树</strong></p>
-<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
-<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
-<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
-<p><strong>为什么要这样设计</strong></p>
-<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
-<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
-<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
-<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
-<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
-<p>B+树查询时间  log(n)</p>
-<p>hash查询时间 O(1)</p>
-]]></content>
-      <categories>
-        <category>mysql</category>
-      </categories>
-      <tags>
-        <tag>mysql</tag>
-        <tag>B+tree</tag>
       </tags>
   </entry>
   <entry>
@@ -4294,6 +4220,80 @@ consumer.shutDown();
       </categories>
       <tags>
         <tag>queue</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>mysql索引数据结构</title>
+    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<p><strong>树结构</strong>：</p>
+<blockquote>
+<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
+<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
+</blockquote>
+<p><strong>二叉排序树</strong></p>
+<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
+<blockquote>
+<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
+</blockquote>
+<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
+<blockquote>
+<p>有序序列，二叉排序树会退化成链表。</p>
+</blockquote>
+<p><strong>平衡树</strong></p>
+<blockquote>
+<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
+<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
+</blockquote>
+<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
+<p><strong>保证树的平衡性原因</strong></p>
+<blockquote>
+<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
+<p>java中的TreeSet数据结构底层就是红黑树。</p>
+</blockquote>
+<p><strong>B树</strong></p>
+<blockquote>
+<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
+</blockquote>
+<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
+<blockquote>
+<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
+<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
+<p>如果设计成无限多路时，会退化成有序数组。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+</blockquote>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p><strong>使用场景：</strong></p>
+<p>B树一般做文件系统的索引比较多</p>
+<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
+<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
+<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
+<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
+<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
+<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
+<p>查找的时候，每次载入一个节点进内存就行。</p>
+<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
+<p><strong>B+树</strong></p>
+<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
+<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
+<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
+<p><strong>为什么要这样设计</strong></p>
+<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
+<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
+<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
+<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
+<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
+<p>B+树查询时间  log(n)</p>
+<p>hash查询时间 O(1)</p>
+]]></content>
+      <categories>
+        <category>mysql</category>
+      </categories>
+      <tags>
+        <tag>mysql</tag>
+        <tag>B+tree</tag>
       </tags>
   </entry>
 </search>
