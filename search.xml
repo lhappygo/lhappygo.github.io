@@ -60,120 +60,51 @@
       </tags>
   </entry>
   <entry>
-    <title>Java中AQS</title>
-    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
-    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
-<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
-<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
-<p><strong>2.AQS提供了一把密码锁</strong></p>
-<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
+    <title>Eureka工作流程小记</title>
+    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
+    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
+<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
+<p><strong>Eureka工作流程</strong></p>
+<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
 <ul>
-<li>列出了AQS的三个成员变量</li>
-<li>同步队列头结点引用</li>
-<li>同步队列尾结点引用</li>
-<li>同步状态</li>
+<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
+</li>
+<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
+</li>
+<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
+</li>
+<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
+</li>
+<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
+</li>
+<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
+</li>
+<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
+</li>
+<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
+</li>
+<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
+</li>
+<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
+</li>
 </ul>
-<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
-<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
-<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
-<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
-<p><strong>AQS内部两个排队区</strong></p>
+<p><strong>点滴：</strong></p>
 <ul>
-<li>同步队列<ul>
-<li>只有一条</li>
-<li>结点，分别持有前后结点引用</li>
+<li>客户端主动通知注册中心下线</li>
 </ul>
-</li>
-<li>条件队列<ul>
-<li>可有多条</li>
-<li>结点，只有一个指向后继结点的引用</li>
-</ul>
-</li>
-</ul>
-<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
-<p>注：</p>
+<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
 <ul>
-<li><p>同步队列节点来源</p>
-<ul>
-<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
-<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
+<li>服务器端配置：</li>
 </ul>
-</li>
-<li><p>条件队列节点来源</p>
-<ul>
-<li>调用await方法阻塞线程。</li>
-<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
-</ul>
-</li>
-</ul>
-<p><strong>总结：</strong></p>
-<ul>
-<li>同步队列与条件队列节点可互相转化</li>
-<li>一个线程只能存在于两个队列中的一个</li>
-</ul>
-<p>队列每个结点结构</p>
-<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
-<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
-<p><strong>Node:</strong></p>
-<ul>
-<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
-</li>
-<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
-</li>
-<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
-</li>
-<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
-</li>
-<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
-</li>
-<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
-</li>
-<li><p>volatile int waitStatus：当前结点的等待状态</p>
-</li>
-<li><p>volatile Node pre：同步队列中的前继结点</p>
-</li>
-<li><p>volatile Node next：同步队列中的后继结点</p>
-</li>
-<li><p>volatile Thread thread：当前结点持有的线程引用</p>
-</li>
-<li><p>final boolean isShared()：当前结点是否为共享模式</p>
-</li>
-<li><p>final Node predecessor()：返回当前结点的前继结点</p>
-</li>
-<li><p>Node(){}：构造器1</p>
-</li>
-<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
-</li>
-<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
-</li>
-</ul>
-<blockquote>
-<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
-</blockquote>
-<p><strong>4.理解结点锁等待状态</strong></p>
-<p>每个节点都有一个等待状态，共四种等待状态。</p>
-<ul>
-<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
-</ul>
-<ul>
-<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
-</li>
-<li><p>CONDITION：该线程在条件队列中排队。</p>
-</li>
-<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
-</li>
-</ul>
-<p><strong>5.结点进入同步队列时进行的操作</strong></p>
-<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
-<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
-<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
-<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
+<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
+<p>客户端配置：</p>
+<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
 ]]></content>
       <categories>
-        <category>AQS</category>
+        <category>eureka</category>
       </categories>
       <tags>
-        <tag>AQS</tag>
+        <tag>eureka</tag>
       </tags>
   </entry>
   <entry>
@@ -446,54 +377,6 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>Eureka工作流程小记</title>
-    <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
-    <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
-<p>Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。只要有一台Eureka Server还在，就能保证注册服务可用(保证可用性）。</p>
-<p><strong>Eureka工作流程</strong></p>
-<p>关于Eureka核心概念，自我保护机制、集群内工作原理请查看之前文章。以下对Eureka的工作流程进行整体梳理以下：</p>
-<ul>
-<li><p>1.Eureka Server启动成功，等待服务端注册。在启动过程中如果配置了集群，集群之间定时通过Replicate同步注册表，每个Eureka Server都存在独立完整的服务注册表信息。</p>
-</li>
-<li><p>2.Eureka Client启动时根据配置的Eureka Server地址去注册中心注册服务。</p>
-</li>
-<li><p>3.Eureka Client会每30s向Eureka Server发送一次心跳请求，证明客户端服务正常。</p>
-</li>
-<li><p>4.当Eureka Server 90s内没收到Eureka Client的心跳，注册中心则认为该节点失效，会注销该实例。</p>
-</li>
-<li><p>5.单位时间内Eureka Server统计到大量Eureka Client没有上送心跳，则认为可能为网络异常，进入自我保护机制，不再剔除没有上送心跳的客户端。</p>
-</li>
-<li><p>6.当Eureka Client心跳请求恢复正常之后，Eureka Server自动退出自我保护模式。</p>
-</li>
-<li><p>7.Eureka Client定时全量或增量从注册中心获取服务注册表，并且将获取到的信息缓存到本地</p>
-</li>
-<li><p>8.服务调用时，Eureka Client会先从本地缓存找寻调取的服务。如获取不到，先从注册中心刷新注册表，再同步到本地缓存。</p>
-</li>
-<li><p>9.Eureka Client获取到目标服务器信息，发起服务调用</p>
-</li>
-<li><p>10.Eureka Client程序关闭时向Eureka Server发送取消请求，Eureka Server将实例从注册表中删除。</p>
-</li>
-</ul>
-<p><strong>点滴：</strong></p>
-<ul>
-<li>客户端主动通知注册中心下线</li>
-</ul>
-<p>如果你的Eureka Client是一个spring boot应用，可通过调用以下代码通知注册中心下线。<br>DiscoveryManager.getInstance().shutdownComponent()。</p>
-<ul>
-<li>服务器端配置：</li>
-</ul>
-<p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
-<p>客户端配置：</p>
-<p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
-]]></content>
-      <categories>
-        <category>eureka</category>
-      </categories>
-      <tags>
-        <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>GC收集器优劣势及适用场景</title>
     <url>/2020/08/29/GC%E4%BC%98%E5%8A%A3%E5%8A%BF%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/</url>
     <content><![CDATA[<p>JVM垃圾收集器特点、优劣势及使用场景</p>
@@ -644,39 +527,120 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>JMM中happen-before八大规则</title>
-    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
+    <title>Java中AQS</title>
+    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
+    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
+<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
+<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
+<p><strong>2.AQS提供了一把密码锁</strong></p>
+<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
+<ul>
+<li>列出了AQS的三个成员变量</li>
+<li>同步队列头结点引用</li>
+<li>同步队列尾结点引用</li>
+<li>同步状态</li>
+</ul>
+<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
+<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
+<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
+<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
+<p><strong>AQS内部两个排队区</strong></p>
+<ul>
+<li>同步队列<ul>
+<li>只有一条</li>
+<li>结点，分别持有前后结点引用</li>
+</ul>
+</li>
+<li>条件队列<ul>
+<li>可有多条</li>
+<li>结点，只有一个指向后继结点的引用</li>
+</ul>
+</li>
+</ul>
+<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
+<p>注：</p>
+<ul>
+<li><p>同步队列节点来源</p>
+<ul>
+<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
+<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
+</ul>
+</li>
+<li><p>条件队列节点来源</p>
+<ul>
+<li>调用await方法阻塞线程。</li>
+<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
+</ul>
+</li>
+</ul>
+<p><strong>总结：</strong></p>
+<ul>
+<li>同步队列与条件队列节点可互相转化</li>
+<li>一个线程只能存在于两个队列中的一个</li>
+</ul>
+<p>队列每个结点结构</p>
+<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
+<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
+<p><strong>Node:</strong></p>
+<ul>
+<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
+</li>
+<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
+</li>
+<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
+</li>
+<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
+</li>
+<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
+</li>
+<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
+</li>
+<li><p>volatile int waitStatus：当前结点的等待状态</p>
+</li>
+<li><p>volatile Node pre：同步队列中的前继结点</p>
+</li>
+<li><p>volatile Node next：同步队列中的后继结点</p>
+</li>
+<li><p>volatile Thread thread：当前结点持有的线程引用</p>
+</li>
+<li><p>final boolean isShared()：当前结点是否为共享模式</p>
+</li>
+<li><p>final Node predecessor()：返回当前结点的前继结点</p>
+</li>
+<li><p>Node(){}：构造器1</p>
+</li>
+<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
+</li>
+<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
+</li>
+</ul>
 <blockquote>
-<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
+<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
 </blockquote>
+<p><strong>4.理解结点锁等待状态</strong></p>
+<p>每个节点都有一个等待状态，共四种等待状态。</p>
 <ul>
-<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
-</li>
-<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
-</li>
-<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
-</li>
-<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
-</li>
-<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
-</li>
-<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
-</li>
+<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
 </ul>
 <ul>
-<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
+<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
 </li>
-<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
+<li><p>CONDITION：该线程在条件队列中排队。</p>
+</li>
+<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
 </li>
 </ul>
+<p><strong>5.结点进入同步队列时进行的操作</strong></p>
+<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
+<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
+<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
+<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
 ]]></content>
       <categories>
-        <category>JMM</category>
+        <category>AQS</category>
       </categories>
       <tags>
-        <tag>JMM</tag>
-        <tag>happen-before</tag>
+        <tag>AQS</tag>
       </tags>
   </entry>
   <entry>
@@ -822,6 +786,109 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>JDK</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JMM中happen-before八大规则</title>
+    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
+<blockquote>
+<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
+</blockquote>
+<ul>
+<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
+</li>
+<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
+</li>
+<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
+</li>
+<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
+</li>
+<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
+</li>
+<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
+</li>
+</ul>
+<ul>
+<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
+</li>
+<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JMM</category>
+      </categories>
+      <tags>
+        <tag>JMM</tag>
+        <tag>happen-before</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>LockSuport简述-1</title>
+    <url>/2019/03/17/Java%20LockSupport/</url>
+    <content><![CDATA[<blockquote>
+<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
+</blockquote>
+<ul>
+<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
+</li>
+<li><p>如果许可尚不可用，则调用unpark使其可用</p>
+</li>
+</ul>
+<p>注意：</p>
+<ul>
+<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
+</li>
+<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
+</li>
+</ul>
+<p><strong>阻塞线程</strong></p>
+<ul>
+<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
+</li>
+<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
+</li>
+<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
+</li>
+<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+</li>
+<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
+</li>
+</ul>
+<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
+<p><strong>唤醒线程</strong></p>
+<ul>
+<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
+</ul>
+<blockquote>
+<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
+</blockquote>
+<pre><code>public class LockSuportTest {
+
+    public static void main(String[] args) throws InterruptedException {
+        Thread t = new Thread(() -&gt; {
+            LockSupport.park();
+            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
+        });
+        t.start();
+        Thread.sleep(3000);
+        LockSupport.unpark(t);
+    }
+}
+</code></pre><p>Synchronized 与LockSupport</p>
+<ul>
+<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
+</li>
+<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>lock</category>
+      </categories>
+      <tags>
+        <tag>lock</tag>
       </tags>
   </entry>
   <entry>
@@ -1075,91 +1142,6 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>Linux之lsof命令</title>
-    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
-    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
-<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
-<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
-<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
-<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
-<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
-<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i tcp@192.168.1.111:ftp -r</p>
-]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>LockSuport简述-1</title>
-    <url>/2019/03/17/Java%20LockSupport/</url>
-    <content><![CDATA[<blockquote>
-<p>LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：</p>
-</blockquote>
-<ul>
-<li><p>如果该许可可用，并且可在线程中使用，则调用park()将会立即返回，否则可能阻塞。</p>
-</li>
-<li><p>如果许可尚不可用，则调用unpark使其可用</p>
-</li>
-</ul>
-<p>注意：</p>
-<ul>
-<li><p>许可不可重入，只能调用一次park方法，否则会一直阻塞。</p>
-</li>
-<li><p>和信号量不同，这个许可不能累加（即连续的unpark()和1次效果一样）。</p>
-</li>
-</ul>
-<p><strong>阻塞线程</strong></p>
-<ul>
-<li><p>start void park():阻塞当前线程，如果调用unpark方法或当前线程被终断，从park()方法中返回。</p>
-</li>
-<li><p>static void park(Object blocker):阻塞当前线程，入参添加一个Obj对象，用来记录导致线程阻塞的阻塞对象，方便进行问题排查。</p>
-</li>
-<li><p>static void parkNanos(long nanos):阻塞当前线程，最长不超过nanos纳秒，增加了超时返回的特性。</p>
-</li>
-<li><p>static void parknanos(Object blocker,long nanos)阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-</li>
-<li><p>static void parkUntil(long deadline)：阻塞当前线程，直到deadline</p>
-</li>
-</ul>
-<p>static void parkUntil(Object blocker,long deadline):阻塞当前线程，入参增加一个obj对象，用来记录导致线程阻塞的阻塞对象，方便问题排查。</p>
-<p><strong>唤醒线程</strong></p>
-<ul>
-<li>static void unpark(Thread thread):唤醒处理阻塞状态的指定线程。</li>
-</ul>
-<blockquote>
-<p>实际LockSupport阻塞和唤醒线程的功能都依赖sun.misc.Unsafe</p>
-</blockquote>
-<pre><code>public class LockSuportTest {
-
-    public static void main(String[] args) throws InterruptedException {
-        Thread t = new Thread(() -&gt; {
-            LockSupport.park();
-            System.err.println(Thread.currentThread().getName() + &quot;started&quot;);
-        });
-        t.start();
-        Thread.sleep(3000);
-        LockSupport.unpark(t);
-    }
-}
-</code></pre><p>Synchronized 与LockSupport</p>
-<ul>
-<li><p>synchronized使线程阻塞，线程进入blocked状态，而调用LockSupport.park()方法阻塞线程会致使线程进入到waiting状态</p>
-</li>
-<li><p>由synchronized阻塞的线程加入到同步队列，再次被唤醒的线程是随机从同步队列中选择的，而LockSupport.unpark(thread)可以指定线程对象唤醒指定线程。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>lock</category>
-      </categories>
-      <tags>
-        <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Linux中搭建maven+nexus仓库</title>
     <url>/2018/09/22/Linux%E4%B8%AD%E6%90%AD%E5%BB%BAmaven+nexus%E7%A7%81%E4%BA%BA%E4%BB%93%E5%BA%93/</url>
     <content><![CDATA[<p>Linux中搭建maven+nexus私人仓库</p>
@@ -1280,6 +1262,24 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
+    <title>Linux之lsof命令</title>
+    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
+<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
+<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
+<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
+<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
+<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
+<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i tcp@192.168.1.111:ftp -r</p>
+]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Maven中问题点滴记录</title>
     <url>/2016/06/19/Maven%E4%B8%AD%E9%97%AE%E9%A2%98%E7%82%B9%E6%BB%B4%E8%AE%B0%E5%BD%95/</url>
     <content><![CDATA[<p>Maven项目在进行maven install时中出现：<br>    Failed to execute goal on project …: Could not resolve dependencies for project …</p>
@@ -1298,31 +1298,6 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>maven</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>SpringBoot中定时任务配置多线程</title>
-    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
-    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
-<pre><code>//多线程执行定时任务
-@Slf4j
-@Configuration
-public class ScheduleConfig implements SchedulingConfigurer {
-@Override
-public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-  log.info(&quot;定时任务配置10个线程&quot;);
-taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
-}
-}
-</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
-]]></content>
-      <categories>
-        <category>定时任务</category>
-      </categories>
-      <tags>
-        <tag>定时任务</tag>
-        <tag>多线程</tag>
-        <tag>SpringBoot</tag>
       </tags>
   </entry>
   <entry>
@@ -1502,6 +1477,31 @@ taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
       <tags>
         <tag>事务</tag>
         <tag>幻读</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SpringBoot中定时任务配置多线程</title>
+    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
+    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
+<pre><code>//多线程执行定时任务
+@Slf4j
+@Configuration
+public class ScheduleConfig implements SchedulingConfigurer {
+@Override
+public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+  log.info(&quot;定时任务配置10个线程&quot;);
+taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
+}
+}
+</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
+]]></content>
+      <categories>
+        <category>定时任务</category>
+      </categories>
+      <tags>
+        <tag>定时任务</tag>
+        <tag>多线程</tag>
+        <tag>SpringBoot</tag>
       </tags>
   </entry>
   <entry>
@@ -2763,21 +2763,6 @@ public static void main(String[] args) {
       </tags>
   </entry>
   <entry>
-    <title>linux开放新端口</title>
-    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
-    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
-<p>2.查找iptables的位置<br>find -name iptables</p>
-<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
-]]></content>
-      <categories>
-        <category>开放端口</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-        <tag>port</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>JVM精简知识点(一)</title>
     <url>/2016/07/02/jvm%E7%B2%BE%E7%AE%80%E7%9F%A5%E8%AF%86%E7%82%B9(%E4%B8%80)/</url>
     <content><![CDATA[<p>  java的垃圾回收是不需要程序员进行手动控制的，而是由JVM去完成。以下是JVM进行垃圾回收的<br>  各种算法。</p>
@@ -2864,6 +2849,57 @@ for(int i=0;i&lt;10;i++){
       </categories>
       <tags>
         <tag>JVM</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>linux开放新端口</title>
+    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
+    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
+<p>2.查找iptables的位置<br>find -name iptables</p>
+<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
+]]></content>
+      <categories>
+        <category>开放端口</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+        <tag>port</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>linux配置调度任务</title>
+    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
+<pre><code># crontab
+-bash: crontab: command not found
+</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
+<pre><code># yum -y install vixie-cron
+ Loaded plusgins:security
+ ........
+</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
+<pre><code># service crond start
+# service crond stop
+# service crond restart
+# service crond reload
+# service crond status 
+</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
+<ol>
+<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
+</ol>
+<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
+<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
+</code></pre><p>4.授权project-job.sh文件</p>
+<p>  chmod 755 *</p>
+<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
+]]></content>
+      <categories>
+        <category>linux</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+        <tag>crontab</tag>
       </tags>
   </entry>
   <entry>
@@ -3186,6 +3222,54 @@ drop PRIMARY KEY
       </tags>
   </entry>
   <entry>
+    <title>redis内存管理及数据淘汰机制</title>
+    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
+<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
+ 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
+ 的问题。
+
+ 通过如下配置控制redis使用的最大内存：
+ maxmemory 100mb
+
+ 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
+
+* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
+* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
+  请求仍然可以正常执行。
+
+ 在为redis设置maxmemory时，需要注意：
+
+* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
+maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
+主机可用的内存，留出一部分预留用作主从同步。
+</code></pre><p>  数据淘汰机制</p>
+<pre><code>  redis提供了5中数据淘汰策略：
+
+*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
+   只淘汰设定了有效期的key。
+
+*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
+
+*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
+
+*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
+
+*  volatile-ttl： 淘汰剩余有效期最短的key。
+</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
+<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
+</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
+<pre><code>配置方法：
+  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
+</code></pre>]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中Orderd接口</title>
     <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
     <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
@@ -3250,90 +3334,6 @@ public class OrderTest {
       </categories>
       <tags>
         <tag>orderd</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>linux配置调度任务</title>
-    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
-    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
-<pre><code># crontab
--bash: crontab: command not found
-</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
-<pre><code># yum -y install vixie-cron
- Loaded plusgins:security
- ........
-</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
-<pre><code># service crond start
-# service crond stop
-# service crond restart
-# service crond reload
-# service crond status 
-</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
-<ol>
-<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
-</ol>
-<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
-<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
-</code></pre><p>4.授权project-job.sh文件</p>
-<p>  chmod 755 *</p>
-<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
-]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-        <tag>crontab</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>redis内存管理及数据淘汰机制</title>
-    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
-<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
- 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
- 的问题。
-
- 通过如下配置控制redis使用的最大内存：
- maxmemory 100mb
-
- 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
-
-* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
-* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
-  请求仍然可以正常执行。
-
- 在为redis设置maxmemory时，需要注意：
-
-* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
-maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
-主机可用的内存，留出一部分预留用作主从同步。
-</code></pre><p>  数据淘汰机制</p>
-<pre><code>  redis提供了5中数据淘汰策略：
-
-*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
-   只淘汰设定了有效期的key。
-
-*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
-
-*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
-
-*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
-
-*  volatile-ttl： 淘汰剩余有效期最短的key。
-</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
-<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
-</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
-<pre><code>配置方法：
-  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
-</code></pre>]]></content>
-      <categories>
-        <category>redis</category>
-      </categories>
-      <tags>
-        <tag>redis</tag>
       </tags>
   </entry>
   <entry>
@@ -3542,6 +3542,134 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </tags>
   </entry>
   <entry>
+    <title>事务传播机制及隔离级别</title>
+    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
+    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
+<ol>
+<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
+<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
+<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
+<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
+<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
+</ol>
+<blockquote>
+<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
+</blockquote>
+<p><strong>四种隔离级别</strong></p>
+<blockquote>
+<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>事务隔离级别</th>
+<th>脏读</th>
+<th>不可重复读</th>
+<th>幻读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读未提交（read-uncommitted</td>
+<td>是</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>读已提交（read-commit)</td>
+<td>否</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>重复读（repeatable-read)</td>
+<td>否</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>串行化(seriablizable)</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
+<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
+<p>事务的并发问题(事务A: A  事务B: B)</p>
+<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
+<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
+<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
+<blockquote>
+<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>多线程中ThreadLocal</title>
+    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
+    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
+<p><strong><em>变量的种类：</em></strong> </p>
+<ol>
+<li>成员变量：整个类中可以访问</li>
+<li>局部变量：代码块中可以访问</li>
+<li>线程局部的变量</li>
+</ol>
+<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
+<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
+<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
+<p><strong>ThreadLocal中的方法</strong></p>
+<ul>
+<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
+</li>
+<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
+</li>
+<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
+</li>
+<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
+</li>
+</ul>
+<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
+<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
+<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
+]]></content>
+      <categories>
+        <category>ThreadLocal</category>
+      </categories>
+      <tags>
+        <tag>ThreadLocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java中Orderd接口</title>
+    <url>/2018/06/10/%E5%88%86%E5%B8%83%E5%BC%8FCAP%E8%A7%84%E5%88%99/</url>
+    <content><![CDATA[<p><strong>分区容错性Partition</strong></p>
+<p>分布式系统中的某个节点出现故障问题，整个系统仍能对外提供满足一致性和可用性的服务。</p>
+<p><strong>可用性Availability</strong><br>一直可正常访问并得到系统的正常响应。</p>
+<p><strong>一致性Consistency</strong><br>分布式系统中各节点时刻保持数据一致。如完成写操作后，任何操作都应该可获取到改写操作的写入的最新值。</p>
+<p><strong>CAP三者不可兼得</strong></p>
+<p>CA:优先保持一致性、可用性，放弃容错性。放弃系统扩展性，系统不合符腹分布式系统设计。</p>
+<p>CP:优先保持一致性、容错性。放弃可用性。数据一致性要求较高时使用，发生网络故障、消息丢失，以用户体验为代价，等恢复后才可逐渐访问。</p>
+<p>AP：优先保证可用性和分区容错性，放弃一致性。做相应补偿机制来处理一致性问题。</p>
+]]></content>
+      <categories>
+        <category>分布式</category>
+      </categories>
+      <tags>
+        <tag>CAP</tag>
+        <tag>分布式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>初步理解线程池核心知识</title>
     <url>/2017/06/25/%E5%88%9D%E6%AD%A5%E7%90%86%E8%A7%A3%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/</url>
     <content><![CDATA[<p>  先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。</p>
@@ -3672,99 +3800,6 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </categories>
       <tags>
         <tag>线程池</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>事务传播机制及隔离级别</title>
-    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
-    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
-<ol>
-<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
-<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
-<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
-<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
-<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
-</ol>
-<blockquote>
-<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
-</blockquote>
-<p><strong>四种隔离级别</strong></p>
-<blockquote>
-<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th>事务隔离级别</th>
-<th>脏读</th>
-<th>不可重复读</th>
-<th>幻读</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>读未提交（read-uncommitted</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>读已提交（read-commit)</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>重复读（repeatable-read)</td>
-<td>否</td>
-<td>否</td>
-<td>是</td>
-</tr>
-<tr>
-<td>串行化(seriablizable)</td>
-<td>否</td>
-<td>否</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
-<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
-<p>事务的并发问题(事务A: A  事务B: B)</p>
-<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
-<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
-<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
-<blockquote>
-<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中Orderd接口</title>
-    <url>/2018/06/10/%E5%88%86%E5%B8%83%E5%BC%8FCAP%E8%A7%84%E5%88%99/</url>
-    <content><![CDATA[<p><strong>分区容错性Partition</strong></p>
-<p>分布式系统中的某个节点出现故障问题，整个系统仍能对外提供满足一致性和可用性的服务。</p>
-<p><strong>可用性Availability</strong><br>一直可正常访问并得到系统的正常响应。</p>
-<p><strong>一致性Consistency</strong><br>分布式系统中各节点时刻保持数据一致。如完成写操作后，任何操作都应该可获取到改写操作的写入的最新值。</p>
-<p><strong>CAP三者不可兼得</strong></p>
-<p>CA:优先保持一致性、可用性，放弃容错性。放弃系统扩展性，系统不合符腹分布式系统设计。</p>
-<p>CP:优先保持一致性、容错性。放弃可用性。数据一致性要求较高时使用，发生网络故障、消息丢失，以用户体验为代价，等恢复后才可逐渐访问。</p>
-<p>AP：优先保证可用性和分区容错性，放弃一致性。做相应补偿机制来处理一致性问题。</p>
-]]></content>
-      <categories>
-        <category>分布式</category>
-      </categories>
-      <tags>
-        <tag>CAP</tag>
-        <tag>分布式</tag>
       </tags>
   </entry>
   <entry>
@@ -3948,41 +3983,6 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </tags>
   </entry>
   <entry>
-    <title>多线程中ThreadLocal</title>
-    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
-    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
-<p><strong><em>变量的种类：</em></strong> </p>
-<ol>
-<li>成员变量：整个类中可以访问</li>
-<li>局部变量：代码块中可以访问</li>
-<li>线程局部的变量</li>
-</ol>
-<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
-<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
-<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
-<p><strong>ThreadLocal中的方法</strong></p>
-<ul>
-<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
-</li>
-<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
-</li>
-<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
-</li>
-<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
-</li>
-</ul>
-<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
-<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
-<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
-]]></content>
-      <categories>
-        <category>ThreadLocal</category>
-      </categories>
-      <tags>
-        <tag>ThreadLocal</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>并发编程设置合适线程数</title>
     <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
     <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
@@ -4032,6 +4032,192 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </categories>
       <tags>
         <tag>线程数</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>mysql索引数据结构</title>
+    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<p><strong>树结构</strong>：</p>
+<blockquote>
+<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
+<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
+</blockquote>
+<p><strong>二叉排序树</strong></p>
+<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
+<blockquote>
+<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
+</blockquote>
+<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
+<blockquote>
+<p>有序序列，二叉排序树会退化成链表。</p>
+</blockquote>
+<p><strong>平衡树</strong></p>
+<blockquote>
+<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
+<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
+</blockquote>
+<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
+<p><strong>保证树的平衡性原因</strong></p>
+<blockquote>
+<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
+<p>java中的TreeSet数据结构底层就是红黑树。</p>
+</blockquote>
+<p><strong>B树</strong></p>
+<blockquote>
+<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
+</blockquote>
+<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
+<blockquote>
+<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
+<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
+<p>如果设计成无限多路时，会退化成有序数组。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+</blockquote>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p><strong>使用场景：</strong></p>
+<p>B树一般做文件系统的索引比较多</p>
+<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
+<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
+<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
+<p>25 25 30 40 43 45 50 59 65 77 85 </p>
+<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
+<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
+<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
+<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
+<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
+<p>查找的时候，每次载入一个节点进内存就行。</p>
+<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
+<p><strong>B+树</strong></p>
+<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
+<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
+<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
+<p><strong>为什么要这样设计</strong></p>
+<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
+<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
+<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
+<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
+<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
+<p>B+树查询时间  log(n)</p>
+<p>hash查询时间 O(1)</p>
+]]></content>
+      <categories>
+        <category>mysql</category>
+      </categories>
+      <tags>
+        <tag>mysql</tag>
+        <tag>B+tree</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Spring Boot中解决跨域问题</title>
+    <url>/2017/06/25/%E8%B7%A8%E8%B6%8A%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3%E6%96%B9%E5%BC%8F/</url>
+    <content><![CDATA[<h2 id="跨域问题"><a href="#跨域问题" class="headerlink" title="跨域问题"></a>跨域问题</h2><ul>
+<li>什么情况下会出现跨域问题</li>
+</ul>
+<p>通常，在前端工程师的开发过程中，往往在本地机器启动前端服务， 而调用的后端接口服务是在另外一台机器运行，这时就会出现跨域问题，让接口无法调通。<br>而到了测试环境和生产环境，可以使用Nginx去解决这个问题。<br>这里我们仅考虑开发环境，在不借助Nginx的情况下，解决跨域。</p>
+<ul>
+<li>解决方案</li>
+</ul>
+<p>在SpringBoot工程中，增加跨域配置即可。</p>
+<ul>
+<li>实现</li>
+</ul>
+<p>新增一个跨域配置类 CrossDomainConfig，在其中配置允许跨域访问的url、请求方式、Header等。代码如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+<span class="line">8</span>
+<span class="line">9</span>
+<span class="line">10</span>
+<span class="line">11</span>
+<span class="line">12</span>
+<span class="line">13</span>
+<span class="line">14</span>
+<span class="line">15</span>
+<span class="line">16</span>
+<span class="line">17</span>
+<span class="line">18</span>
+<span class="line">19</span>
+<span class="line">20</span>
+<span class="line">21</span>
+<span class="line">22</span>
+<span class="line">23</span>
+<span class="line">24</span>
+<span class="line">25</span>
+<span class="line">26</span>
+<span class="line">27</span>
+<span class="line">28</span>
+<span class="line">29</span>
+<span class="line">30</span>
+<span class="line">31</span>
+<span class="line">32</span>
+<span class="line">33</span>
+<span class="line">34</span>
+<span class="line">35</span>
+<span class="line">36</span>
+<span class="line">37</span>
+<span class="line">38</span>
+<span class="line">39</span>
+<span class="line">40</span>
+<span class="line">41</span>
+<span class="line">42</span>
+<span class="line">43</span>
+<span class="line">44</span>
+</pre></td><td class="code"><pre><span class="line"></span>
+<span class="line">import org.springframework.context.annotation.Bean;</span>
+<span class="line">import org.springframework.context.annotation.Configuration;</span>
+<span class="line">import org.springframework.web.cors.CorsConfiguration;</span>
+<span class="line">import org.springframework.web.cors.UrlBasedCorsConfigurationSource;</span>
+<span class="line">import org.springframework.web.filter.CorsFilter;</span>
+<span class="line"></span>
+<span class="line">@Configuration</span>
+<span class="line">public class CrossDomainConfig&#123;</span>
+<span class="line"></span>
+<span class="line">    public CrossDomainConfig() &#123;</span>
+<span class="line"></span>
+<span class="line">    &#125;</span>
+<span class="line">　　private CorsConfiguration buildConfig() &#123;</span>
+<span class="line">　　　　</span>
+<span class="line">　　　　 // 添加cors配置信息</span>
+<span class="line">    　　CorsConfiguration corsConfiguration = new CorsConfiguration();</span>
+<span class="line">　　　　 corsConfiguration.addAllowedOrigin(&quot;http://localhost:8080&quot;);</span>
+<span class="line">    　　// * 代表所有url</span>
+<span class="line">        corsConfiguration.addAllowedOrigin(&quot;*&quot;);</span>
+<span class="line"></span>
+<span class="line">        // 设置允许请求的方式</span>
+<span class="line">        corsConfiguration.addAllowedMethod(&quot;*&quot;);</span>
+<span class="line"></span>
+<span class="line">        // 设置允许的header</span>
+<span class="line">        corsConfiguration.addAllowedHeader(&quot;*&quot;);</span>
+<span class="line">        </span>
+<span class="line">        // 设置是否发送cookie信息</span>
+<span class="line">        corsConfiguration.setAllowCredentials(true);</span>
+<span class="line"></span>
+<span class="line">    　　return corsConfiguration;</span>
+<span class="line">　　&#125;</span>
+<span class="line"></span>
+<span class="line">    @Bean</span>
+<span class="line">    public CorsFilter corsFilter() &#123;</span>
+<span class="line">        　</span>
+<span class="line">        // 为url添加映射路径</span>
+<span class="line">        UrlBasedCorsConfigurationSource crossDomainSource = new UrlBasedCorsConfigurationSource();</span>
+<span class="line">        crossDomainSource.registerCorsConfiguration(&quot;/**&quot;, buildConfig()); </span>
+<span class="line">        </span>
+<span class="line">        // 返回重新定义好的配置</span>
+<span class="line">        return new CorsFilter(crossDomainSource); </span>
+<span class="line">    &#125; </span>
+<span class="line">&#125;</span>
+</pre></td></tr></table></figure></p>
+<p>重启后台工程，会发现，跨域问题被如此简单的解决了。</p>
+]]></content>
+      <categories>
+        <category>跨域</category>
+      </categories>
+      <tags>
+        <tag>跨域，spring boot</tag>
       </tags>
   </entry>
   <entry>
@@ -4220,80 +4406,6 @@ consumer.shutDown();
       </categories>
       <tags>
         <tag>queue</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>mysql索引数据结构</title>
-    <url>/2018/05/19/%E6%A0%91%E5%BD%A2%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<p><strong>树结构</strong>：</p>
-<blockquote>
-<p>前中后序遍历、二叉树、二叉搜索树、平衡二叉树，更高级点的有红黑树、B树、B+树、字典树..</p>
-<p>红黑树（为什么这样设计）设计理念、原理、解决问题的方法比技术本身重要</p>
-</blockquote>
-<p><strong>二叉排序树</strong></p>
-<p><img src="/images/b_tree/001.jpg" alt="Alt text"></p>
-<blockquote>
-<p>左边比根节点小，右边比根节点大。并且左右子树都是二叉排序树。但是在一些极端情况下，比如插入序列是有序的，就会出现退化的情况。</p>
-</blockquote>
-<p><img src="/images/b_tree/002.jpg" alt="Alt text"></p>
-<blockquote>
-<p>有序序列，二叉排序树会退化成链表。</p>
-</blockquote>
-<p><strong>平衡树</strong></p>
-<blockquote>
-<p>插入数据的时候同时调整这棵树，让它的节点尽可能均匀分布。</p>
-<p>红黑树就是平衡树的一种，它的复杂的定义和规则，都是为了保证树的平衡性。</p>
-</blockquote>
-<p><img src="/images/b_tree/003.jpg" alt="Alt text"></p>
-<p><strong>保证树的平衡性原因</strong></p>
-<blockquote>
-<p>因为树的查找性能取决于树的高度，让树尽可能平衡。为了降低树的高度。</p>
-<p>java中的TreeSet数据结构底层就是红黑树。</p>
-</blockquote>
-<p><strong>B树</strong></p>
-<blockquote>
-<p>一种多路搜索树，它的每个节点可以拥有多余两个孩子的节点（它的每个节点可以拥有多个孩子节点（多余两个））。M路的B树最多能拥有M个孩子节点。</p>
-</blockquote>
-<p><img src="/images/b_tree/004.jpg" alt="Alt text"></p>
-<blockquote>
-<p>这是一个3路的B数，每个节点最多可以拥有3个孩子，同样是搜索树。</p>
-<p>多路搜索树设计成多路，是为了进一步降低树的高度。路数越多，树的高度月底。</p>
-<p>如果设计成无限多路时，会退化成有序数组。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-</blockquote>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p><strong>使用场景：</strong></p>
-<p>B树一般做文件系统的索引比较多</p>
-<p>为什么文件系统的索引喜欢用B树而不是红黑树、有序数组？</p>
-<p>文件系统和数据库的索引都是存在硬盘上的，并且如果数据量大，不一定能一次性加载到内存中。（考虑运行时内存情况）</p>
-<p>如果一棵树都无法一次性加载进内存，要怎样查找呢？这时候B树的多路存储作用出来的，可以每次加载B树的一个节点，然后一步步往下去找。</p>
-<p>25 25 30 40 43 45 50 59 65 77 85 </p>
-<p><img src="/images/b_tree/005.jpg" alt="Alt text"></p>
-<p>假设内存一次性只能加载2个数，这么长的有序数据是无法一次性进内存的。</p>
-<p><img src="/images/b_tree/006.jpg" alt="Alt text"></p>
-<p>我们把它组织成一颗三路的B树，这样每个节点最多能有2个数。</p>
-<p><img src="/images/b_tree/007.jpg" alt="Alt text"></p>
-<p>查找的时候，每次载入一个节点进内存就行。</p>
-<p>如果在内存中，红黑树比B树效率更高，但是设计到磁盘操作，B树就更优了。</p>
-<p><strong>B+树</strong></p>
-<p>B+树是在B树的基础上改造的，它的数据都在叶子节点，同时叶子节点之间还加了指针形成链表。</p>
-<p><img src="/images/b_tree/008.jpg" alt="Alt text"></p>
-<p>这是一个4路B+树，它的数据都在叶子结点并且有链表相连。</p>
-<p><strong>为什么要这样设计</strong></p>
-<p>B+树在数据库的索引中用得比较多。数据库中select数据，不一定只选一条，很多时候选多条，B树需要做局部的中序遍历，可能要跨层访问。而B+树由于所有数据都在叶子节点，不用跨层，同时由于有链表结构，只需要找到首尾，通过链表就能把所有数据取出来了。</p>
-<p><img src="/images/b_tree/009.jpg" alt="Alt text"></p>
-<p>比如选出7到19，只需要在叶子节点中就能找到。</p>
-<p><strong>为什么hash比B+树更快，为啥mysql还用B+树来存索引？</strong></p>
-<p>这和业务场景有关，如果只选一条数据，那确实是hash更快。但是数据库中经常会选择多条，这时候由于B+树索引有序，并且又有链表相连，它的查询效率比hash就快很多了。而且数据库中的索引一般都是在磁盘上的，数据量大的情况可能无法一次装入内存，B+树的设计可以允许数据分批加载，同时树的高度降低，提高查找效率。</p>
-<p>B+树查询时间  log(n)</p>
-<p>hash查询时间 O(1)</p>
-]]></content>
-      <categories>
-        <category>mysql</category>
-      </categories>
-      <tags>
-        <tag>mysql</tag>
-        <tag>B+tree</tag>
       </tags>
   </entry>
 </search>
