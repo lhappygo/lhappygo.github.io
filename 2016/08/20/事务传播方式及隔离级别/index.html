@@ -81,18 +81,18 @@
 
 
 
-<meta name="description" content="7种事务的传播机制（可通过spring配置或注解来设置）  REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 NOT_SUPPORT">
+<meta name="description" content="7种事务的传播机制（可通过spring配置或注解来设置 REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 NOT_SUPPORTED：无事务执行，如果当前事务存在，把当前事务挂起。 MANDATORY：中文翻译为强制，支持使用当前事">
 <meta name="keywords" content="事务">
 <meta property="og:type" content="article">
 <meta property="og:title" content="事务传播机制及隔离级别">
 <meta property="og:url" content="http://lhappygo.github.io/2016/08/20/事务传播方式及隔离级别/index.html">
 <meta property="og:site_name" content="happygo&#39;s blog">
-<meta property="og:description" content="7种事务的传播机制（可通过spring配置或注解来设置）  REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 NOT_SUPPORT">
+<meta property="og:description" content="7种事务的传播机制（可通过spring配置或注解来设置 REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 NOT_SUPPORTED：无事务执行，如果当前事务存在，把当前事务挂起。 MANDATORY：中文翻译为强制，支持使用当前事">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2020-04-17T09:14:38.000Z">
+<meta property="og:updated_time" content="2022-02-24T08:25:07.969Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="事务传播机制及隔离级别">
-<meta name="twitter:description" content="7种事务的传播机制（可通过spring配置或注解来设置）  REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 NOT_SUPPORT">
+<meta name="twitter:description" content="7种事务的传播机制（可通过spring配置或注解来设置 REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。 REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。 NOT_SUPPORTED：无事务执行，如果当前事务存在，把当前事务挂起。 MANDATORY：中文翻译为强制，支持使用当前事">
 
 
 
@@ -384,56 +384,60 @@
       
 
       
-        <p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
-<ol>
-<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
-<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
-<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
-<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
-<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
-</ol>
+        <ul>
+<li>7种事务的传播机制（可通过spring配置或注解来设置<ul>
+<li>REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。</li>
+<li>REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
+<li>SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。</li>
+<li>NOT_SUPPORTED：无事务执行，如果当前事务存在，把当前事务挂起。</li>
+<li>MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
+<li>NEVER：无事务执行，当前有事务则抛出Exception。</li>
+<li>NESTED：嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
+</ul>
+</li>
+</ul>
 <blockquote>
 <p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
 </blockquote>
-<p><strong>四种隔离级别</strong></p>
+<ul>
+<li>四种隔离级别</li>
+</ul>
 <blockquote>
 <p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
 </blockquote>
 <table>
 <thead>
 <tr>
-<th>事务隔离级别</th>
-<th>脏读</th>
-<th>不可重复读</th>
-<th>幻读</th>
+<th style="text-align:left">事物隔离级别</th>
+<th style="text-align:left">脏读</th>
+<th style="text-align:left">不可重复度</th>
+<th style="text-align:left">幻读</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>读未提交（read-uncommitted</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
+<td style="text-align:left">读未提交（read-uncommited）</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
 </tr>
 <tr>
-<td>读已提交（read-commit)</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
+<td style="text-align:left">读已提交（read-commit）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
 </tr>
 <tr>
-<td>重复读（repeatable-read)</td>
-<td>否</td>
-<td>否</td>
-<td>是</td>
+<td style="text-align:left">重复度（repeatable-read）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">是</td>
 </tr>
 <tr>
-<td>串行化(seriablizable)</td>
-<td>否</td>
-<td>否</td>
-<td>否</td>
+<td style="text-align:left">串行化（seriablizable）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
 </tr>
 </tbody>
 </table>

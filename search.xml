@@ -1,6 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Java中AQS</title>
+    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
+    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
+<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
+<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
+<p><strong>2.AQS提供了一把密码锁</strong></p>
+<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
+<ul>
+<li>列出了AQS的三个成员变量</li>
+<li>同步队列头结点引用</li>
+<li>同步队列尾结点引用</li>
+<li>同步状态</li>
+</ul>
+<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
+<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
+<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
+<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
+<p><strong>AQS内部两个排队区</strong></p>
+<ul>
+<li>同步队列<ul>
+<li>只有一条</li>
+<li>结点，分别持有前后结点引用</li>
+</ul>
+</li>
+<li>条件队列<ul>
+<li>可有多条</li>
+<li>结点，只有一个指向后继结点的引用</li>
+</ul>
+</li>
+</ul>
+<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
+<p>注：</p>
+<ul>
+<li><p>同步队列节点来源</p>
+<ul>
+<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
+<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
+</ul>
+</li>
+<li><p>条件队列节点来源</p>
+<ul>
+<li>调用await方法阻塞线程。</li>
+<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
+</ul>
+</li>
+</ul>
+<p><strong>总结：</strong></p>
+<ul>
+<li>同步队列与条件队列节点可互相转化</li>
+<li>一个线程只能存在于两个队列中的一个</li>
+</ul>
+<p>队列每个结点结构</p>
+<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
+<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
+<p><strong>Node:</strong></p>
+<ul>
+<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
+</li>
+<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
+</li>
+<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
+</li>
+<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
+</li>
+<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
+</li>
+<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
+</li>
+<li><p>volatile int waitStatus：当前结点的等待状态</p>
+</li>
+<li><p>volatile Node pre：同步队列中的前继结点</p>
+</li>
+<li><p>volatile Node next：同步队列中的后继结点</p>
+</li>
+<li><p>volatile Thread thread：当前结点持有的线程引用</p>
+</li>
+<li><p>final boolean isShared()：当前结点是否为共享模式</p>
+</li>
+<li><p>final Node predecessor()：返回当前结点的前继结点</p>
+</li>
+<li><p>Node(){}：构造器1</p>
+</li>
+<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
+</li>
+<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
+</li>
+</ul>
+<blockquote>
+<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
+</blockquote>
+<p><strong>4.理解结点锁等待状态</strong></p>
+<p>每个节点都有一个等待状态，共四种等待状态。</p>
+<ul>
+<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
+</ul>
+<ul>
+<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
+</li>
+<li><p>CONDITION：该线程在条件队列中排队。</p>
+</li>
+<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
+</li>
+</ul>
+<p><strong>5.结点进入同步队列时进行的操作</strong></p>
+<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
+<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
+<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
+<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
+]]></content>
+      <categories>
+        <category>AQS</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>AQS独占模式解析</title>
     <url>/2019/09/07/AbstractQueuedSynchronized(%E4%BA%8C%EF%BC%89/</url>
     <content><![CDATA[<p><strong>AbstractQueuedSynchronized独占模式</strong></p>
@@ -222,187 +339,6 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
 <p><img src="/images/eureka_work_process_01/000001.png" alt="服务器端配置："></p>
 <p>客户端配置：</p>
 <p><img src="/images/eureka_work_process_01/000002.png" alt="客户端配置"></p>
-]]></content>
-      <categories>
-        <category>eureka</category>
-      </categories>
-      <tags>
-        <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java中AQS</title>
-    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
-    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
-<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
-<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
-<p><strong>2.AQS提供了一把密码锁</strong></p>
-<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
-<ul>
-<li>列出了AQS的三个成员变量</li>
-<li>同步队列头结点引用</li>
-<li>同步队列尾结点引用</li>
-<li>同步状态</li>
-</ul>
-<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
-<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
-<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
-<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
-<p><strong>AQS内部两个排队区</strong></p>
-<ul>
-<li>同步队列<ul>
-<li>只有一条</li>
-<li>结点，分别持有前后结点引用</li>
-</ul>
-</li>
-<li>条件队列<ul>
-<li>可有多条</li>
-<li>结点，只有一个指向后继结点的引用</li>
-</ul>
-</li>
-</ul>
-<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
-<p>注：</p>
-<ul>
-<li><p>同步队列节点来源</p>
-<ul>
-<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
-<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
-</ul>
-</li>
-<li><p>条件队列节点来源</p>
-<ul>
-<li>调用await方法阻塞线程。</li>
-<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
-</ul>
-</li>
-</ul>
-<p><strong>总结：</strong></p>
-<ul>
-<li>同步队列与条件队列节点可互相转化</li>
-<li>一个线程只能存在于两个队列中的一个</li>
-</ul>
-<p>队列每个结点结构</p>
-<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
-<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
-<p><strong>Node:</strong></p>
-<ul>
-<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
-</li>
-<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
-</li>
-<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
-</li>
-<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
-</li>
-<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
-</li>
-<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
-</li>
-<li><p>volatile int waitStatus：当前结点的等待状态</p>
-</li>
-<li><p>volatile Node pre：同步队列中的前继结点</p>
-</li>
-<li><p>volatile Node next：同步队列中的后继结点</p>
-</li>
-<li><p>volatile Thread thread：当前结点持有的线程引用</p>
-</li>
-<li><p>final boolean isShared()：当前结点是否为共享模式</p>
-</li>
-<li><p>final Node predecessor()：返回当前结点的前继结点</p>
-</li>
-<li><p>Node(){}：构造器1</p>
-</li>
-<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
-</li>
-<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
-</li>
-</ul>
-<blockquote>
-<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
-</blockquote>
-<p><strong>4.理解结点锁等待状态</strong></p>
-<p>每个节点都有一个等待状态，共四种等待状态。</p>
-<ul>
-<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
-</ul>
-<ul>
-<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
-</li>
-<li><p>CONDITION：该线程在条件队列中排队。</p>
-</li>
-<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
-</li>
-</ul>
-<p><strong>5.结点进入同步队列时进行的操作</strong></p>
-<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
-<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
-<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
-<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
-]]></content>
-      <categories>
-        <category>AQS</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Eureka的自我保护机制</title>
-    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
-<li>原理：<ul>
-<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
-<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
-</ul>
-</li>
-<li><p>产生原因</p>
-<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
-</li>
-<li><p>何时使用</p>
-<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
-</li>
-<li><p>如何配置</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
-<span class="line">2</span>
-<span class="line">3</span>
-<span class="line">4</span>
-<span class="line">5</span>
-<span class="line">6</span>
-<span class="line">7</span>
-<span class="line">8</span>
-<span class="line">9</span>
-<span class="line">10</span>
-<span class="line">11</span>
-<span class="line">12</span>
-<span class="line">13</span>
-<span class="line">14</span>
-<span class="line">15</span>
-<span class="line">16</span>
-<span class="line">17</span>
-<span class="line">18</span>
-<span class="line">19</span>
-</pre></td><td class="code"><pre><span class="line">服务端</span>
-<span class="line">server:</span>
-<span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span>
-<span class="line">    enable-self-preservation: false</span>
-<span class="line">    ##剔除失效服务间隔</span>
-<span class="line">    eviction-interval-timer-in-ms: 2000</span>
-<span class="line"></span>
-<span class="line">客户端：</span>
-<span class="line">eureka:</span>
-<span class="line"># 心跳检测检测与续约时间</span>
-<span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span>
-<span class="line">	client:</span>
-<span class="line">		service-url:</span>
-<span class="line">			defaultZone: http://localhost:8081/eureka/</span>
-<span class="line">	instance:</span>
-<span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span>
-<span class="line">    	lease-renewal-interval-in-seconds: 1</span>
-<span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span>
-<span class="line">    	lease-expiration-duration-in-seconds: 2</span>
-</pre></td></tr></table></figure></li>
-</ul>
 ]]></content>
       <categories>
         <category>eureka</category>
@@ -644,6 +580,70 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
+    <title>Eureka的自我保护机制</title>
+    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
+<li>原理：<ul>
+<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
+<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
+</ul>
+</li>
+<li><p>产生原因</p>
+<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
+</li>
+<li><p>何时使用</p>
+<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
+</li>
+<li><p>如何配置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span>
+<span class="line">2</span>
+<span class="line">3</span>
+<span class="line">4</span>
+<span class="line">5</span>
+<span class="line">6</span>
+<span class="line">7</span>
+<span class="line">8</span>
+<span class="line">9</span>
+<span class="line">10</span>
+<span class="line">11</span>
+<span class="line">12</span>
+<span class="line">13</span>
+<span class="line">14</span>
+<span class="line">15</span>
+<span class="line">16</span>
+<span class="line">17</span>
+<span class="line">18</span>
+<span class="line">19</span>
+</pre></td><td class="code"><pre><span class="line">服务端</span>
+<span class="line">server:</span>
+<span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span>
+<span class="line">    enable-self-preservation: false</span>
+<span class="line">    ##剔除失效服务间隔</span>
+<span class="line">    eviction-interval-timer-in-ms: 2000</span>
+<span class="line"></span>
+<span class="line">客户端：</span>
+<span class="line">eureka:</span>
+<span class="line"># 心跳检测检测与续约时间</span>
+<span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span>
+<span class="line">	client:</span>
+<span class="line">		service-url:</span>
+<span class="line">			defaultZone: http://localhost:8081/eureka/</span>
+<span class="line">	instance:</span>
+<span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span>
+<span class="line">    	lease-renewal-interval-in-seconds: 1</span>
+<span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span>
+<span class="line">    	lease-expiration-duration-in-seconds: 2</span>
+</pre></td></tr></table></figure></li>
+</ul>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JDK自带定时任务</title>
     <url>/2015/07/12/JDK%E8%87%AA%E5%B8%A6%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/</url>
     <content><![CDATA[<p><strong>Java定时任务调度详解</strong></p>
@@ -786,42 +786,6 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>JDK</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>JMM中happen-before八大规则</title>
-    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
-<blockquote>
-<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
-</blockquote>
-<ul>
-<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
-</li>
-<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
-</li>
-<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
-</li>
-<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
-</li>
-<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
-</li>
-<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
-</li>
-</ul>
-<ul>
-<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
-</li>
-<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>JMM</category>
-      </categories>
-      <tags>
-        <tag>JMM</tag>
-        <tag>happen-before</tag>
       </tags>
   </entry>
   <entry>
@@ -1072,6 +1036,42 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>JVM</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JMM中happen-before八大规则</title>
+    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
+<blockquote>
+<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
+</blockquote>
+<ul>
+<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
+</li>
+<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
+</li>
+<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
+</li>
+<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
+</li>
+<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
+</li>
+<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
+</li>
+</ul>
+<ul>
+<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
+</li>
+<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JMM</category>
+      </categories>
+      <tags>
+        <tag>JMM</tag>
+        <tag>happen-before</tag>
       </tags>
   </entry>
   <entry>
@@ -1680,68 +1680,6 @@ addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filte
       </tags>
   </entry>
   <entry>
-    <title>final、finally、finalize</title>
-    <url>/2015/07/12/final%E3%80%81finally%E3%80%81finalize%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D/</url>
-    <content><![CDATA[<p><strong>final、finally、finalize的区别？</strong></p>
-<p><strong>1.final</strong></p>
-<p>在Java中，final可以用来修改类，方法和变量（成员变量或局部变量）。如下对其详细介绍。</p>
-<p><strong>1.1修饰类</strong></p>
-<p>当用final修饰类的时候，表名该类不能被其他类继承。当需要让一个类永远不被继承，可使用final修改。但要注意：final类中所有的成员方法都会隐式的定义为final方法。</p>
-<p><strong>1.2修饰方法</strong></p>
-<p>使用final方法的原因有二</p>
-<p>（1)把方法锁定，防止继承类对其进行更改。</p>
-<p>（2）效率，在早期java版本中，将final方法转为内嵌调用。但若方法过于庞大，可能在性能上不会有所提升。因此近期版本中，不需使用final方法进行这些优化。</p>
-<p>final方法意味着“最后的、最终的”含义，即此方法不能被重写。</p>
-<p>注意：若父类中final方法的访问权限为private，将导致子类中不能直接继承该方法，因此，此时可以在子类中定义相同方法名的函数，此时不会与重写final的矛盾，而是在子类中重新定义了新方法。</p>
-<pre><code>class A{
-    private final void getName(){}
-}
-
-public class B extends A{
-    public void getName(){}
-
-    public static void main(String[] args){
-        System.err.println(&quot;OK&quot;);
-    }
-}
-</code></pre><p><strong>1.3修饰变量</strong></p>
-<p>final成员变量标识常量，只能被赋值一次，赋值后其值不再改变。</p>
-<p>当final修饰一个基本数据类型时，表示该基本数据类型的值一旦初始化便不能发生变化。如果final修饰一个引用类型时，则在对其初始化之后便不能再让其指向其他对象了，但该引用所指向的对象内是可以改变的。因为引用的值是一个地址，final要求值，即地址的值不发生变化。</p>
-<p> final修饰一个成员变量（属性），必须要显示初始化。有两种初始化方式，一种是在变量声明的时候初始化；二种方法是在声明变量的时候不赋值，但要在这个变量所在的类的所有构造方法中对这个变量赋初始值。</p>
-<p> 当函数的参数类型声明为final时，说明该参数是只读型。可读取使用该参数，但无法改变该参数的值。</p>
-<p><img src="/images/final/1.jpg" alt="Alt text"></p>
-<p>在java中，String被设计成final类，那么为什么平时使用时，String的值可以被改变呢？</p>
-<p> 字符串常量池是java堆内存中一个特殊的存储区域，创建一个String对象时，假设常量池不存在该字符串，创建一个若存在直接引用这个存在的字符串。当改变String对象值时，例如 String a=”A”; a=”B” 。a是String对象的一个引用（我们这里所说的String对象其实是指字符串常量），当a=“B”执行时，并不是原本String对象(“A”)发生改变，而是创建一个新的对象(“B”)，令a引用它。</p>
-<p><strong>2.finally</strong></p>
-<p> finally作为异常处理的一部分，只能用在try/catch语句中，并附带一个语句块，标识这段语句最终一定会被执行（不管有没有抛出异常），经常被用在需要释放资源的情况下（这句话其实存在一定问题）。</p>
-<p> 很多人认为finally语句块一定会执行，但真是这样么？否定的。</p>
-<p><img src="/images/final/2.jpg" alt="Alt text"></p>
-<p><img src="/images/final/3.jpg" alt="Alt text"></p>
-<p>为什么以上两种情况没有执行finally语句呢，说明了问题。</p>
-<p>只有与finally对应的try语句块得到执行的情况下，finally语句块才会执行。以上两种情况在执行try语句块之前已经返回或抛出异常，所以try对应的finally语句并没有执行。</p>
-<p>但在某些情况下，即使try语句执行了，finally语句也不一定执行。如：</p>
-<p><img src="/images/final/4.jpg" alt="Alt text"></p>
-<p>– try语句执行了，也不一定执行finally，使用了system.exit(0);</p>
-<p>finally语句块还是没有执行，因为在try语句块中执行了System.exit(0)语句，终止了Java虚拟机的运行。一般java应用中基本上是不会调用这个System.exit(0)方法的。但是不调用System.exit(0)这个方法，finally语句块就一定执行吗？当然也不一定会执行。当一个线程在执行try语句块或catch语句块时被打断（interrupted）或被终止(killed)，与其相应的finally语句块可能不会执行。还有更极端的情况，就是在线程运行try语句或者catch语句时，突然宕机或断电，finally语句块肯定不会执行了。</p>
-<p><strong>易错点</strong></p>
-<p>在try-catch-finally语句中执行return语句，如下代码？</p>
-<p><img src="/images/final/5.jpg" alt="Alt text"></p>
-<p>返回： 4、4、4，为什么呢？</p>
-<p>首先finally语句在该代码中一定会执行，从运行结果中看，每次return的结果都是4（即finally语句），仿佛其他return语句被屏蔽了。</p>
-<p>事实也是如此，因为finally用法特殊，所以会撤销之前的return语句，继续执行最后的finally块中的代码。</p>
-<p><strong>3.finalize</strong></p>
-<p>finalize()是在java.lang.Object里定义的，即每个对象都有这个方法。这个方法在GC启动，该对象被回收的时候被调用。其实GC可以回收大部分对象（凡是new出来的对象，GC都能搞定，一般情况下我们又不会使用new以外的方式去创建对象），所以一般是不需要程序员去实现finalize的。特殊情况下，需要程序员实现finalize，当对象被回收的时候释放一些资源。如：socket链接，在对象初始化时创建，整个生命周期内有效，那么就需要实现finalize，关闭这个链接。</p>
-<p>　使用finalize还需要注意一个事，调用super.finalize();</p>
-<p>　　一个对象的finalize()方法只会被调用一次，而且finalize()被调用不意味着gc会立即回收该对象，所以有可能调用finalize()后，该对象又不需要被回收了，然后到了真正要被回收的时候，因为前面调用过一次，所以不会调用finalize()，产生问题。 所以，推荐不要使用finalize()方法，它跟析构函数不一样。</p>
-]]></content>
-      <categories>
-        <category>J2SE</category>
-      </categories>
-      <tags>
-        <tag>J2SE</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Docker日志实时查看和清理</title>
     <url>/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/</url>
     <content><![CDATA[<h1 id="Docker日志实时查看和清理"><a href="#Docker日志实时查看和清理" class="headerlink" title="Docker日志实时查看和清理"></a>Docker日志实时查看和清理</h1><h2 id="一、docker-logs-查看实时日志"><a href="#一、docker-logs-查看实时日志" class="headerlink" title="一、docker logs 查看实时日志"></a>一、docker logs 查看实时日志</h2><p>docker logs -f -t –since=“2021-09-25” –tail=10 edu_web_1</p>
@@ -1842,6 +1780,68 @@ public class B extends A{
       </categories>
       <tags>
         <tag>log</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>final、finally、finalize</title>
+    <url>/2015/07/12/final%E3%80%81finally%E3%80%81finalize%E8%AF%A6%E7%BB%86%E4%BB%8B%E7%BB%8D/</url>
+    <content><![CDATA[<p><strong>final、finally、finalize的区别？</strong></p>
+<p><strong>1.final</strong></p>
+<p>在Java中，final可以用来修改类，方法和变量（成员变量或局部变量）。如下对其详细介绍。</p>
+<p><strong>1.1修饰类</strong></p>
+<p>当用final修饰类的时候，表名该类不能被其他类继承。当需要让一个类永远不被继承，可使用final修改。但要注意：final类中所有的成员方法都会隐式的定义为final方法。</p>
+<p><strong>1.2修饰方法</strong></p>
+<p>使用final方法的原因有二</p>
+<p>（1)把方法锁定，防止继承类对其进行更改。</p>
+<p>（2）效率，在早期java版本中，将final方法转为内嵌调用。但若方法过于庞大，可能在性能上不会有所提升。因此近期版本中，不需使用final方法进行这些优化。</p>
+<p>final方法意味着“最后的、最终的”含义，即此方法不能被重写。</p>
+<p>注意：若父类中final方法的访问权限为private，将导致子类中不能直接继承该方法，因此，此时可以在子类中定义相同方法名的函数，此时不会与重写final的矛盾，而是在子类中重新定义了新方法。</p>
+<pre><code>class A{
+    private final void getName(){}
+}
+
+public class B extends A{
+    public void getName(){}
+
+    public static void main(String[] args){
+        System.err.println(&quot;OK&quot;);
+    }
+}
+</code></pre><p><strong>1.3修饰变量</strong></p>
+<p>final成员变量标识常量，只能被赋值一次，赋值后其值不再改变。</p>
+<p>当final修饰一个基本数据类型时，表示该基本数据类型的值一旦初始化便不能发生变化。如果final修饰一个引用类型时，则在对其初始化之后便不能再让其指向其他对象了，但该引用所指向的对象内是可以改变的。因为引用的值是一个地址，final要求值，即地址的值不发生变化。</p>
+<p> final修饰一个成员变量（属性），必须要显示初始化。有两种初始化方式，一种是在变量声明的时候初始化；二种方法是在声明变量的时候不赋值，但要在这个变量所在的类的所有构造方法中对这个变量赋初始值。</p>
+<p> 当函数的参数类型声明为final时，说明该参数是只读型。可读取使用该参数，但无法改变该参数的值。</p>
+<p><img src="/images/final/1.jpg" alt="Alt text"></p>
+<p>在java中，String被设计成final类，那么为什么平时使用时，String的值可以被改变呢？</p>
+<p> 字符串常量池是java堆内存中一个特殊的存储区域，创建一个String对象时，假设常量池不存在该字符串，创建一个若存在直接引用这个存在的字符串。当改变String对象值时，例如 String a=”A”; a=”B” 。a是String对象的一个引用（我们这里所说的String对象其实是指字符串常量），当a=“B”执行时，并不是原本String对象(“A”)发生改变，而是创建一个新的对象(“B”)，令a引用它。</p>
+<p><strong>2.finally</strong></p>
+<p> finally作为异常处理的一部分，只能用在try/catch语句中，并附带一个语句块，标识这段语句最终一定会被执行（不管有没有抛出异常），经常被用在需要释放资源的情况下（这句话其实存在一定问题）。</p>
+<p> 很多人认为finally语句块一定会执行，但真是这样么？否定的。</p>
+<p><img src="/images/final/2.jpg" alt="Alt text"></p>
+<p><img src="/images/final/3.jpg" alt="Alt text"></p>
+<p>为什么以上两种情况没有执行finally语句呢，说明了问题。</p>
+<p>只有与finally对应的try语句块得到执行的情况下，finally语句块才会执行。以上两种情况在执行try语句块之前已经返回或抛出异常，所以try对应的finally语句并没有执行。</p>
+<p>但在某些情况下，即使try语句执行了，finally语句也不一定执行。如：</p>
+<p><img src="/images/final/4.jpg" alt="Alt text"></p>
+<p>– try语句执行了，也不一定执行finally，使用了system.exit(0);</p>
+<p>finally语句块还是没有执行，因为在try语句块中执行了System.exit(0)语句，终止了Java虚拟机的运行。一般java应用中基本上是不会调用这个System.exit(0)方法的。但是不调用System.exit(0)这个方法，finally语句块就一定执行吗？当然也不一定会执行。当一个线程在执行try语句块或catch语句块时被打断（interrupted）或被终止(killed)，与其相应的finally语句块可能不会执行。还有更极端的情况，就是在线程运行try语句或者catch语句时，突然宕机或断电，finally语句块肯定不会执行了。</p>
+<p><strong>易错点</strong></p>
+<p>在try-catch-finally语句中执行return语句，如下代码？</p>
+<p><img src="/images/final/5.jpg" alt="Alt text"></p>
+<p>返回： 4、4、4，为什么呢？</p>
+<p>首先finally语句在该代码中一定会执行，从运行结果中看，每次return的结果都是4（即finally语句），仿佛其他return语句被屏蔽了。</p>
+<p>事实也是如此，因为finally用法特殊，所以会撤销之前的return语句，继续执行最后的finally块中的代码。</p>
+<p><strong>3.finalize</strong></p>
+<p>finalize()是在java.lang.Object里定义的，即每个对象都有这个方法。这个方法在GC启动，该对象被回收的时候被调用。其实GC可以回收大部分对象（凡是new出来的对象，GC都能搞定，一般情况下我们又不会使用new以外的方式去创建对象），所以一般是不需要程序员去实现finalize的。特殊情况下，需要程序员实现finalize，当对象被回收的时候释放一些资源。如：socket链接，在对象初始化时创建，整个生命周期内有效，那么就需要实现finalize，关闭这个链接。</p>
+<p>　使用finalize还需要注意一个事，调用super.finalize();</p>
+<p>　　一个对象的finalize()方法只会被调用一次，而且finalize()被调用不意味着gc会立即回收该对象，所以有可能调用finalize()后，该对象又不需要被回收了，然后到了真正要被回收的时候，因为前面调用过一次，所以不会调用finalize()，产生问题。 所以，推荐不要使用finalize()方法，它跟析构函数不一样。</p>
+]]></content>
+      <categories>
+        <category>J2SE</category>
+      </categories>
+      <tags>
+        <tag>J2SE</tag>
       </tags>
   </entry>
   <entry>
@@ -2890,51 +2890,6 @@ java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
       </tags>
   </entry>
   <entry>
-    <title>mybatis动态代理</title>
-    <url>/2015/06/25/mybatis%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</url>
-    <content><![CDATA[<p>在使用Mybatis的时候，我们可以只定义一个XxxMaper接口，然后直接利用这个接口定义的抽象方法来进行增删改查操作，Mybatis内部实际上利用了动态代理技术帮我们生成了这个接口的代理类。<br>举例来说，假设有映射文件：<br><img src="/images/mybatis/20171019215820.jpg" alt="Alt text"></p>
-<p>我们只要定义一个UserMapper接口，注意这个接口的路径就是映射文件的namespace属性值，然后在这个接口中定义几个方法，方法名分别于映射文件中定义的<insert>、<select>等元素的id属性值相同，如下：</select></insert></p>
-<p><img src="/images/mybatis/20171019215821.jpg" alt="Alt text"></p>
-<p>之后我们就可以直接使用UserMapper类来进行增删改查，使用方式如下：</p>
-<p><img src="/images/mybatis/20171019215822.jpg" alt="Alt text"></p>
-<p>之所以可以这样使用，是因为Mybatis对生成了UserMapper接口的动态代理类，当执行某个方法时，代理类内部会首选获取调用的方法的全路径，例如当我们调用UserMapper的insert方法时，其对应的全路径是com.tianshouzhi.mybatis.quickstart.UserMapper.insert。而这个值刚好对应着namespace属性值为com.tianshouzhi.mybatis.quickstart.UserMapper的mapper映射文件的id=”insert”的insert元素，从而执行相应的sql。真正在执行时，还是利用SqlSession的insert方法来执行的，只不过这个过程对于用于来说屏蔽了。<br>我们带着2个问题来进行源码分析：<br>1、动态代理类是如何生成的<br>2、动态代理类是如何对方法进行拦截的<br>一、动态代理类的生成时机<br>每次当我们调用sqlSession的getMapper方法时，都会创建一个新的动态代理类实例，如：</p>
-<p><img src="/images/mybatis/20171019215823.jpg" alt="Alt text"></p>
-<p>也就是说，生成的动态代理类不是唯一的，而是每次都创建一个新的。<br>而SqlSession对象又将getMapper方法委给了Configuration对象执行，如下所示：</p>
-<p><img src="/images/mybatis/20171019215824.jpg" alt="Alt text"></p>
-<p>Configuration类里面通过MapperRegistry对象维护了所有要生成动态代理类的XxxMapper接口信息。</p>
-<p><img src="/images/mybatis/20171019215825.jpg" alt="Alt text"></p>
-<p>其中，getMapper方法就是用于创建接口的动态类。而addMapper方法是mybatis在解析配置文件时，会将需要生成动态代理类的接口注册到其中。目前我们主要介绍的getMapper方法，addMapper方法我们将会在之后进行介绍。<br>可以看到Configuration类的addMapper和getMapper方法最终又都是委派给MapperRegistry的addMapper和getMapper方法执行的。<br>MapperRegistry类的getMapper方法源码如下所示：</p>
-<p><img src="/images/mybatis/20171019215826.jpg" alt="Alt text"></p>
-<p>可以看到，创建动态代理类的核心代码都位于MapperProxyFactory的newInstance方法中。目前对这个方法不做分析，放到后面分析生成的代理类是如何对接口的方法进行拦截一起说。目前只需要知道，每次调用SqlSession的getMapper方法，都会创建一个新的代理类即可。<br>现在我们考虑，Mybatis是如何知道要生成一个类的动态代理类的，这个过程是在mybatis解析xml配置文件的时候就确定了。<br>具体逻辑是，根据<mapper namespace="....">的namespace属性值，判断有没有这样一个接口的全路径与namespace属性值完全相同，如果有，就生成这个接口的动态代理类。<br>相关解析代码位于XMLMapperBuilder的 parse方法中：</mapper></p>
-<p><img src="/images/mybatis/20171019215827.jpg" alt="Alt text"></p>
-<p>bindMapperForNamespace方法源码如下所示：</p>
-<p><img src="/images/mybatis/20171019215828.jpg" alt="Alt text"></p>
-<p>在前面的代码中，我们已经看到，Configuration的addMapper方法是委派给MapperRegistry的addMapper进行的，源码如下所示：<br>org.apache.ibatis.binding.MapperRegistry#addMapper</p>
-<p><img src="/images/mybatis/20171019215829.jpg" alt="Alt text"></p>
-<p>二、动态代理类是如何对方法进行拦截的<br>通过前面的分析，我们知道当调用SqlSession的getMapper方法时，通过一层一层的委派，最终会通过MapperProxyFactory的newInstance(sqlSession)方法，来创建动态代理类，MapperProxyFactory类源码如下所示：</p>
-<p><img src="/images/mybatis/a.jpg" alt="Alt text"></p>
-<p>可以看到，MapperProxyFactory的newInstance(sqlSession)方法中，首先会创建一个MapperProxy对象，然后将其当做参数传递给newInstance(mapperProxy)方法，这个方法内部通过JDK提供的Proxy.newProxyInstance方法生成动态代理类。Proxy.newProxyInstance方法声明如下所示：<br>java.lang.reflect.Proxy#newProxyInstance</p>
-<p><img src="/images/mybatis/b.jpg" alt="Alt text"></p>
-<p>InvocationHandler接口定义如下所示：</p>
-<p><img src="/images/mybatis/c.jpg" alt="Alt text"></p>
-<p>当接口中的任何一个方法被调用时，JVM都会回调InvocationHandler接口实现类的invoke方法。并会传递三个回调参数：<br>Object proxy：被代理的类<br>Method method：表示当前被调用的接口的方法对象<br>Object[] args：表示接口方法被调用时，传递的参数。<br>MapperProxy类实现了InvocationHandler接口，因此我们只要从其实现的invoke方法入手进行分析</p>
-<p><img src="/images/mybatis/d.jpg" alt="Alt text"></p>
-<p>现在我们定义为到，最终的拦截代码位于MapperMethod类的execute方法中，当把这个方法的代码分析完成，本小节也就分析完成了。MapperMethod类源码如下所示：</p>
-<p><img src="/images/mybatis/e.jpg" alt="Alt text"></p>
-<p>在MapperMethod的构造方法中，例如参数构造了两个对象SqlCommand、MethodSignature，这两个类都是MapperMethod的内部类。<br>而execute方法中，会首选调用SqlCommand的getType方法，判断要执行的sql类型INSERT、UPDATE、DELETE、SELECT、FLUSH。然后分别调用SqlSession的insert、update、delete、selectOne、selectMap、selectList等方法来执行。<br>这说明，我们通过SqlSession的getMapper方法获得接口代理来进行CRUD操作，其底层还是依赖于最原始的SqlSession的使用方法。<br>关于SqlCommand，我们不做过多介绍，这里只提一点，SqlCommand.getType中是如何确定当前要执行的sql类型的。因为不同的Sql类型意味着我们要对sql操作的结果做不同的处理，例如：<br>对于insert、update和delete，这样的sql，其返回值是影响的结果集的行数，因此我们看到上述相关代码在执行的时候，都调用了一个rowCountResult方法。<br>对于select：要对查询的结果集ResultSet进行封装。由于SqlSession提供了众多方法对查询结果集进行处理，例如selectOne，selectMap、selectList等，因此根据接口中定义的方法的返回值的类型，来选择执行不同的方法，对ResultSet进行封装。<br>由于我们在SqlCommand对象构造的时候，将当前代理的接口和当执行被调用的方法method对象传递过去，其内部会通过以下方式查找对应的MappedStatement对象</p>
-<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
-<p>MappedStatement是我们在定义mapper映射文件时，内部的<insert>、<update>、<delete>、<select>元素的解析结果，每个这样的元素都会被解析成一个MappedStatement对象，并保存到Configuration类中的mappedStatements 属性中。</select></delete></update></insert></p>
-<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
-<p>其中key就是就是”namespace.id”，由于我们定义的映射文件中，namespace属性就是XxxMapper的全路径，而<insert>等元素的id属性就是方法名，因此可以通过这种方式找到对应的解析后的MappedStatement。<br>由于这些标签(<insert>、<update>…)本身就代表了自己的sql类型，这些信息也会被保存到MappedStatement对象中，因此我们就可以通过SqlCommand的getType方法获取当前要执行的sql类型。<br>当调用SqlSession的相关方法时，第一个参数都是传入的都是command.getName方法，这个方法返回值，也是”namespace.id”，不再做过多分析。</update></insert></insert></p>
-]]></content>
-      <categories>
-        <category>mybatis</category>
-      </categories>
-      <tags>
-        <tag>mybatis</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Spring Cloud简略概述（一）</title>
     <url>/2018/12/08/microservice/</url>
     <content><![CDATA[<p>Spring Cloud的服务发现框架-Eureka</p>
@@ -3206,6 +3161,51 @@ drop PRIMARY KEY
       </categories>
       <tags>
         <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>mybatis动态代理</title>
+    <url>/2015/06/25/mybatis%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</url>
+    <content><![CDATA[<p>在使用Mybatis的时候，我们可以只定义一个XxxMaper接口，然后直接利用这个接口定义的抽象方法来进行增删改查操作，Mybatis内部实际上利用了动态代理技术帮我们生成了这个接口的代理类。<br>举例来说，假设有映射文件：<br><img src="/images/mybatis/20171019215820.jpg" alt="Alt text"></p>
+<p>我们只要定义一个UserMapper接口，注意这个接口的路径就是映射文件的namespace属性值，然后在这个接口中定义几个方法，方法名分别于映射文件中定义的<insert>、<select>等元素的id属性值相同，如下：</select></insert></p>
+<p><img src="/images/mybatis/20171019215821.jpg" alt="Alt text"></p>
+<p>之后我们就可以直接使用UserMapper类来进行增删改查，使用方式如下：</p>
+<p><img src="/images/mybatis/20171019215822.jpg" alt="Alt text"></p>
+<p>之所以可以这样使用，是因为Mybatis对生成了UserMapper接口的动态代理类，当执行某个方法时，代理类内部会首选获取调用的方法的全路径，例如当我们调用UserMapper的insert方法时，其对应的全路径是com.tianshouzhi.mybatis.quickstart.UserMapper.insert。而这个值刚好对应着namespace属性值为com.tianshouzhi.mybatis.quickstart.UserMapper的mapper映射文件的id=”insert”的insert元素，从而执行相应的sql。真正在执行时，还是利用SqlSession的insert方法来执行的，只不过这个过程对于用于来说屏蔽了。<br>我们带着2个问题来进行源码分析：<br>1、动态代理类是如何生成的<br>2、动态代理类是如何对方法进行拦截的<br>一、动态代理类的生成时机<br>每次当我们调用sqlSession的getMapper方法时，都会创建一个新的动态代理类实例，如：</p>
+<p><img src="/images/mybatis/20171019215823.jpg" alt="Alt text"></p>
+<p>也就是说，生成的动态代理类不是唯一的，而是每次都创建一个新的。<br>而SqlSession对象又将getMapper方法委给了Configuration对象执行，如下所示：</p>
+<p><img src="/images/mybatis/20171019215824.jpg" alt="Alt text"></p>
+<p>Configuration类里面通过MapperRegistry对象维护了所有要生成动态代理类的XxxMapper接口信息。</p>
+<p><img src="/images/mybatis/20171019215825.jpg" alt="Alt text"></p>
+<p>其中，getMapper方法就是用于创建接口的动态类。而addMapper方法是mybatis在解析配置文件时，会将需要生成动态代理类的接口注册到其中。目前我们主要介绍的getMapper方法，addMapper方法我们将会在之后进行介绍。<br>可以看到Configuration类的addMapper和getMapper方法最终又都是委派给MapperRegistry的addMapper和getMapper方法执行的。<br>MapperRegistry类的getMapper方法源码如下所示：</p>
+<p><img src="/images/mybatis/20171019215826.jpg" alt="Alt text"></p>
+<p>可以看到，创建动态代理类的核心代码都位于MapperProxyFactory的newInstance方法中。目前对这个方法不做分析，放到后面分析生成的代理类是如何对接口的方法进行拦截一起说。目前只需要知道，每次调用SqlSession的getMapper方法，都会创建一个新的代理类即可。<br>现在我们考虑，Mybatis是如何知道要生成一个类的动态代理类的，这个过程是在mybatis解析xml配置文件的时候就确定了。<br>具体逻辑是，根据<mapper namespace="....">的namespace属性值，判断有没有这样一个接口的全路径与namespace属性值完全相同，如果有，就生成这个接口的动态代理类。<br>相关解析代码位于XMLMapperBuilder的 parse方法中：</mapper></p>
+<p><img src="/images/mybatis/20171019215827.jpg" alt="Alt text"></p>
+<p>bindMapperForNamespace方法源码如下所示：</p>
+<p><img src="/images/mybatis/20171019215828.jpg" alt="Alt text"></p>
+<p>在前面的代码中，我们已经看到，Configuration的addMapper方法是委派给MapperRegistry的addMapper进行的，源码如下所示：<br>org.apache.ibatis.binding.MapperRegistry#addMapper</p>
+<p><img src="/images/mybatis/20171019215829.jpg" alt="Alt text"></p>
+<p>二、动态代理类是如何对方法进行拦截的<br>通过前面的分析，我们知道当调用SqlSession的getMapper方法时，通过一层一层的委派，最终会通过MapperProxyFactory的newInstance(sqlSession)方法，来创建动态代理类，MapperProxyFactory类源码如下所示：</p>
+<p><img src="/images/mybatis/a.jpg" alt="Alt text"></p>
+<p>可以看到，MapperProxyFactory的newInstance(sqlSession)方法中，首先会创建一个MapperProxy对象，然后将其当做参数传递给newInstance(mapperProxy)方法，这个方法内部通过JDK提供的Proxy.newProxyInstance方法生成动态代理类。Proxy.newProxyInstance方法声明如下所示：<br>java.lang.reflect.Proxy#newProxyInstance</p>
+<p><img src="/images/mybatis/b.jpg" alt="Alt text"></p>
+<p>InvocationHandler接口定义如下所示：</p>
+<p><img src="/images/mybatis/c.jpg" alt="Alt text"></p>
+<p>当接口中的任何一个方法被调用时，JVM都会回调InvocationHandler接口实现类的invoke方法。并会传递三个回调参数：<br>Object proxy：被代理的类<br>Method method：表示当前被调用的接口的方法对象<br>Object[] args：表示接口方法被调用时，传递的参数。<br>MapperProxy类实现了InvocationHandler接口，因此我们只要从其实现的invoke方法入手进行分析</p>
+<p><img src="/images/mybatis/d.jpg" alt="Alt text"></p>
+<p>现在我们定义为到，最终的拦截代码位于MapperMethod类的execute方法中，当把这个方法的代码分析完成，本小节也就分析完成了。MapperMethod类源码如下所示：</p>
+<p><img src="/images/mybatis/e.jpg" alt="Alt text"></p>
+<p>在MapperMethod的构造方法中，例如参数构造了两个对象SqlCommand、MethodSignature，这两个类都是MapperMethod的内部类。<br>而execute方法中，会首选调用SqlCommand的getType方法，判断要执行的sql类型INSERT、UPDATE、DELETE、SELECT、FLUSH。然后分别调用SqlSession的insert、update、delete、selectOne、selectMap、selectList等方法来执行。<br>这说明，我们通过SqlSession的getMapper方法获得接口代理来进行CRUD操作，其底层还是依赖于最原始的SqlSession的使用方法。<br>关于SqlCommand，我们不做过多介绍，这里只提一点，SqlCommand.getType中是如何确定当前要执行的sql类型的。因为不同的Sql类型意味着我们要对sql操作的结果做不同的处理，例如：<br>对于insert、update和delete，这样的sql，其返回值是影响的结果集的行数，因此我们看到上述相关代码在执行的时候，都调用了一个rowCountResult方法。<br>对于select：要对查询的结果集ResultSet进行封装。由于SqlSession提供了众多方法对查询结果集进行处理，例如selectOne，selectMap、selectList等，因此根据接口中定义的方法的返回值的类型，来选择执行不同的方法，对ResultSet进行封装。<br>由于我们在SqlCommand对象构造的时候，将当前代理的接口和当执行被调用的方法method对象传递过去，其内部会通过以下方式查找对应的MappedStatement对象</p>
+<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
+<p>MappedStatement是我们在定义mapper映射文件时，内部的<insert>、<update>、<delete>、<select>元素的解析结果，每个这样的元素都会被解析成一个MappedStatement对象，并保存到Configuration类中的mappedStatements 属性中。</select></delete></update></insert></p>
+<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
+<p>其中key就是就是”namespace.id”，由于我们定义的映射文件中，namespace属性就是XxxMapper的全路径，而<insert>等元素的id属性就是方法名，因此可以通过这种方式找到对应的解析后的MappedStatement。<br>由于这些标签(<insert>、<update>…)本身就代表了自己的sql类型，这些信息也会被保存到MappedStatement对象中，因此我们就可以通过SqlCommand的getType方法获取当前要执行的sql类型。<br>当调用SqlSession的相关方法时，第一个参数都是传入的都是command.getName方法，这个方法返回值，也是”namespace.id”，不再做过多分析。</update></insert></insert></p>
+]]></content>
+      <categories>
+        <category>mybatis</category>
+      </categories>
+      <tags>
+        <tag>mybatis</tag>
       </tags>
   </entry>
   <entry>
@@ -3529,79 +3529,6 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </tags>
   </entry>
   <entry>
-    <title>事务传播机制及隔离级别</title>
-    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
-    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
-<ol>
-<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
-<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
-<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
-<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
-<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
-</ol>
-<blockquote>
-<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
-</blockquote>
-<p><strong>四种隔离级别</strong></p>
-<blockquote>
-<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th>事务隔离级别</th>
-<th>脏读</th>
-<th>不可重复读</th>
-<th>幻读</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>读未提交（read-uncommitted</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>读已提交（read-commit)</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>重复读（repeatable-read)</td>
-<td>否</td>
-<td>否</td>
-<td>是</td>
-</tr>
-<tr>
-<td>串行化(seriablizable)</td>
-<td>否</td>
-<td>否</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
-<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
-<p>事务的并发问题(事务A: A  事务B: B)</p>
-<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
-<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
-<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
-<blockquote>
-<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>多线程中ThreadLocal</title>
     <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
     <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
@@ -3634,6 +3561,83 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </categories>
       <tags>
         <tag>ThreadLocal</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>事务传播机制及隔离级别</title>
+    <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
+    <content><![CDATA[<ul>
+<li>7种事务的传播机制（可通过spring配置或注解来设置<ul>
+<li>REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。</li>
+<li>REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
+<li>SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。</li>
+<li>NOT_SUPPORTED：无事务执行，如果当前事务存在，把当前事务挂起。</li>
+<li>MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
+<li>NEVER：无事务执行，当前有事务则抛出Exception。</li>
+<li>NESTED：嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
+</blockquote>
+<ul>
+<li>四种隔离级别</li>
+</ul>
+<blockquote>
+<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">事物隔离级别</th>
+<th style="text-align:left">脏读</th>
+<th style="text-align:left">不可重复度</th>
+<th style="text-align:left">幻读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">读未提交（read-uncommited）</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
+</tr>
+<tr>
+<td style="text-align:left">读已提交（read-commit）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">是</td>
+<td style="text-align:left">是</td>
+</tr>
+<tr>
+<td style="text-align:left">重复度（repeatable-read）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">是</td>
+</tr>
+<tr>
+<td style="text-align:left">串行化（seriablizable）</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
+<td style="text-align:left">否</td>
+</tr>
+</tbody>
+</table>
+<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
+<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
+<p>事务的并发问题(事务A: A  事务B: B)</p>
+<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
+<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
+<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
+<blockquote>
+<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
       </tags>
   </entry>
   <entry>

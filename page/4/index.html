@@ -840,12 +840,12 @@
       
         
           
-          7种事务的传播机制（可通过spring配置或注解来设置）
-
+          
+7种事务的传播机制（可通过spring配置或注解来设置
 REQUIRED（默认）：支持当前事务，当前事务不存在，则新建一个事务。
+REQUIRES_NEW：创建一个新事务，如果当前事务存在，把当前事务挂起。
 SUPPORTS：支持当前事务，当前事务不存在，则不使用事务。
-MANDATORY：中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。
-
+NOT_SUPPORTED
           ...
           <!--noindex-->
           <div class="post-button text-center">
