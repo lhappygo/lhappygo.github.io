@@ -6,7 +6,7 @@
   <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
   
   <link href="http://lhappygo.github.io/"/>
-  <updated>2025-06-09T08:49:12.552Z</updated>
+  <updated>2025-06-09T08:49:29.002Z</updated>
   <id>http://lhappygo.github.io/</id>
   
   <author>
@@ -15,24 +15,6 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
-  
-  <entry>
-    <title>Hello World</title>
-    <link href="http://lhappygo.github.io/2025/06/09/hello-world/"/>
-    <id>http://lhappygo.github.io/2025/06/09/hello-world/</id>
-    <published>2025-06-09T08:49:12.552Z</published>
-    <updated>2025-06-09T08:49:12.552Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.</summary>
-      
-    
-    
-    
-    
-  </entry>
   
   <entry>
     <title>Feign和Dubbo组件分析</title>
@@ -503,6 +485,30 @@ public c</summary>
       
     <summary type="html">&lt;p&gt;Eureka保证AP（可用性、分区容错性）&lt;/p&gt;
 &lt;p&gt;Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。</summary>
+      
+    
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Eureka高可用及数据一致性</title>
+    <link href="http://lhappygo.github.io/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/"/>
+    <id>http://lhappygo.github.io/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</id>
+    <published>2018-12-29T02:21:19.000Z</published>
+    <updated>2025-06-09T08:49:28.992Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;一致性问题：&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。&lt;/p&gt;
+&lt;p&gt; &lt;img src=&quot;/images/eureka_01/0001.jpg&quot; alt=&quot;Alt text&quot;&gt;   </summary>
       
     
     

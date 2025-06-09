@@ -60,272 +60,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Java中AQS</title>
-    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
-    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
-<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
-<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
-<p><strong>2.AQS提供了一把密码锁</strong></p>
-<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
-<ul>
-<li>列出了AQS的三个成员变量</li>
-<li>同步队列头结点引用</li>
-<li>同步队列尾结点引用</li>
-<li>同步状态</li>
-</ul>
-<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
-<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
-<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
-<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
-<p><strong>AQS内部两个排队区</strong></p>
-<ul>
-<li>同步队列<ul>
-<li>只有一条</li>
-<li>结点，分别持有前后结点引用</li>
-</ul>
-</li>
-<li>条件队列<ul>
-<li>可有多条</li>
-<li>结点，只有一个指向后继结点的引用</li>
-</ul>
-</li>
-</ul>
-<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
-<p>注：</p>
-<ul>
-<li><p>同步队列节点来源</p>
-<ul>
-<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
-<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
-</ul>
-</li>
-<li><p>条件队列节点来源</p>
-<ul>
-<li>调用await方法阻塞线程。</li>
-<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
-</ul>
-</li>
-</ul>
-<p><strong>总结：</strong></p>
-<ul>
-<li>同步队列与条件队列节点可互相转化</li>
-<li>一个线程只能存在于两个队列中的一个</li>
-</ul>
-<p>队列每个结点结构</p>
-<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
-<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
-<p><strong>Node:</strong></p>
-<ul>
-<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
-</li>
-<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
-</li>
-<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
-</li>
-<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
-</li>
-<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
-</li>
-<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
-</li>
-<li><p>volatile int waitStatus：当前结点的等待状态</p>
-</li>
-<li><p>volatile Node pre：同步队列中的前继结点</p>
-</li>
-<li><p>volatile Node next：同步队列中的后继结点</p>
-</li>
-<li><p>volatile Thread thread：当前结点持有的线程引用</p>
-</li>
-<li><p>final boolean isShared()：当前结点是否为共享模式</p>
-</li>
-<li><p>final Node predecessor()：返回当前结点的前继结点</p>
-</li>
-<li><p>Node(){}：构造器1</p>
-</li>
-<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
-</li>
-<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
-</li>
-</ul>
-<blockquote>
-<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
-</blockquote>
-<p><strong>4.理解结点锁等待状态</strong></p>
-<p>每个节点都有一个等待状态，共四种等待状态。</p>
-<ul>
-<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
-</ul>
-<ul>
-<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
-</li>
-<li><p>CONDITION：该线程在条件队列中排队。</p>
-</li>
-<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
-</li>
-</ul>
-<p><strong>5.结点进入同步队列时进行的操作</strong></p>
-<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
-<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
-<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
-<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
-]]></content>
-      <categories>
-        <category>AQS</category>
-      </categories>
-      <tags>
-        <tag>AQS</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CAS算法及ABA问题</title>
-    <url>/2020/03/07/CAS%E7%AE%97%E6%B3%95%E5%8F%8A%E5%AD%98%E5%9C%A8%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<p><strong>CAS算法</strong></p>
-<p>CAS（Compare And Swap)比较并交换，乐观锁的思想，认为总可成功完成操作，在多线程同时使用CAS操作一个变量时，只会有一个线程获得操作更新的权利，其他的都会失败，失败的线程不会被挂起，仅被告知失败，并且允许再次尝试。</p>
-<p><strong>三个重要参数</strong></p>
-<ul>
-<li>V：当前内存中的值</li>
-<li>A：旧的预期值</li>
-<li>B：要更新的值</li>
-</ul>
-<p>当V==A（旧的预期值==当前内存中的值），通过原子操作将V修改为B,并返回true,否则什么都不做，返回false。</p>
-<p>CAS算法必须和volatile一起使用，并且要在多核CPU下才可以使用。</p>
-<p>使用CAS算法的类有JUC包下的AtomicInteger类，getAndSet()就是调用unsafe类的getAndAddInt()方法。</p>
-<p><strong>AtomicInteger类部分源码</strong></p>
-<p><img src="/images/CAS_001/000001.jpg" alt="Alt text"></p>
-<p><strong>Unsafe类的部分源码：</strong></p>
-<pre><code>public final class Unsafe {
-
-private Unsafe() {}
-
-private static final Unsafe theUnsafe = new Unsafe();
-
-// 拿到调用它的那个Class的ClassLoader判断是否是SystemDomainLoader,如果不是则抛安全异常
-// 就是判断是否可以信任调用者并返回他实例
-@CallerSensitive
-public static Unsafe getUnsafe() {
-    Class&lt;?&gt; caller = Reflection.getCallerClass();
-    if (!VM.isSystemDomainLoader(caller.getClassLoader()))
-        throw new SecurityException(&quot;Unsafe&quot;);
-    return theUnsafe;
-}
-
-
-/**
- *  Object obeject 指定要获取哪个对象中的属性
- *  long valueOffset 指定该属性在内存中的偏移值
- *  int i 加数
- *  知道 obeject 和 valueOffset 才能确定共享变量
- *  源码中的变量为var1 var2，不能闻其名知其义，所以我改了名字，方便阅读
- */
-public final int getAndAddInt(Object obeject, long valueOffset, int i) {
-    int A;
-       do {
-            // 获取当前内存中的值,即旧的预期值
-            A = this.getIntVolatile(obeject,valueOffset);  
-           // 这里的obeject, valueOffset传递给底层去确定 V（当前内存中的值）
-        } while (!compareAndSwapInt(obeject, valueOffset, A, A + i));    
-            return A;
-}    
-}
-</code></pre><p><strong>ABA问题：</strong></p>
-<ul>
-<li><p>问题</p>
-<p>   CAS算法的实现前提：需要取内存中某时刻的数据，然后在下一时刻进行比较和交换，在这个时间差内可能数据已发生了改变，就会生产ABA问题。</p>
-<p>   ABA问题指第一个线程t1从内存的V位置取出A，这时第二个线程t2也从内存V位置取出A，并将V位置的数据修改为B，接着又将V位置的数据修改为A,然后t1线程操作成功。对于t1来说，CAS操作是成功的，但是该过程中V位置的数据发生了变化，t1感知不到，某些场景下会出现数据不一致的问题。</p>
-</li>
-</ul>
-<ul>
-<li><p>解决办法(添加版本号)：</p>
-<p>  每次对共享变量修改操作时都会带上一个版本号，在预期的版本号和数据的版本号一致时才可才可执行修改操作，并对版本号执行加1操作，否则执行失败。每次操作都会让版本号加1，不会出现ABA问题，版本号只能增加不能减少。</p>
-</li>
-</ul>
-<p>从JDK1.5Atomic包里提供了类AtomicStampedReference来解决ABA问题。</p>
-<p><strong>AtomicStampedReference类源码</strong></p>
-<pre><code>public class AtomicStampedReference&lt;V&gt; {
-
-private static class Pair&lt;T&gt; {
-    final T reference;
-    final int stamp;
-    private Pair(T reference, int stamp) {
-        this.reference = reference;
-        this.stamp = stamp;
-    }
-    static &lt;T&gt; Pair&lt;T&gt; of(T reference, int stamp) {
-        return new Pair&lt;T&gt;(reference, stamp);
-    }
-}
-
-private volatile Pair&lt;V&gt; pair;
-
-/** 
- *  首先检查当前引用是否等于预期引用，
- *  并且当前标志是否等于预期标志
- *  如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。
- *  
- *  expectedReference：表示预期值
- *  newReference：表示要更新的值
- *  expectedStamp：表示预期的时间戳
- *  newStamp：表示要更新的时间戳
- */
-public boolean compareAndSet(V   expectedReference,
-                             V   newReference,
-                             int expectedStamp,
-                             int newStamp) {
-    Pair&lt;V&gt; current = pair;
-    return
-        expectedReference == current.reference &amp;&amp;
-        expectedStamp == current.stamp &amp;&amp;
-        ((newReference == current.reference &amp;&amp;
-          newStamp == current.stamp) ||
-         casPair(current, Pair.of(newReference, newStamp)));
-}
-
-private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
-    return UNSAFE.compareAndSwapObject(this, pairOffset, cmp, val);
-}
-</code></pre><p>}</p>
-<p><strong>CAS缺点</strong></p>
-<ul>
-<li>循环时间太长，消耗CPU资源</li>
-<li>只能包证一个共享变量原子操作</li>
-<li>会出现ABA问题</li>
-</ul>
-]]></content>
-      <categories>
-        <category>CAS</category>
-      </categories>
-      <tags>
-        <tag>CAS</tag>
-        <tag>乐观锁</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Eureka的自我保护机制</title>
-    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
-<li>原理：<ul>
-<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
-<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
-</ul>
-</li>
-<li><p>产生原因</p>
-<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
-</li>
-<li><p>何时使用</p>
-<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
-</li>
-<li><p>如何配置</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">服务端</span><br><span class="line">server:</span><br><span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span><br><span class="line">    enable-self-preservation: false</span><br><span class="line">    ##剔除失效服务间隔</span><br><span class="line">    eviction-interval-timer-in-ms: 2000</span><br><span class="line"></span><br><span class="line">客户端：</span><br><span class="line">eureka:</span><br><span class="line"># 心跳检测检测与续约时间</span><br><span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span><br><span class="line">	client:</span><br><span class="line">		service-url:</span><br><span class="line">			defaultZone: http://localhost:8081/eureka/</span><br><span class="line">	instance:</span><br><span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span><br><span class="line">    	lease-renewal-interval-in-seconds: 1</span><br><span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span><br><span class="line">    	lease-expiration-duration-in-seconds: 2</span><br></pre></td></tr></table></figure></li>
-</ul>
-]]></content>
-      <categories>
-        <category>eureka</category>
-      </categories>
-      <tags>
-        <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Eureka工作流程小记</title>
     <url>/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</url>
     <content><![CDATA[<p>Eureka保证AP（可用性、分区容错性）</p>
@@ -374,114 +108,22 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
-    <title>JMM中happen-before八大规则</title>
-    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
-<blockquote>
-<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
-</blockquote>
-<ul>
-<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
-</li>
-<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
-</li>
-<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
-</li>
-<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
-</li>
-<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
-</li>
-<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
-</li>
+    <title>Eureka的自我保护机制</title>
+    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
+<li>原理：<ul>
+<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
+<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
 </ul>
-<ul>
-<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
 </li>
-<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
+<li><p>产生原因</p>
+<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
 </li>
-</ul>
-]]></content>
-      <categories>
-        <category>JMM</category>
-      </categories>
-      <tags>
-        <tag>JMM</tag>
-        <tag>happen-before</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Eureka高可用及数据一致性</title>
-    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<p><strong>一致性问题：</strong></p>
-<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
-<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
-<p><strong>Eureka是弱数据一致性的</strong></p>
-<p>两个方面：</p>
-<ul>
-<li><p>什么是弱一致性</p>
-<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
-<p>分布式系统中存在一个重要理论：CAP</p>
+<li><p>何时使用</p>
+<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
 </li>
-</ul>
-<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
-<p>该理论提到了三个分布式系统的3个特性：</p>
-<ul>
-<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
-<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
-</li>
-<li><p>Availability 可用性</p>
-<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
-</li>
-<li><p>Partition Tolerance 分区容错性</p>
-<p>集群部分节点故障，其他节点仍可用</p>
-</li>
-</ul>
-<blockquote>
-<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
-</blockquote>
-<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
-<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
-<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
-<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
-<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
-<p><strong>2.Eureka数据同步方式</strong></p>
-<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
-<ul>
-<li><strong>主从复制</strong></li>
-</ul>
-<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
-<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
-<ul>
-<li><strong>对等复制</strong></li>
-</ul>
-<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
-<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
-<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
-<p><strong>2.2同步过程</strong></p>
-<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
-<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
-<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
-<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
-<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
-<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
-<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
-<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
-<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
-<blockquote>
-<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
-</blockquote>
-<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
-<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
-<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
-<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
-<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
-<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
-<p><strong>汇总：</strong></p>
-<ul>
-<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
-<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
-<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
-<li>Eureka通过心跳机制实现数据修复。</li>
+<li><p>如何配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">服务端</span><br><span class="line">server:</span><br><span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span><br><span class="line">    enable-self-preservation: false</span><br><span class="line">    ##剔除失效服务间隔</span><br><span class="line">    eviction-interval-timer-in-ms: 2000</span><br><span class="line"></span><br><span class="line">客户端：</span><br><span class="line">eureka:</span><br><span class="line"># 心跳检测检测与续约时间</span><br><span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span><br><span class="line">	client:</span><br><span class="line">		service-url:</span><br><span class="line">			defaultZone: http://localhost:8081/eureka/</span><br><span class="line">	instance:</span><br><span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span><br><span class="line">    	lease-renewal-interval-in-seconds: 1</span><br><span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span><br><span class="line">    	lease-expiration-duration-in-seconds: 2</span><br></pre></td></tr></table></figure></li>
 </ul>
 ]]></content>
       <categories>
@@ -489,159 +131,6 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </categories>
       <tags>
         <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Feign和Dubbo组件分析</title>
-    <url>/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/</url>
-    <content><![CDATA[<p>在 Spring Cloud Alibaba 中，<strong>Feign</strong> 和 <strong>Dubbo</strong> 都是实现微服务间通信的关键组件，但它们的设计目标、协议支持和使用场景有显著差异。以下是两者的对比及适用场景分析：</p>
-<hr>
-<h3 id="一、核心区别"><a href="#一、核心区别" class="headerlink" title="一、核心区别"></a><strong>一、核心区别</strong></h3><table>
-<thead>
-<tr>
-<th><strong>特性</strong></th>
-<th><strong>Feign</strong></th>
-<th><strong>Dubbo</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>通信协议</strong></td>
-<td>基于 HTTP（RESTful 风格）</td>
-<td>基于 TCP 的 RPC 协议（默认 Dubbo 协议）</td>
-</tr>
-<tr>
-<td><strong>序列化</strong></td>
-<td>通常使用 JSON（HTTP Body）</td>
-<td>支持多种序列化（Hessian、Kryo、Protobuf 等）</td>
-</tr>
-<tr>
-<td><strong>性能</strong></td>
-<td>较低（HTTP 协议开销较大）</td>
-<td>高（二进制协议 + 长连接）</td>
-</tr>
-<tr>
-<td><strong>服务治理</strong></td>
-<td>依赖 Spring Cloud 生态（Ribbon、Sentinel 等）</td>
-<td>内置负载均衡、熔断、容错等治理能力</td>
-</tr>
-<tr>
-<td><strong>跨语言支持</strong></td>
-<td>较好（基于 HTTP + JSON）</td>
-<td>有限（需依赖 Dubbo 多语言 SDK，如 Dubbo-go）</td>
-</tr>
-<tr>
-<td><strong>适用场景</strong></td>
-<td>轻量级 RESTful 调用、多语言异构系统</td>
-<td>高性能内部服务调用、复杂服务治理需求</td>
-</tr>
-</tbody>
-</table>
-<hr>
-<h3 id="二、使用场景分析"><a href="#二、使用场景分析" class="headerlink" title="二、使用场景分析"></a><strong>二、使用场景分析</strong></h3><h4 id="1-选择-Feign-的场景"><a href="#1-选择-Feign-的场景" class="headerlink" title="1. 选择 Feign 的场景"></a><strong>1. 选择 Feign 的场景</strong></h4><ul>
-<li><p><strong>场景 1：RESTful 接口调用</strong><br>需要调用外部服务暴露的 HTTP API（如第三方服务或跨团队服务），且接口符合 RESTful 规范。</p>
-</li>
-<li><p><strong>场景 2：简单服务治理需求</strong><br>服务治理依赖 Spring Cloud 生态（如 Nacos 服务发现、Sentinel 熔断），无需复杂路由或分组策略。</p>
-</li>
-<li><p><strong>场景 3：跨语言协作</strong><br>系统需要与非 Java 服务（如 Node.js、Python）交互，基于 HTTP + JSON 协议更通用。</p>
-</li>
-<li><p><strong>示例代码</strong>：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(name = <span class="string">"order-service"</span>, fallback = OrderServiceFallback<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">interface</span> <span class="title">OrderServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/orders/&#123;id&#125;"</span>)</span><br><span class="line">    <span class="function">Order <span class="title">getOrder</span><span class="params">(@PathVariable Long id)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h4 id="2-选择-Dubbo-的场景"><a href="#2-选择-Dubbo-的场景" class="headerlink" title="2. 选择 Dubbo 的场景"></a><strong>2. 选择 Dubbo 的场景</strong></h4><ul>
-<li><p><strong>场景 1：高性能内部服务调用</strong><br>服务间调用频繁且对延迟敏感（如订单扣减库存、支付核心链路），需减少网络开销。</p>
-</li>
-<li><p><strong>场景 2：复杂服务治理需求</strong><br>需要细粒度控制（如方法级负载均衡、服务分组、版本控制、隐式参数传递）。</p>
-</li>
-<li><p><strong>场景 3：遗留系统迁移</strong><br>已有 Dubbo 体系的历史系统迁移到 Spring Cloud Alibaba，需保留原有 RPC 调用方式。</p>
-</li>
-<li><p><strong>示例代码</strong>：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@DubboService</span>(version = <span class="string">"1.0.0"</span>, group = <span class="string">"order"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OrderServiceImpl</span> <span class="keyword">implements</span> <span class="title">OrderService</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Order <span class="title">getOrder</span><span class="params">(Long id)</span> </span>&#123; <span class="comment">/* ... */</span> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Reference</span>(version = <span class="string">"1.0.0"</span>, group = <span class="string">"order"</span>)</span><br><span class="line"><span class="keyword">private</span> OrderService orderService;</span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<hr>
-<h3 id="三、混合使用-Feign-和-Dubbo-的场景"><a href="#三、混合使用-Feign-和-Dubbo-的场景" class="headerlink" title="三、混合使用 Feign 和 Dubbo 的场景"></a><strong>三、混合使用 Feign 和 Dubbo 的场景</strong></h3><ul>
-<li><p><strong>场景 1：内外分离架构</strong>  </p>
-<ul>
-<li><strong>内部服务</strong>：使用 Dubbo 实现高性能 RPC 调用（如订单服务调用库存服务）。  </li>
-<li><strong>外部 API</strong>：使用 Feign 暴露 RESTful 接口给前端或第三方调用。</li>
-</ul>
-</li>
-<li><p><strong>场景 2：逐步迁移</strong>  </p>
-<ul>
-<li>旧 Dubbo 服务逐步迁移到 Spring Cloud Alibaba，新服务使用 Feign。  </li>
-<li>通过 Nacos 统一管理两种服务的注册发现。</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h3 id="四、配置差异与注意事项"><a href="#四、配置差异与注意事项" class="headerlink" title="四、配置差异与注意事项"></a><strong>四、配置差异与注意事项</strong></h3><h4 id="1-Feign-配置要点"><a href="#1-Feign-配置要点" class="headerlink" title="1. Feign 配置要点"></a><strong>1. Feign 配置要点</strong></h4><ul>
-<li><p><strong>依赖</strong>：</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-openfeign<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-alibaba-sentinel<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p><strong>关键配置</strong>：</p>
-<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">feign:</span></span><br><span class="line">  <span class="attr">sentinel:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>  <span class="comment"># 启用 Sentinel 熔断</span></span><br><span class="line">  <span class="attr">client:</span></span><br><span class="line">    <span class="attr">config:</span></span><br><span class="line">      <span class="attr">default:</span></span><br><span class="line">        <span class="attr">connectTimeout:</span> <span class="number">3000</span>  <span class="comment"># 连接超时</span></span><br><span class="line">        <span class="attr">readTimeout:</span> <span class="number">5000</span>     <span class="comment"># 读取超时</span></span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<h4 id="2-Dubbo-配置要点"><a href="#2-Dubbo-配置要点" class="headerlink" title="2. Dubbo 配置要点"></a><strong>2. Dubbo 配置要点</strong></h4><ul>
-<li><p><strong>依赖</strong>：</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-dubbo<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
-</li>
-<li><p><strong>关键配置</strong>：</p>
-<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">dubbo:</span></span><br><span class="line">  <span class="attr">scan:</span></span><br><span class="line">    <span class="attr">base-packages:</span> <span class="string">com.example.service</span>  <span class="comment"># Dubbo 服务扫描包</span></span><br><span class="line">  <span class="attr">protocol:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">dubbo</span>  <span class="comment"># 使用 Dubbo 协议</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">20880</span>  <span class="comment"># 服务暴露端口</span></span><br><span class="line">  <span class="attr">registry:</span></span><br><span class="line">    <span class="attr">address:</span> <span class="string">nacos://localhost:8848</span>  <span class="comment"># 注册中心地址</span></span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<hr>
-<h3 id="五、决策建议"><a href="#五、决策建议" class="headerlink" title="五、决策建议"></a><strong>五、决策建议</strong></h3><table>
-<thead>
-<tr>
-<th><strong>维度</strong></th>
-<th><strong>选择 Feign</strong></th>
-<th><strong>选择 Dubbo</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>协议需求</strong></td>
-<td>RESTful/HTTP，需跨语言调用</td>
-<td>高性能 RPC，内部服务通信</td>
-</tr>
-<tr>
-<td><strong>性能要求</strong></td>
-<td>可接受 HTTP 开销（QPS &lt; 1k）</td>
-<td>高并发、低延迟（QPS &gt; 1k）</td>
-</tr>
-<tr>
-<td><strong>服务治理</strong></td>
-<td>依赖 Spring Cloud 生态（Sentinel、Gateway）</td>
-<td>需要内置高级治理（路由、分组、权重）</td>
-</tr>
-<tr>
-<td><strong>开发成本</strong></td>
-<td>低（注解驱动，与 Spring MVC 兼容）</td>
-<td>中（需配置协议、序列化、服务暴露）</td>
-</tr>
-<tr>
-<td><strong>团队经验</strong></td>
-<td>熟悉 Spring Cloud 技术栈</td>
-<td>熟悉 Dubbo 或历史系统迁移需求</td>
-</tr>
-</tbody>
-</table>
-<hr>
-<h3 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a><strong>六、总结</strong></h3><ul>
-<li><strong>Feign</strong>：适合轻量级 RESTful 调用、跨语言协作，与 Spring Cloud 生态无缝集成。  </li>
-<li><strong>Dubbo</strong>：适合高性能内部服务、复杂治理场景，提供更细粒度的 RPC 控制。  </li>
-<li><strong>混合架构</strong>：内外服务分离时，可组合使用 Feign（对外）和 Dubbo（对内），通过 Nacos 统一治理。  </li>
-</ul>
-<p>根据业务需求、性能指标和技术栈成熟度选择工具，避免过度设计。</p>
-]]></content>
-      <categories>
-        <category>微服务</category>
-      </categories>
-      <tags>
-        <tag>微服务中间件</tag>
       </tags>
   </entry>
   <entry>
@@ -795,6 +284,129 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
+    <title>CAS算法及ABA问题</title>
+    <url>/2020/03/07/CAS%E7%AE%97%E6%B3%95%E5%8F%8A%E5%AD%98%E5%9C%A8%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p><strong>CAS算法</strong></p>
+<p>CAS（Compare And Swap)比较并交换，乐观锁的思想，认为总可成功完成操作，在多线程同时使用CAS操作一个变量时，只会有一个线程获得操作更新的权利，其他的都会失败，失败的线程不会被挂起，仅被告知失败，并且允许再次尝试。</p>
+<p><strong>三个重要参数</strong></p>
+<ul>
+<li>V：当前内存中的值</li>
+<li>A：旧的预期值</li>
+<li>B：要更新的值</li>
+</ul>
+<p>当V==A（旧的预期值==当前内存中的值），通过原子操作将V修改为B,并返回true,否则什么都不做，返回false。</p>
+<p>CAS算法必须和volatile一起使用，并且要在多核CPU下才可以使用。</p>
+<p>使用CAS算法的类有JUC包下的AtomicInteger类，getAndSet()就是调用unsafe类的getAndAddInt()方法。</p>
+<p><strong>AtomicInteger类部分源码</strong></p>
+<p><img src="/images/CAS_001/000001.jpg" alt="Alt text"></p>
+<p><strong>Unsafe类的部分源码：</strong></p>
+<pre><code>public final class Unsafe {
+
+private Unsafe() {}
+
+private static final Unsafe theUnsafe = new Unsafe();
+
+// 拿到调用它的那个Class的ClassLoader判断是否是SystemDomainLoader,如果不是则抛安全异常
+// 就是判断是否可以信任调用者并返回他实例
+@CallerSensitive
+public static Unsafe getUnsafe() {
+    Class&lt;?&gt; caller = Reflection.getCallerClass();
+    if (!VM.isSystemDomainLoader(caller.getClassLoader()))
+        throw new SecurityException(&quot;Unsafe&quot;);
+    return theUnsafe;
+}
+
+
+/**
+ *  Object obeject 指定要获取哪个对象中的属性
+ *  long valueOffset 指定该属性在内存中的偏移值
+ *  int i 加数
+ *  知道 obeject 和 valueOffset 才能确定共享变量
+ *  源码中的变量为var1 var2，不能闻其名知其义，所以我改了名字，方便阅读
+ */
+public final int getAndAddInt(Object obeject, long valueOffset, int i) {
+    int A;
+       do {
+            // 获取当前内存中的值,即旧的预期值
+            A = this.getIntVolatile(obeject,valueOffset);  
+           // 这里的obeject, valueOffset传递给底层去确定 V（当前内存中的值）
+        } while (!compareAndSwapInt(obeject, valueOffset, A, A + i));    
+            return A;
+}    
+}
+</code></pre><p><strong>ABA问题：</strong></p>
+<ul>
+<li><p>问题</p>
+<p>   CAS算法的实现前提：需要取内存中某时刻的数据，然后在下一时刻进行比较和交换，在这个时间差内可能数据已发生了改变，就会生产ABA问题。</p>
+<p>   ABA问题指第一个线程t1从内存的V位置取出A，这时第二个线程t2也从内存V位置取出A，并将V位置的数据修改为B，接着又将V位置的数据修改为A,然后t1线程操作成功。对于t1来说，CAS操作是成功的，但是该过程中V位置的数据发生了变化，t1感知不到，某些场景下会出现数据不一致的问题。</p>
+</li>
+</ul>
+<ul>
+<li><p>解决办法(添加版本号)：</p>
+<p>  每次对共享变量修改操作时都会带上一个版本号，在预期的版本号和数据的版本号一致时才可才可执行修改操作，并对版本号执行加1操作，否则执行失败。每次操作都会让版本号加1，不会出现ABA问题，版本号只能增加不能减少。</p>
+</li>
+</ul>
+<p>从JDK1.5Atomic包里提供了类AtomicStampedReference来解决ABA问题。</p>
+<p><strong>AtomicStampedReference类源码</strong></p>
+<pre><code>public class AtomicStampedReference&lt;V&gt; {
+
+private static class Pair&lt;T&gt; {
+    final T reference;
+    final int stamp;
+    private Pair(T reference, int stamp) {
+        this.reference = reference;
+        this.stamp = stamp;
+    }
+    static &lt;T&gt; Pair&lt;T&gt; of(T reference, int stamp) {
+        return new Pair&lt;T&gt;(reference, stamp);
+    }
+}
+
+private volatile Pair&lt;V&gt; pair;
+
+/** 
+ *  首先检查当前引用是否等于预期引用，
+ *  并且当前标志是否等于预期标志
+ *  如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。
+ *  
+ *  expectedReference：表示预期值
+ *  newReference：表示要更新的值
+ *  expectedStamp：表示预期的时间戳
+ *  newStamp：表示要更新的时间戳
+ */
+public boolean compareAndSet(V   expectedReference,
+                             V   newReference,
+                             int expectedStamp,
+                             int newStamp) {
+    Pair&lt;V&gt; current = pair;
+    return
+        expectedReference == current.reference &amp;&amp;
+        expectedStamp == current.stamp &amp;&amp;
+        ((newReference == current.reference &amp;&amp;
+          newStamp == current.stamp) ||
+         casPair(current, Pair.of(newReference, newStamp)));
+}
+
+private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
+    return UNSAFE.compareAndSwapObject(this, pairOffset, cmp, val);
+}
+</code></pre><p>}</p>
+<p><strong>CAS缺点</strong></p>
+<ul>
+<li>循环时间太长，消耗CPU资源</li>
+<li>只能包证一个共享变量原子操作</li>
+<li>会出现ABA问题</li>
+</ul>
+]]></content>
+      <categories>
+        <category>CAS</category>
+      </categories>
+      <tags>
+        <tag>CAS</tag>
+        <tag>乐观锁</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>JDK自带定时任务</title>
     <url>/2015/07/12/JDK%E8%87%AA%E5%B8%A6%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/</url>
     <content><![CDATA[<p><strong>Java定时任务调度详解</strong></p>
@@ -937,6 +549,394 @@ public class QuartzDemo{
       </categories>
       <tags>
         <tag>JDK</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java中AQS</title>
+    <url>/2019/08/10/AbstractQueuedSynchronized/</url>
+    <content><![CDATA[<p>1.AbstractQueuedSynchronized</p>
+<p>ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatch，CyclicBarrier，Semaphore这些类也是采用同样的方式来实现对锁的控制。AQS为这些类提供了基础，提供了一个密码锁，拥有了这个密码锁之后可以自己来设置密码。</p>
+<p>AQS有一个排队区，提供了一个线程调度，告诉线程什么时候去排队，去哪里排队，排队前做什么，排队后做些什么。</p>
+<p><strong>2.AQS提供了一把密码锁</strong></p>
+<p><img src="/images/AQS_001/AQS_001.png" alt="Alt text"></p>
+<ul>
+<li>列出了AQS的三个成员变量</li>
+<li>同步队列头结点引用</li>
+<li>同步队列尾结点引用</li>
+<li>同步状态</li>
+</ul>
+<p>这三个成员变量都是使用vovatile关键字修饰的，确保了在多线程对它的修改都是内存可见的。整个类的核心是这个同步状态，是个int类型的变量，可将同步状态比喻为密码锁，state的值相当于密码控制着锁。锁的密码由子类来实现。如：ReentrantLock中，state=0表示锁是开的，state&gt;0表示锁是锁着的，而Semphore中，state&gt;0表示锁是开的，state=0表示锁的锁着的。</p>
+<p><strong>3.AbstractQueuedSynchronized的排队区实现</strong></p>
+<p><img src="/images/AQS_001/AQS_002.png" alt="Alt text"></p>
+<p>AQS内部有两种排队区，一条是同步队列(双向链表)，多个是条件队列。同步队列只有一条，条件队列可以有多条。同步队列的结点分别持有前后结点引用，而条件队列的结点只有一个指向后继结点的引用。</p>
+<p><strong>AQS内部两个排队区</strong></p>
+<ul>
+<li>同步队列<ul>
+<li>只有一条</li>
+<li>结点，分别持有前后结点引用</li>
+</ul>
+</li>
+<li>条件队列<ul>
+<li>可有多条</li>
+<li>结点，只有一个指向后继结点的引用</li>
+</ul>
+</li>
+</ul>
+<p>图中T代表线程，每个结点包含一个线程，线程在获取锁失败后先进入同步队列排队，想要进入条件队列该线程必须持有锁才行。</p>
+<p>注：</p>
+<ul>
+<li><p>同步队列节点来源</p>
+<ul>
+<li>同步队列依赖一个双向链表完成同步状态的管理，当前线程获取同步状态失败后，同步器会将线程构建成一个节点，并加入到同步队列中。</li>
+<li>通过signal或signalAll将条件队列中的节点转移到同步队列。（条件队列转化为同步队列） </li>
+</ul>
+</li>
+<li><p>条件队列节点来源</p>
+<ul>
+<li>调用await方法阻塞线程。</li>
+<li>当前线程在同步队列头节点，调用await方法阻塞(从同步队列转化到条件队列）</li>
+</ul>
+</li>
+</ul>
+<p><strong>总结：</strong></p>
+<ul>
+<li>同步队列与条件队列节点可互相转化</li>
+<li>一个线程只能存在于两个队列中的一个</li>
+</ul>
+<p>队列每个结点结构</p>
+<p><img src="/images/AQS_001/AQS_003.jpg" alt="Alt text"></p>
+<p>Node代表同步队列和条件队列中的一个结点，是AQS的内部类。Node有很多属性，如：持有模式、等待状态、同步队列中的前继和后继，以及条件队列中的后继引用等。</p>
+<p><strong>Node:</strong></p>
+<ul>
+<li><p>Node SHARED=new Node()：当前线程以共享模式持有锁</p>
+</li>
+<li><p>Node EXCLUSIVE =null：当前线程以独占模式持有锁</p>
+</li>
+<li><p>int CANCELLED=1：当前结点已取消获取锁</p>
+</li>
+<li><p>int SIGNAL=-1：后继结点的线程需要运行</p>
+</li>
+<li><p>int CONDITION=-2：当前结点在条件队列中排队</p>
+</li>
+<li><p>int PROPAGATE=-3：后继结点可以直接获取锁</p>
+</li>
+<li><p>volatile int waitStatus：当前结点的等待状态</p>
+</li>
+<li><p>volatile Node pre：同步队列中的前继结点</p>
+</li>
+<li><p>volatile Node next：同步队列中的后继结点</p>
+</li>
+<li><p>volatile Thread thread：当前结点持有的线程引用</p>
+</li>
+<li><p>final boolean isShared()：当前结点是否为共享模式</p>
+</li>
+<li><p>final Node predecessor()：返回当前结点的前继结点</p>
+</li>
+<li><p>Node(){}：构造器1</p>
+</li>
+<li><p>Node(Thread thread,Node model){}：持有模式是赋值给nextWaiter,条件队列中的后继结点</p>
+</li>
+<li><p>Node(Thread thread,int waitStatus){}：只有条件队列中使用</p>
+</li>
+</ul>
+<blockquote>
+<p>可把同步队列、条件队列看成排队区，每个节点看成排队区的座位，线程看成是排队的客人，客人来时去看下所有没有开，如果没开他就会去排队区另一个号牌，声明自己已什么方式持有锁，最后再到队列的尾部排队。</p>
+</blockquote>
+<p><strong>4.理解结点锁等待状态</strong></p>
+<p>每个节点都有一个等待状态，共四种等待状态。</p>
+<ul>
+<li>CANCELLED：当一个线程在排队过程中打算放弃了，会将自己位置设置为CANCELLED,这样别人看到了就可以把它清理出队列。</li>
+</ul>
+<ul>
+<li><p>SIGNAL：当线程在结点上药睡着之前，会将前继结点标识为SIGNAL,因为每个线程离开队列前都会查看当前结点，如果当前结点标识为SIGNAL，它会唤醒后继结点中的线程。只有保证前继结点上状态为SIGNAL，当前线程才会安心睡去。</p>
+</li>
+<li><p>CONDITION：该线程在条件队列中排队。</p>
+</li>
+<li><p>PROPAGATE：提醒后面来的线程可以直接获取锁，这个状态只在共享模式用到。</p>
+</li>
+</ul>
+<p><strong>5.结点进入同步队列时进行的操作</strong></p>
+<p><img src="/images/AQS_001/AQS_004.png" alt="Alt text"></p>
+<p>注意：入队操作使用死循环，只有成功将节点添加到同步队列尾部才会返回，返回结果是同步队列原先的尾结点。</p>
+<p><img src="/images/AQS_001/AQS_005.png" alt="Alt text"></p>
+<p>需要注意添加尾结点的顺序，分为三步：指向尾结点，CAS更改尾结点，将旧尾结点的后继指向当前结点。在并发环境中这三步操作不一定能保证完成，所以在清空同步队列所有已取消的结点这一操作中，为了寻找非取消状态的结点，不是从前向后遍历而是从后向前遍历的。还有就是每个结点进入队列中时它的等待状态是为0，只有后继结点的线程需要挂起时才会将前面结点的等待状态改为SIGNAL。</p>
+]]></content>
+      <categories>
+        <category>AQS</category>
+      </categories>
+      <tags>
+        <tag>AQS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Eureka高可用及数据一致性</title>
+    <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p><strong>一致性问题：</strong></p>
+<p>服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。</p>
+<p> <img src="/images/eureka_01/0001.jpg" alt="Alt text">    </p>
+<p><strong>Eureka是弱数据一致性的</strong></p>
+<p>两个方面：</p>
+<ul>
+<li><p>什么是弱一致性</p>
+<p>zookeeper也可实现数据注册中心，zookeeper是强一致性的。</p>
+<p>分布式系统中存在一个重要理论：CAP</p>
+</li>
+</ul>
+<p><img src="/images/eureka_01/0002.jpg" alt="Alt text">    </p>
+<p>该理论提到了三个分布式系统的3个特性：</p>
+<ul>
+<li><p>Consistency 数据一致性<br>分布式系统中，数据存在多个节点中，有一些问题会导致写入数据时，一部分节点成功、一部分节点失败，造成数据不一致。</p>
+<p>满足一致性要求对数据的更新操作成功后，多节点数据必须保持一致性。</p>
+</li>
+<li><p>Availability 可用性</p>
+<p>客户端任何时候对集群读写操作，请求都能正常响应。</p>
+</li>
+<li><p>Partition Tolerance 分区容错性</p>
+<p>集群部分节点故障，其他节点仍可用</p>
+</li>
+</ul>
+<blockquote>
+<p>CAP理论指明：这3个特性不能同时满足，最多满足2个。</p>
+</blockquote>
+<p>P是客观存在的，不可绕过，只是选择C还是选择A的问题。</p>
+<p>Zookeeper是尽可能的保证数据一致性，某些情况下可牺牲可用性。</p>
+<p>Eureka选择了A，所以Eureka具有高可用性，任何时候，服务消费者都能正常获取服务列表，但不保证数据的强一致性，消费者可能会拿到过期的服务列表。</p>
+<p><img src="/images/eureka_01/0003.jpg" alt="Alt text">    </p>
+<p>Eureka设计理念：保留可用及过期的数据总比丢掉可用数据好。</p>
+<p><strong>2.Eureka数据同步方式</strong></p>
+<p><strong>2.1复制方式</strong><br>分布式系统的数据在多个节点之间的复制方式，有两种：</p>
+<ul>
+<li><strong>主从复制</strong></li>
+</ul>
+<p>就是Master-Slave模式，有一个主节点，其他都是从节点，所有写操作都提交到主节点，再由主节点更新到其他从节点。</p>
+<p>写的压力都集中在主节点上，这是系统的瓶颈，从节点可以分担读请求。</p>
+<ul>
+<li><strong>对等复制</strong></li>
+</ul>
+<p>Peer to Peer模式 节点部分主从，任何节点都可以接收写操作，然后每个节点间互相进行数据更新。</p>
+<p>不存在写压力瓶颈，但各个节点数据同步时可能会有数据冲突。</p>
+<p>Eureka采用的是 Peer to Peer 模式，对等复制。</p>
+<p><strong>2.2同步过程</strong></p>
+<p>Eureka Server本身依赖了Eureka Client,每个Eureka Client是作为其他Eureka Server的client</p>
+<p>Eureka Server 启动后，会通过Eureka Client 请求其他Eureka Server节点中的一个节点，获取注册服务信息，然后复制到其他peer节点。</p>
+<p>Eureka Server 每当自己的信息变更后，如Client向自己发起注册、续约、注销请求时，就会把自己的最新信息通知给其他Eureka Server，保持数据同步。</p>
+<p><img src="/images/eureka_01/0004.jpg" alt="Alt text">    </p>
+<p>如果自己的信息变更时另一个Eureka Server同步过来，这样再同步过去的话就出现数据同步死循环。</p>
+<p><img src="/images/eureka_01/0005.jpg" alt="Alt text">    </p>
+<p>Eureka Server再执行复制操作时，使用HEADER_REPLICATION这个 http header 来区分普通应用实例的正常请求，说明这是一个复制请求，这样其他peer节点收到请求时，就不会再对其进行复制操作，避免出现死循环。</p>
+<p>数据冲突问题，Server_A向Server_B发起同步请求，如果A的数据比B的数据还旧，B不能接收A的数据，那么B如何知道A的数据是旧的，这时A该怎么办。</p>
+<p>Eureka的数据新旧一般是通过版本号定义的，Eureka通过lastDirtyTimestamp这个类似版本号的属性来实现的。</p>
+<blockquote>
+<p>lastDirtyTimestamp 是注册中心里服务实例的一个属性，此服务实例最近一次变更时间。</p>
+</blockquote>
+<p>如Eureka Server A向Eureka Server B复制数据，数据冲突有2种情况。</p>
+<p>1.A的数据比B的新，B返回404，A重新把这个应用实例注册到B。</p>
+<p>2.A的数据比B的就，B返回409,要求A同步B的数据。</p>
+<p><img src="/images/eureka_01/0006.jpg" alt="Alt text">    </p>
+<p>另一个重要机制，heartbeat 心跳，续约操作，进行数据的最终修复，因为节点间的复制可能会出错，通过心跳可发现错误，进行弥补。</p>
+<p>如发现某个应用实例数据与某个Server不一致，则Server返回404，实例重新注册即可。</p>
+<p><strong>汇总：</strong></p>
+<ul>
+<li>Eureka是弱数据一致性，选择了CAP中的AP。</li>
+<li>Eureka采用Peer to Peer 模式进行数据复制。</li>
+<li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
+<li>Eureka通过心跳机制实现数据修复。</li>
+</ul>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>JMM中happen-before八大规则</title>
+    <url>/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p><strong>JMM中happen-before八大规则</strong></p>
+<blockquote>
+<p>java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时jvm可以随意对其进行重排序。</p>
+</blockquote>
+<ul>
+<li><p>a.程序次序规则（pragram order rule):同一线程内，按程序代码先后顺序执行。（程序代码中控制流先后顺序执行,不特指程序代码顺序，如：分支、循环结构）</p>
+</li>
+<li><p>b.管道/监视器锁定规则（monitor lock rule):同一个锁的lock先发生于unlock。</p>
+</li>
+<li><p>c.volatile变量规则（volatile variable rule):对volatile变量写操作先发生与对这个变量的读操作。（volatile变量写先于读）</p>
+</li>
+<li><p>d.线程启动规则（thread start rule):一个线程内的任何操作都必须在这个线程的start()方法之后调用。</p>
+</li>
+<li><p>e.线程加入规则（Thread join Rule): Thread对象的结束先发生于join方法返回。</p>
+</li>
+<li><p>f.线程中断规则（Thread Interruption rule):一个线程的所有操作都会在线程终止之前。</p>
+</li>
+</ul>
+<ul>
+<li><p>g.对象终结规则（Finalizer rule)：一个对象的终结操作必须在这个对象构造完成之后。</p>
+</li>
+<li><p>h.传递性（Transitivity):操作A先发生于操作B,操作B先发生于操作C，那么操作A先发生于操作C。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>JMM</category>
+      </categories>
+      <tags>
+        <tag>JMM</tag>
+        <tag>happen-before</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Feign和Dubbo组件分析</title>
+    <url>/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/</url>
+    <content><![CDATA[<p>在 Spring Cloud Alibaba 中，<strong>Feign</strong> 和 <strong>Dubbo</strong> 都是实现微服务间通信的关键组件，但它们的设计目标、协议支持和使用场景有显著差异。以下是两者的对比及适用场景分析：</p>
+<hr>
+<h3 id="一、核心区别"><a href="#一、核心区别" class="headerlink" title="一、核心区别"></a><strong>一、核心区别</strong></h3><table>
+<thead>
+<tr>
+<th><strong>特性</strong></th>
+<th><strong>Feign</strong></th>
+<th><strong>Dubbo</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>通信协议</strong></td>
+<td>基于 HTTP（RESTful 风格）</td>
+<td>基于 TCP 的 RPC 协议（默认 Dubbo 协议）</td>
+</tr>
+<tr>
+<td><strong>序列化</strong></td>
+<td>通常使用 JSON（HTTP Body）</td>
+<td>支持多种序列化（Hessian、Kryo、Protobuf 等）</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>较低（HTTP 协议开销较大）</td>
+<td>高（二进制协议 + 长连接）</td>
+</tr>
+<tr>
+<td><strong>服务治理</strong></td>
+<td>依赖 Spring Cloud 生态（Ribbon、Sentinel 等）</td>
+<td>内置负载均衡、熔断、容错等治理能力</td>
+</tr>
+<tr>
+<td><strong>跨语言支持</strong></td>
+<td>较好（基于 HTTP + JSON）</td>
+<td>有限（需依赖 Dubbo 多语言 SDK，如 Dubbo-go）</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>轻量级 RESTful 调用、多语言异构系统</td>
+<td>高性能内部服务调用、复杂服务治理需求</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="二、使用场景分析"><a href="#二、使用场景分析" class="headerlink" title="二、使用场景分析"></a><strong>二、使用场景分析</strong></h3><h4 id="1-选择-Feign-的场景"><a href="#1-选择-Feign-的场景" class="headerlink" title="1. 选择 Feign 的场景"></a><strong>1. 选择 Feign 的场景</strong></h4><ul>
+<li><p><strong>场景 1：RESTful 接口调用</strong><br>需要调用外部服务暴露的 HTTP API（如第三方服务或跨团队服务），且接口符合 RESTful 规范。</p>
+</li>
+<li><p><strong>场景 2：简单服务治理需求</strong><br>服务治理依赖 Spring Cloud 生态（如 Nacos 服务发现、Sentinel 熔断），无需复杂路由或分组策略。</p>
+</li>
+<li><p><strong>场景 3：跨语言协作</strong><br>系统需要与非 Java 服务（如 Node.js、Python）交互，基于 HTTP + JSON 协议更通用。</p>
+</li>
+<li><p><strong>示例代码</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(name = <span class="string">"order-service"</span>, fallback = OrderServiceFallback<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">interface</span> <span class="title">OrderServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/orders/&#123;id&#125;"</span>)</span><br><span class="line">    <span class="function">Order <span class="title">getOrder</span><span class="params">(@PathVariable Long id)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="2-选择-Dubbo-的场景"><a href="#2-选择-Dubbo-的场景" class="headerlink" title="2. 选择 Dubbo 的场景"></a><strong>2. 选择 Dubbo 的场景</strong></h4><ul>
+<li><p><strong>场景 1：高性能内部服务调用</strong><br>服务间调用频繁且对延迟敏感（如订单扣减库存、支付核心链路），需减少网络开销。</p>
+</li>
+<li><p><strong>场景 2：复杂服务治理需求</strong><br>需要细粒度控制（如方法级负载均衡、服务分组、版本控制、隐式参数传递）。</p>
+</li>
+<li><p><strong>场景 3：遗留系统迁移</strong><br>已有 Dubbo 体系的历史系统迁移到 Spring Cloud Alibaba，需保留原有 RPC 调用方式。</p>
+</li>
+<li><p><strong>示例代码</strong>：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@DubboService</span>(version = <span class="string">"1.0.0"</span>, group = <span class="string">"order"</span>)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">OrderServiceImpl</span> <span class="keyword">implements</span> <span class="title">OrderService</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Order <span class="title">getOrder</span><span class="params">(Long id)</span> </span>&#123; <span class="comment">/* ... */</span> &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Reference</span>(version = <span class="string">"1.0.0"</span>, group = <span class="string">"order"</span>)</span><br><span class="line"><span class="keyword">private</span> OrderService orderService;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<h3 id="三、混合使用-Feign-和-Dubbo-的场景"><a href="#三、混合使用-Feign-和-Dubbo-的场景" class="headerlink" title="三、混合使用 Feign 和 Dubbo 的场景"></a><strong>三、混合使用 Feign 和 Dubbo 的场景</strong></h3><ul>
+<li><p><strong>场景 1：内外分离架构</strong>  </p>
+<ul>
+<li><strong>内部服务</strong>：使用 Dubbo 实现高性能 RPC 调用（如订单服务调用库存服务）。  </li>
+<li><strong>外部 API</strong>：使用 Feign 暴露 RESTful 接口给前端或第三方调用。</li>
+</ul>
+</li>
+<li><p><strong>场景 2：逐步迁移</strong>  </p>
+<ul>
+<li>旧 Dubbo 服务逐步迁移到 Spring Cloud Alibaba，新服务使用 Feign。  </li>
+<li>通过 Nacos 统一管理两种服务的注册发现。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3 id="四、配置差异与注意事项"><a href="#四、配置差异与注意事项" class="headerlink" title="四、配置差异与注意事项"></a><strong>四、配置差异与注意事项</strong></h3><h4 id="1-Feign-配置要点"><a href="#1-Feign-配置要点" class="headerlink" title="1. Feign 配置要点"></a><strong>1. Feign 配置要点</strong></h4><ul>
+<li><p><strong>依赖</strong>：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-openfeign<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-alibaba-sentinel<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>关键配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">feign:</span></span><br><span class="line">  <span class="attr">sentinel:</span></span><br><span class="line">    <span class="attr">enabled:</span> <span class="literal">true</span>  <span class="comment"># 启用 Sentinel 熔断</span></span><br><span class="line">  <span class="attr">client:</span></span><br><span class="line">    <span class="attr">config:</span></span><br><span class="line">      <span class="attr">default:</span></span><br><span class="line">        <span class="attr">connectTimeout:</span> <span class="number">3000</span>  <span class="comment"># 连接超时</span></span><br><span class="line">        <span class="attr">readTimeout:</span> <span class="number">5000</span>     <span class="comment"># 读取超时</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="2-Dubbo-配置要点"><a href="#2-Dubbo-配置要点" class="headerlink" title="2. Dubbo 配置要点"></a><strong>2. Dubbo 配置要点</strong></h4><ul>
+<li><p><strong>依赖</strong>：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>com.alibaba.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-dubbo<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>关键配置</strong>：</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">dubbo:</span></span><br><span class="line">  <span class="attr">scan:</span></span><br><span class="line">    <span class="attr">base-packages:</span> <span class="string">com.example.service</span>  <span class="comment"># Dubbo 服务扫描包</span></span><br><span class="line">  <span class="attr">protocol:</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">dubbo</span>  <span class="comment"># 使用 Dubbo 协议</span></span><br><span class="line">    <span class="attr">port:</span> <span class="number">20880</span>  <span class="comment"># 服务暴露端口</span></span><br><span class="line">  <span class="attr">registry:</span></span><br><span class="line">    <span class="attr">address:</span> <span class="string">nacos://localhost:8848</span>  <span class="comment"># 注册中心地址</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<hr>
+<h3 id="五、决策建议"><a href="#五、决策建议" class="headerlink" title="五、决策建议"></a><strong>五、决策建议</strong></h3><table>
+<thead>
+<tr>
+<th><strong>维度</strong></th>
+<th><strong>选择 Feign</strong></th>
+<th><strong>选择 Dubbo</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>协议需求</strong></td>
+<td>RESTful/HTTP，需跨语言调用</td>
+<td>高性能 RPC，内部服务通信</td>
+</tr>
+<tr>
+<td><strong>性能要求</strong></td>
+<td>可接受 HTTP 开销（QPS &lt; 1k）</td>
+<td>高并发、低延迟（QPS &gt; 1k）</td>
+</tr>
+<tr>
+<td><strong>服务治理</strong></td>
+<td>依赖 Spring Cloud 生态（Sentinel、Gateway）</td>
+<td>需要内置高级治理（路由、分组、权重）</td>
+</tr>
+<tr>
+<td><strong>开发成本</strong></td>
+<td>低（注解驱动，与 Spring MVC 兼容）</td>
+<td>中（需配置协议、序列化、服务暴露）</td>
+</tr>
+<tr>
+<td><strong>团队经验</strong></td>
+<td>熟悉 Spring Cloud 技术栈</td>
+<td>熟悉 Dubbo 或历史系统迁移需求</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a><strong>六、总结</strong></h3><ul>
+<li><strong>Feign</strong>：适合轻量级 RESTful 调用、跨语言协作，与 Spring Cloud 生态无缝集成。  </li>
+<li><strong>Dubbo</strong>：适合高性能内部服务、复杂治理场景，提供更细粒度的 RPC 控制。  </li>
+<li><strong>混合架构</strong>：内外服务分离时，可组合使用 Feign（对外）和 Dubbo（对内），通过 Nacos 统一治理。  </li>
+</ul>
+<p>根据业务需求、性能指标和技术栈成熟度选择工具，避免过度设计。</p>
+]]></content>
+      <categories>
+        <category>微服务</category>
+      </categories>
+      <tags>
+        <tag>微服务中间件</tag>
       </tags>
   </entry>
   <entry>
@@ -1334,24 +1334,64 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
-    <title>Maven中问题点滴记录</title>
-    <url>/2016/06/19/Maven%E4%B8%AD%E9%97%AE%E9%A2%98%E7%82%B9%E6%BB%B4%E8%AE%B0%E5%BD%95/</url>
-    <content><![CDATA[<p>Maven项目在进行maven install时中出现：<br>    Failed to execute goal on project …: Could not resolve dependencies for project …</p>
-<p>解决方式：</p>
-<p>1.项目结构为一个父项目，多个子项目目录如下：</p>
-<p><img src="/images/maven_0001/maven_00001.jpg" alt="Alt text"></p>
-<p>2.举个栗子：应用的是account、gateway这两个项目</p>
-<p>3.这两个项目都继承父项目 xpay</p>
-<p>4.在模块中gateway依赖与xxaccount,在xxaccount中执行完clean和install之后，本地仓库也存在依赖，但是在domain中进行install就会出现</p>
-<pre><code>Failed to execute goal on project ...: Could not resolve dependencies for project ...
-</code></pre><p>这样的错误，后来发现是自己没有首先对父项目也就是xpay项目尽心clean和install。</p>
-<p>5.总结：在父项目下有子项目在首次运行clean和install前应该先运行父项目的clean和install。</p>
+    <title>Linux之lsof命令</title>
+    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
+    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
+<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
+<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
+<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
+<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
+<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
+<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i <a href="mailto:tcp@192.168.1.111" target="_blank" rel="noopener">tcp@192.168.1.111</a>:ftp -r</p>
 ]]></content>
       <categories>
-        <category>maven</category>
+        <category>linux</category>
       </categories>
       <tags>
-        <tag>maven</tag>
+        <tag>linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux修改防火墙</title>
+    <url>/2015/06/22/Linux%E4%BF%AE%E6%94%B9%E9%98%B2%E7%81%AB%E5%A2%99/</url>
+    <content><![CDATA[<p><strong>虚拟机为CentOs7,修改防火墙配置时找不到iptables文件。</strong></p>
+<p><strong>解决办法如下：</strong><br>因为模式使用的是firewall作为防火墙，先把它停掉装iptable</p>
+<p>systemctl stop firewalld</p>
+<p>systemctl mask firewalld</p>
+<p>yum install -y iptables</p>
+<p>yum install iptables-services</p>
+<p>然后就可找到iptables文件进行配置</p>
+<p>开启服务</p>
+<p>systemctl start iptables.service</p>
+<p>systemctl restart iptables.service //重启防火墙使配置生效</p>
+<p>systemctl enable iptables.service //设置防火墙开机启动</p>
+<p><strong>其他命令：</strong></p>
+<p>检查是否安装iptables<br>service iptables status</p>
+<p>安装iptables<br>yum install -y iptables</p>
+<p>升级iptables<br>yum update iptables</p>
+<p>安装iptables-service<br>yum install iptables-service</p>
+<p>禁用iptables服务<br>systemctl disable iptables</p>
+<p>暂停服务<br>systemctl stop iptables</p>
+<p>解除禁止iptables<br>systemctl enable iptables</p>
+<p>开启服务<br>systemctl start iptables</p>
+<p><strong>配置信息</strong></p>
+<p>修改防火墙端口配置文件：vim /etc/sysconfig/iptables</p>
+<p>调整端口：-A INPUT -p tcp -m tcp –dport 80 -j ACCEPT</p>
+<p>开通8080端口<br>                -A INPUT -p tcp -m tcp –dport 8080 -j ACCEPT</p>
+<p>修改防火墙配置后保存：（/etc/sysconfig）chkconfig iptables on 保存成功</p>
+<p>查看CentOS防火墙信息：/etc/init.d/iptables status<br>关闭CentOS防火墙服务：/etc/init.d/iptables stop</p>
+<p>重启CentOS防火墙服务：/etc/init.d/iptables restart </p>
+<p>查看nginx进程：<br>ps aux|grep nginx</p>
+<p>ps -ef|grep nginx</p>
+<p>启动nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx</p>
+<p>停止nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx -s stop</p>
+<p>重启nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx -s reload</p>
+]]></content>
+      <categories>
+        <category>linux,iptables</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
       </tags>
   </entry>
   <entry>
@@ -1441,74 +1481,6 @@ public class QuartzDemo{
       <tags>
         <tag>事务</tag>
         <tag>幻读</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>SpringBoot中定时任务配置多线程</title>
-    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
-    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
-<pre><code>//多线程执行定时任务
-@Slf4j
-@Configuration
-public class ScheduleConfig implements SchedulingConfigurer {
-@Override
-public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-  log.info(&quot;定时任务配置10个线程&quot;);
-taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
-}
-}
-</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
-]]></content>
-      <categories>
-        <category>定时任务</category>
-      </categories>
-      <tags>
-        <tag>定时任务</tag>
-        <tag>多线程</tag>
-        <tag>SpringBoot</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Linux修改防火墙</title>
-    <url>/2015/06/22/Linux%E4%BF%AE%E6%94%B9%E9%98%B2%E7%81%AB%E5%A2%99/</url>
-    <content><![CDATA[<p><strong>虚拟机为CentOs7,修改防火墙配置时找不到iptables文件。</strong></p>
-<p><strong>解决办法如下：</strong><br>因为模式使用的是firewall作为防火墙，先把它停掉装iptable</p>
-<p>systemctl stop firewalld</p>
-<p>systemctl mask firewalld</p>
-<p>yum install -y iptables</p>
-<p>yum install iptables-services</p>
-<p>然后就可找到iptables文件进行配置</p>
-<p>开启服务</p>
-<p>systemctl start iptables.service</p>
-<p>systemctl restart iptables.service //重启防火墙使配置生效</p>
-<p>systemctl enable iptables.service //设置防火墙开机启动</p>
-<p><strong>其他命令：</strong></p>
-<p>检查是否安装iptables<br>service iptables status</p>
-<p>安装iptables<br>yum install -y iptables</p>
-<p>升级iptables<br>yum update iptables</p>
-<p>安装iptables-service<br>yum install iptables-service</p>
-<p>禁用iptables服务<br>systemctl disable iptables</p>
-<p>暂停服务<br>systemctl stop iptables</p>
-<p>解除禁止iptables<br>systemctl enable iptables</p>
-<p>开启服务<br>systemctl start iptables</p>
-<p><strong>配置信息</strong></p>
-<p>修改防火墙端口配置文件：vim /etc/sysconfig/iptables</p>
-<p>调整端口：-A INPUT -p tcp -m tcp –dport 80 -j ACCEPT</p>
-<p>开通8080端口<br>                -A INPUT -p tcp -m tcp –dport 8080 -j ACCEPT</p>
-<p>修改防火墙配置后保存：（/etc/sysconfig）chkconfig iptables on 保存成功</p>
-<p>查看CentOS防火墙信息：/etc/init.d/iptables status<br>关闭CentOS防火墙服务：/etc/init.d/iptables stop</p>
-<p>重启CentOS防火墙服务：/etc/init.d/iptables restart </p>
-<p>查看nginx进程：<br>ps aux|grep nginx</p>
-<p>ps -ef|grep nginx</p>
-<p>启动nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx</p>
-<p>停止nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx -s stop</p>
-<p>重启nginx:<br>在当前路径下(/usr/local/nginx/sbin)执行./nginx -s reload</p>
-]]></content>
-      <categories>
-        <category>linux,iptables</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
       </tags>
   </entry>
   <entry>
@@ -1602,6 +1574,104 @@ taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
       </tags>
   </entry>
   <entry>
+    <title>Maven中问题点滴记录</title>
+    <url>/2016/06/19/Maven%E4%B8%AD%E9%97%AE%E9%A2%98%E7%82%B9%E6%BB%B4%E8%AE%B0%E5%BD%95/</url>
+    <content><![CDATA[<p>Maven项目在进行maven install时中出现：<br>    Failed to execute goal on project …: Could not resolve dependencies for project …</p>
+<p>解决方式：</p>
+<p>1.项目结构为一个父项目，多个子项目目录如下：</p>
+<p><img src="/images/maven_0001/maven_00001.jpg" alt="Alt text"></p>
+<p>2.举个栗子：应用的是account、gateway这两个项目</p>
+<p>3.这两个项目都继承父项目 xpay</p>
+<p>4.在模块中gateway依赖与xxaccount,在xxaccount中执行完clean和install之后，本地仓库也存在依赖，但是在domain中进行install就会出现</p>
+<pre><code>Failed to execute goal on project ...: Could not resolve dependencies for project ...
+</code></pre><p>这样的错误，后来发现是自己没有首先对父项目也就是xpay项目尽心clean和install。</p>
+<p>5.总结：在父项目下有子项目在首次运行clean和install前应该先运行父项目的clean和install。</p>
+]]></content>
+      <categories>
+        <category>maven</category>
+      </categories>
+      <tags>
+        <tag>maven</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SpringBoot中定时任务配置多线程</title>
+    <url>/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</url>
+    <content><![CDATA[<p>SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。</p>
+<pre><code>//多线程执行定时任务
+@Slf4j
+@Configuration
+public class ScheduleConfig implements SchedulingConfigurer {
+@Override
+public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+  log.info(&quot;定时任务配置10个线程&quot;);
+taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
+}
+}
+</code></pre><p>添加后，定时任务就以10个线程进行执行。</p>
+]]></content>
+      <categories>
+        <category>定时任务</category>
+      </categories>
+      <tags>
+        <tag>定时任务</tag>
+        <tag>多线程</tag>
+        <tag>SpringBoot</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Spring Security 入门（四）：自定义-Filter</title>
+    <url>/2015/06/28/SpringSecurity%E5%85%A5%E9%97%A8%EF%BC%88%E5%9B%9B%EF%BC%89%E8%87%AA%E5%AE%9A%E4%B9%89-Filter/</url>
+    <content><![CDATA[<ul>
+<li><p>Spring Security入门（一）：登录与退出</p>
+</li>
+<li><p>Spring Security入门（二）：基于数据库验证</p>
+</li>
+<li><p>Spring Security入门（三）：密码加密</p>
+</li>
+</ul>
+<p>本文解决问题</p>
+<p>将自定义的 Filter 加入到 Spring Security 中的 Filter 链中的指定位置。</p>
+<p>Spring Security 默认的过滤器链<br>官网位置<a href="http://docs.spring.io/spring-security/site/docs/5.0.0.M1/reference/htmlsingle/#ns-custom-filters" target="_blank" rel="noopener">http://docs.spring.io/spring-security/site/docs/5.0.0.M1/reference/htmlsingle/#ns-custom-filters</a></p>
+<table><tr><th>别名</th><th>类名称</th><th>Namespace Element or Attribute</th></tr><tr><th>CHANNEL_FILTER</th><th>ChannelProcessingFilter</th><th>http/intercept-url@requires-channel</th></tr><tr><th>SECURITYCONTEXTFILTER</th><th>SecurityContextPersistenceFilter</th><th>http</th></tr><tr><th>CONCURRENTSESSIONFILTER</th><th>ConcurrentSessionFilter</th><th>session-management/concurrency-control</th></tr><tr><th>HEADERS_FILTER</th><th>HeaderWriterFilter</th><th>http/headers</th></tr><tr><th>CSRF_FILTER</th><th>CsrfFilter</th><th>http/csrf</th></tr><tr><th>LOGOUT_FILTER</th><th>LogoutFilter</th><th>http/logout</th></tr><tr><th>X509_FILTER</th><th>X509AuthenticationFilter</th><th>http/x509</th></tr><tr><th>PREAUTHFILTER</th><th>AbstractPreAuthenticatedProcessingFilter( Subclasses)</th><th>N/A</th></tr><tr><th>CAS_FILTER</th><th>CasAuthenticationFilter</th><th>N/A</th></tr><tr><th>FORMLOGINFILTER</th><th>UsernamePasswordAuthenticationFilter</th><th>http/form-login</th></tr><tr><th>BASICAUTHFILTER</th><th>BasicAuthenticationFilter</th><th>http/http-basic</th></tr><tr><th>SERVLETAPISUPPORT_FILTER</th><th>SecurityContextHolderAwareRequestFilter</th><th>http/@servlet-api-provision</th></tr><tr><th>JAASAPISUPPORT_FILTER</th><th>JaasApiIntegrationFilter</th><th>http/@jaas-api-provision</th></tr><tr><th>REMEMBERMEFILTER</th><th>RememberMeAuthenticationFilter</th><th>http/remember-me</th></tr><tr><th>ANONYMOUS_FILTER</th><th>AnonymousAuthenticationFilter</th><th>http/anonymous</th></tr><tr><th>SESSIONMANAGEMENTFILTER</th><th>SessionManagementFilter</th><th>session-management</th></tr><tr><th>EXCEPTIONTRANSLATIONFILTER</th><th>ExceptionTranslationFilter</th><th>http</th></tr> <tr><th>FILTERSECURITYINTERCEPTOR</th><th>FilterSecurityInterceptor</th><th>http</th></tr> <tr><th>SWITCHUSERFILTER</th><th>SwitchUserFilter</th><th>N/A</th></tr></table>
+
+<p>  过滤器顺序从上到下<br>  自定义 Filter</p>
+<p>自定义的 Filter 建议继承 GenericFilterBean，本文示例：</p>
+<pre><code>package org.xxpay.common.util;
+ public class BeforeLoginFilter extends GenericFilterBean {
+
+@Override
+public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
+        throws IOException, ServletException {
+    System.out.println(&quot;This is a filter before UsernamePasswordAuthenticationFilter.&quot;);
+    // 继续调用 Filter 链
+    filterChain.doFilter(servletRequest, servletResponse);
+}    
+</code></pre><p>}`<br>配置自定义 Filter 在 Spring Security 过滤器链中的位置<br>配置很简单，本文示例：</p>
+<pre><code>protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests().antMatchers(&quot;/&quot;).permitAll().antMatchers(&quot;/user/**&quot;).hasRole(&quot;USER&quot;).and().formLogin()
+            .loginPage(&quot;/login&quot;).defaultSuccessUrl(&quot;/user&quot;).and().logout().logoutUrl(&quot;/logout&quot;)
+            .logoutSuccessUrl(&quot;/login&quot;);
+    // 在 UsernamePasswordAuthenticationFilter 前添加 BeforeLoginFilter
+    http.addFilterBefore(new BeforeLoginFilter(), UsernamePasswordAuthenticationFilter.class);
+    // 在 CsrfFilter 后添加 AfterCsrfFilter
+    http.addFilterAfter(new AfterCsrfFilter(), CsrfFilter.class);
+}
+</code></pre><p>说明： HttpSecurity 有三个常用方法来配置：</p>
+<pre><code>addFilterBefore(Filter filter, Class beforeFilter) 在 beforeFilter 之前添加 filter`
+addFilterAfter(Filter filter, Class afterFilter) 在 afterFilter 之后添加 filter`
+addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filter， 此 filter 不覆盖 filter
+</code></pre><p>通过在不同 Filter 的 doFilter() 方法中加断点调试，可以判断哪个 filter 先执行，从而判断 filter 的执行顺序 。</p>
+]]></content>
+      <categories>
+        <category>springSecurity</category>
+      </categories>
+      <tags>
+        <tag>spring</tag>
+        <tag>springSecurity</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>spring中单例bean与原型bean区别</title>
     <url>/2016/06/18/Spring%E4%B8%AD%E5%8D%95%E4%BE%8B%E4%B8%8E%E5%8E%9F%E5%9E%8Bbean/</url>
     <content><![CDATA[<p><strong>spring中单例bean与原型bean区别</strong></p>
@@ -1654,21 +1724,76 @@ taskRegistrar.setScheduler(Executors.newScheduledThreadPool(10));
       </tags>
   </entry>
   <entry>
-    <title>Linux之lsof命令</title>
-    <url>/2015/06/21/Linux%E4%B9%8Blsof%E5%91%BD%E4%BB%A4/</url>
-    <content><![CDATA[<p>lsof命令简介：<br>lsof（list open files）是一个列出当前系统打开文件的工具。在linux环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以，lsof的功能很强大。一般root用户才能执行lsof命令，普通用户可以看见/usr/sbin/lsof命令，但是普通用户执行会显示“permission denied”。因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
-<p>在终端下输入lsof即可显示系统打开的文件，因为 lsof 需要访问核心内存和各种文件，所以必须以 root 用户的身份运行它才能够充分地发挥其功能。</p>
-<p><img src="/images/201712192039201.jpg" alt="Alt text"></p>
-<p>每行显示一个打开的文件，若不指定条件默认将显示所有进程打开的所有文件。lsof输出各列信息的意义如下：<br>COMMAND：进程的名称<br>PID：进程标识符<br>USER：进程所有者<br>FD：文件描述符，应用程序通过文件描述符识别该文件。如cwd、txt等<br>TYPE：文件类型，如DIR、REG等<br>DEVICE：指定磁盘的名称<br>SIZE：文件的大小<br>NODE：索引节点（文件在磁盘上的标识）<br>NAME：打开文件的确切名称</p>
-<p>lsof指令的用法如下：<br>lsof abc.txt 显示开启文件abc.txt的进程<br>lsof 目录名 查找谁在使用文件目录系统</p>
-<p><img src="/images/201712192039202.jpg" alt="Alt text"></p>
-<p>lsof -i :22 知道22端口被哪个进程占用<br>lsof -c abc 显示abc进程现在打开的文件<br>lsof -g gid 显示归属gid的进程情况<br>lsof -n 不将IP转换为hostname，缺省是不加上-n参数<br>lsof -p 12 看进程号为12的进程打开了哪些文件<br>lsof -u username 查看用户打开哪些文件<br>lsof -i @192.168.1.111 查看远程已打开的网络连接（连接到192.168.1.111）<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof -i 用以显示符合条件的进程情况<br>语法: lsof -i[46] [protocol][@hostname|hostaddr][:service|port]<br>46 -&gt; IPv4 or IPv6<br>protocol -&gt; TCP or UDP<br>hostname -&gt; Internet host name<br>hostaddr -&gt; IPv4位置<br>service -&gt; /etc/service中的 service name (可以不只一个)<br>port -&gt; 端口号 (可以不只一个)<br>－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－－<br>lsof +|-r [t] 控制lsof不断重复执行，缺省是15s刷新<br>-r，lsof会永远不断的执行，直到收到中断信号<br>+r，lsof会一直执行，直到没有档案被显示<br>例子：不断查看目前ftp连接的情况：lsof -i <a href="mailto:tcp@192.168.1.111" target="_blank" rel="noopener">tcp@192.168.1.111</a>:ftp -r</p>
+    <title>Spring传播机制及隔离级别</title>
+    <url>/2015/09/20/Spring%E4%BC%A0%E6%92%AD%E6%9C%BA%E5%88%B6%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
+    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
+<ol>
+<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
+<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
+<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
+<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
+<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
+<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
+</ol>
+<blockquote>
+<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
+</blockquote>
+<p><strong>四种隔离级别</strong></p>
+<blockquote>
+<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>事务隔离级别</th>
+<th>脏读</th>
+<th>不可重复读</th>
+<th>幻读</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读未提交（read-uncommitted</td>
+<td>是</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>读已提交（read-commit)</td>
+<td>否</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>重复读（repeatable-read)</td>
+<td>否</td>
+<td>否</td>
+<td>是</td>
+</tr>
+<tr>
+<td>串行化(seriablizable)</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
+<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
+<p>事务的并发问题(事务A: A  事务B: B)</p>
+<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
+<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
+<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
+<blockquote>
+<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
+</blockquote>
 ]]></content>
       <categories>
-        <category>linux</category>
+        <category>事务</category>
       </categories>
       <tags>
-        <tag>linux</tag>
+        <tag>事务</tag>
       </tags>
   </entry>
   <entry>
@@ -1768,174 +1893,6 @@ public class B extends A{
       </categories>
       <tags>
         <tag>J2SE</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Spring Security 入门（四）：自定义-Filter</title>
-    <url>/2015/06/28/SpringSecurity%E5%85%A5%E9%97%A8%EF%BC%88%E5%9B%9B%EF%BC%89%E8%87%AA%E5%AE%9A%E4%B9%89-Filter/</url>
-    <content><![CDATA[<ul>
-<li><p>Spring Security入门（一）：登录与退出</p>
-</li>
-<li><p>Spring Security入门（二）：基于数据库验证</p>
-</li>
-<li><p>Spring Security入门（三）：密码加密</p>
-</li>
-</ul>
-<p>本文解决问题</p>
-<p>将自定义的 Filter 加入到 Spring Security 中的 Filter 链中的指定位置。</p>
-<p>Spring Security 默认的过滤器链<br>官网位置<a href="http://docs.spring.io/spring-security/site/docs/5.0.0.M1/reference/htmlsingle/#ns-custom-filters" target="_blank" rel="noopener">http://docs.spring.io/spring-security/site/docs/5.0.0.M1/reference/htmlsingle/#ns-custom-filters</a></p>
-<table><tr><th>别名</th><th>类名称</th><th>Namespace Element or Attribute</th></tr><tr><th>CHANNEL_FILTER</th><th>ChannelProcessingFilter</th><th>http/intercept-url@requires-channel</th></tr><tr><th>SECURITYCONTEXTFILTER</th><th>SecurityContextPersistenceFilter</th><th>http</th></tr><tr><th>CONCURRENTSESSIONFILTER</th><th>ConcurrentSessionFilter</th><th>session-management/concurrency-control</th></tr><tr><th>HEADERS_FILTER</th><th>HeaderWriterFilter</th><th>http/headers</th></tr><tr><th>CSRF_FILTER</th><th>CsrfFilter</th><th>http/csrf</th></tr><tr><th>LOGOUT_FILTER</th><th>LogoutFilter</th><th>http/logout</th></tr><tr><th>X509_FILTER</th><th>X509AuthenticationFilter</th><th>http/x509</th></tr><tr><th>PREAUTHFILTER</th><th>AbstractPreAuthenticatedProcessingFilter( Subclasses)</th><th>N/A</th></tr><tr><th>CAS_FILTER</th><th>CasAuthenticationFilter</th><th>N/A</th></tr><tr><th>FORMLOGINFILTER</th><th>UsernamePasswordAuthenticationFilter</th><th>http/form-login</th></tr><tr><th>BASICAUTHFILTER</th><th>BasicAuthenticationFilter</th><th>http/http-basic</th></tr><tr><th>SERVLETAPISUPPORT_FILTER</th><th>SecurityContextHolderAwareRequestFilter</th><th>http/@servlet-api-provision</th></tr><tr><th>JAASAPISUPPORT_FILTER</th><th>JaasApiIntegrationFilter</th><th>http/@jaas-api-provision</th></tr><tr><th>REMEMBERMEFILTER</th><th>RememberMeAuthenticationFilter</th><th>http/remember-me</th></tr><tr><th>ANONYMOUS_FILTER</th><th>AnonymousAuthenticationFilter</th><th>http/anonymous</th></tr><tr><th>SESSIONMANAGEMENTFILTER</th><th>SessionManagementFilter</th><th>session-management</th></tr><tr><th>EXCEPTIONTRANSLATIONFILTER</th><th>ExceptionTranslationFilter</th><th>http</th></tr> <tr><th>FILTERSECURITYINTERCEPTOR</th><th>FilterSecurityInterceptor</th><th>http</th></tr> <tr><th>SWITCHUSERFILTER</th><th>SwitchUserFilter</th><th>N/A</th></tr></table>
-
-<p>  过滤器顺序从上到下<br>  自定义 Filter</p>
-<p>自定义的 Filter 建议继承 GenericFilterBean，本文示例：</p>
-<pre><code>package org.xxpay.common.util;
- public class BeforeLoginFilter extends GenericFilterBean {
-
-@Override
-public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
-        throws IOException, ServletException {
-    System.out.println(&quot;This is a filter before UsernamePasswordAuthenticationFilter.&quot;);
-    // 继续调用 Filter 链
-    filterChain.doFilter(servletRequest, servletResponse);
-}    
-</code></pre><p>}`<br>配置自定义 Filter 在 Spring Security 过滤器链中的位置<br>配置很简单，本文示例：</p>
-<pre><code>protected void configure(HttpSecurity http) throws Exception {
-    http.authorizeRequests().antMatchers(&quot;/&quot;).permitAll().antMatchers(&quot;/user/**&quot;).hasRole(&quot;USER&quot;).and().formLogin()
-            .loginPage(&quot;/login&quot;).defaultSuccessUrl(&quot;/user&quot;).and().logout().logoutUrl(&quot;/logout&quot;)
-            .logoutSuccessUrl(&quot;/login&quot;);
-    // 在 UsernamePasswordAuthenticationFilter 前添加 BeforeLoginFilter
-    http.addFilterBefore(new BeforeLoginFilter(), UsernamePasswordAuthenticationFilter.class);
-    // 在 CsrfFilter 后添加 AfterCsrfFilter
-    http.addFilterAfter(new AfterCsrfFilter(), CsrfFilter.class);
-}
-</code></pre><p>说明： HttpSecurity 有三个常用方法来配置：</p>
-<pre><code>addFilterBefore(Filter filter, Class beforeFilter) 在 beforeFilter 之前添加 filter`
-addFilterAfter(Filter filter, Class afterFilter) 在 afterFilter 之后添加 filter`
-addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filter， 此 filter 不覆盖 filter
-</code></pre><p>通过在不同 Filter 的 doFilter() 方法中加断点调试，可以判断哪个 filter 先执行，从而判断 filter 的执行顺序 。</p>
-]]></content>
-      <categories>
-        <category>springSecurity</category>
-      </categories>
-      <tags>
-        <tag>spring</tag>
-        <tag>springSecurity</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Spring传播机制及隔离级别</title>
-    <url>/2015/09/20/Spring%E4%BC%A0%E6%92%AD%E6%9C%BA%E5%88%B6%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
-    <content><![CDATA[<p><strong>7种事务的传播机制（可通过spring配置或注解来设置）</strong></p>
-<ol>
-<li><strong>REQUIRED（默认）：</strong>支持当前事务，当前事务不存在，则新建一个事务。</li>
-<li><strong>SUPPORTS：</strong>支持当前事务，当前事务不存在，则不使用事务。</li>
-<li><strong>MANDATORY：</strong>中文翻译为强制，支持使用当前事务，如果当前事务不存在，则抛出Exception。</li>
-<li><strong>REQUIRES_NEW：</strong>创建一个新事务，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NOT_SUPPORTED：</strong>无事务执行，如果当前事务存在，把当前事务挂起。</li>
-<li><strong>NEVER：</strong>无事务执行，当前有事务则抛出Exception。</li>
-<li><strong>NESTED：</strong>嵌套事务，如果当前事务存在，那么在嵌套的事务中执行。如果当前事务不存在，则表现跟REQUIRED一样。</li>
-</ol>
-<blockquote>
-<p>注解配置时如：@Transactional(propagation=Propagation.REQUIRED) </p>
-</blockquote>
-<p><strong>四种隔离级别</strong></p>
-<blockquote>
-<p>注解配置时如：@Transaction(isolation = Isolation.READ_UNCOMMITTED)</p>
-</blockquote>
-<table>
-<thead>
-<tr>
-<th>事务隔离级别</th>
-<th>脏读</th>
-<th>不可重复读</th>
-<th>幻读</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>读未提交（read-uncommitted</td>
-<td>是</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>读已提交（read-commit)</td>
-<td>否</td>
-<td>是</td>
-<td>是</td>
-</tr>
-<tr>
-<td>重复读（repeatable-read)</td>
-<td>否</td>
-<td>否</td>
-<td>是</td>
-</tr>
-<tr>
-<td>串行化(seriablizable)</td>
-<td>否</td>
-<td>否</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p>其中：重复读（repeatable-read)表示：在开始读取数据（事务开启）时，不允许修改操作。</p>
-<p><strong>mysql默认的事务隔离级别为可重复读（repeatabled-read）</strong></p>
-<p>事务的并发问题(事务A: A  事务B: B)</p>
-<p>1.脏读：A读了B更新的数据，B回滚操作，则A读到的就是脏数据。</p>
-<p>2.不可重复读：A多次读同一数据，B在A读取的过程中，对数据做了更新并提交，导致A多次读取数据时，结果不一致。</p>
-<p>3.幻读：A多次读取同一批数据，B在A读取过程中，新增了一条数据（删除一条），导致A读到的数据新增了一条，似产生幻觉。</p>
-<blockquote>
-<p>（不可重复读侧重于修改，幻读侧重于新增或删除）解决不可重复读问题只需锁住满足条件的行，解决幻读需要锁表）</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中日期格式规范</title>
-    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
-    <content><![CDATA[<p>日期格式的规范：</p>
-<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
-<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
-<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
-<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
-<p>desc: 日期格式中的这两对字母表示意义：</p>
-<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
-<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
-<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
-<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
-<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
-<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
-<pre><code>正例:
-//获取今年的天数
-int dayOfThisYear = LocalDate.now().lengthOfYear();
-
-//获取指定某年的天数
-LocalDate.of(2011,1,1).lengthOfYear();
-
-反例：
-
-// 第一种情况：在闰年366天时，出现数组越界异常
-int[] dayArray = new int[365];
-
-// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
-Calendar calendar = Calendar.getInstance();
-calendar.set(2020, 1, 26);
-calendar.add(Calendar.DATE, 365);
-</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
-<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
-<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
-<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
-]]></content>
-      <categories>
-        <category>日期格式</category>
-      </categories>
-      <tags>
-        <tag>日期格式</tag>
       </tags>
   </entry>
   <entry>
@@ -2106,119 +2063,6 @@ resize();
       </tags>
   </entry>
   <entry>
-    <title>Hello World</title>
-    <url>/2025/06/09/hello-world/</url>
-    <content><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-]]></content>
-  </entry>
-  <entry>
-    <title>java中的锁(偏向锁、轻量锁..）</title>
-    <url>/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</url>
-    <content><![CDATA[<p><strong>CAS操作：</strong><br>compareAndSwap,比较并替换，实现并发算法常用技术</p>
-<p>CAS需要有3个操作数：<br>内存地址V,旧预期值A，即将更新的目标值B。</p>
-<p><strong>锁的升级：</strong></p>
-<ul>
-<li><p>jdk1.6后，锁共有四种状态：无锁状态、偏向锁状态、轻量锁状态、重量锁状态</p>
-</li>
-<li><p>锁的状态会随着竞争情况逐渐升级，锁允许升级但不允许降级</p>
-</li>
-<li><p>不允许降级的目的是提高获取锁和释放锁的效率</p>
-</li>
-</ul>
-<p><strong>锁的升级过程</strong></p>
-<blockquote>
-<p>无锁–&gt;偏向锁–&gt;轻量级锁–&gt;重量级锁</p>
-</blockquote>
-<p><strong>偏向锁综述</strong></p>
-<ul>
-<li>问题：不是多线程竞争时，只是同一个线程多次获取同一锁，为让线程获得锁代价更低，自此设计了偏向锁。</li>
-</ul>
-<ul>
-<li><p>目的：偏向锁降低了一个线程访问临界区资源的时候，频繁CAS加锁、解锁操作的开支</p>
-</li>
-<li><p>原理：只有一个线程执行同步块时，通过增加标记检查，而减少CAS操作进一步提供性能。</p>
-</li>
-</ul>
-<ul>
-<li>场景：只有一个线程访问临界区资源的时候。</li>
-</ul>
-<ul>
-<li>数据结构： 占有锁的线程ID，是否偏向锁、epoch(偏向锁的时间戳)，对象分代年龄、锁标志位。</li>
-</ul>
-<p><img src="/images/java_lock_01/偏向锁_01.jpg" alt="Alt text"></p>
-<p><strong>偏向锁流程图：</strong></p>
-<ul>
-<li><p>线程1：偏向锁初始化过程</p>
-</li>
-<li><p>线程2：偏向锁的撤销锁过程</p>
-</li>
-</ul>
-<p><img src="/images/java_lock_01/轻量级锁_01.png" alt="Alt text"></p>
-<blockquote>
-<p>综述： 偏向锁适合只有一个线程访问同步代码块的场景。通过CAS操作来判断和更新对象头中的ThreadID。如果ThreadID是本线程，则直接进入同步代码块执行。无需进入和竞争内核级锁，原线程无间断继续执行。如果ThreadID不是本地线程或者CAS操作失败，则升级为轻量级锁。</p>
-</blockquote>
-<p><strong>偏向锁初始化</strong></p>
-<ul>
-<li><p>一个线程访问同步代码块获取到锁时，会在对象头和栈帧中的锁记录里，存储偏向锁的线程ID，以后该线程再进入和退出同步块时不需花费CAS操作来加锁和解锁，而是先检查对象头中的markword中是否存储了线程</p>
-<ul>
-<li><p>如果已存储，说明线程已经获取到锁，继续执行任务即可。</p>
-</li>
-<li><p>如果未存储，则需要再判断当前锁是否是偏向锁（对象头中偏向锁的标识是否设置为了1，锁标识位为01）:</p>
-<ul>
-<li><p>如果没有设置，则使用CAS竞争锁（说明此时不是偏向锁，一定是等级高于它的锁）</p>
-</li>
-<li><p>如果设置了，则尝试使用CAS将对象头的偏向锁指向当前线程，结构中的线程ID</p>
-<blockquote>
-<p>最顺利情况是线程ID指向该线程，只有一个线程频繁访问临界区资源，此时能够最大程度减少CAS操作。</p>
-</blockquote>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<p><strong>轻量级</strong></p>
-<p>起源：由于线程阻塞、唤醒需要CPU在用户状态和内核状态间切换，频繁的转换会对CPU造成负担，对并发性能带来很大影响。</p>
-<p>原理：只有两个线程并发访问资源区时，一个持有锁，另一个自旋等待。</p>
-<p><strong>轻量锁加锁</strong></p>
-<p>线程在执行同步块之前，JVM会先在当前线程的栈帧中创建用户储存锁记录的空间，并将对象头中的mark word复制到锁记录中（displaced mark word)做一份拷贝</p>
-<p>拷贝成功后，线程尝试使用CAS将对象头中的mark word替换成指向锁记录的指针</p>
-<p>  如果更新成功，当前线程获得锁，继续执行同步方法<br>  如果更新失败，代表其他线程持有锁，当前线程便尝试使用自旋来获取锁，自旋后没有获得锁，此时轻量级锁会升级为重量级锁，当前线程会被阻塞。</p>
-<p><strong>轻量级锁解锁</strong></p>
-<p>解锁时会使用CAS操作将Displaced Mark Word替换回到对象头</p>
-<p>  如果解锁成功，则表示没有竞争发生</p>
-<p>  如果解锁失败，表示当前锁存在竞争，锁会膨胀为重量级锁，需要在释放锁的同事唤醒被阻塞的线程，之后线程间要根据重量级锁规则重新竞争重量级锁。</p>
-<p><img src="/images/java_lock_01/轻量级锁_01.png" alt="Alt text"></p>
-<p>偏向锁、轻量级锁、重量级锁比较</p>
-<p><img src="/images/java_lock_01/锁差异_01.png" alt="Alt text"></p>
-<p><strong>ReentrantLock，独占式锁的加锁流程：</strong></p>
-<ul>
-<li><p>ReentrantLock的lock方法的实现委托给了ReentrantLock内部的AQS的实现类Sync的acquire(int args)方法，而Sync并没有重写该方法，acquire的具体实现在抽象类AbstractQueuedSynchronizer</p>
-</li>
-<li><p>acquire方法会调用tryAcquire方法尝试获取锁，这是发生多个线程竞争的地方，其中只有一个线程可通过CAS方法获得锁并返回true,竞争失败的线程都返回false</p>
-</li>
-<li><p>竞争失败的线程会被addWaiter方法包装成一个节点，放入到双向队列的尾部。</p>
-</li>
-<li><p>放入队列之后，在acquireQueued方法中进行自旋操作，但只有头节点的后继节点才能调用tryAcquire方法尝试获取锁，其他的后继节点只会空自旋。</p>
-</li>
-</ul>
-]]></content>
-      <categories>
-        <category>lock</category>
-      </categories>
-      <tags>
-        <tag>lock</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java中创建对象的五种形式</title>
     <url>/2015/06/18/java%E4%B8%AD%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%BA%94%E7%A7%8D%E5%BD%A2%E5%BC%8F/</url>
     <content><![CDATA[<p>我们每天创建很多对象，通常使用依赖管理，比如Spring去创建对象。然而这里有很多创建对象的方法，我们会在这篇文章中学到。</p>
@@ -2364,6 +2208,253 @@ Employee [name=Akash], hashcode : 63313419
       </categories>
       <tags>
         <tag>java</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java中日期格式规范</title>
+    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
+    <content><![CDATA[<p>日期格式的规范：</p>
+<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
+<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
+<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
+<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
+<p>desc: 日期格式中的这两对字母表示意义：</p>
+<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
+<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
+<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
+<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
+<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
+<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
+<pre><code>正例:
+//获取今年的天数
+int dayOfThisYear = LocalDate.now().lengthOfYear();
+
+//获取指定某年的天数
+LocalDate.of(2011,1,1).lengthOfYear();
+
+反例：
+
+// 第一种情况：在闰年366天时，出现数组越界异常
+int[] dayArray = new int[365];
+
+// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
+Calendar calendar = Calendar.getInstance();
+calendar.set(2020, 1, 26);
+calendar.add(Calendar.DATE, 365);
+</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
+<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
+<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
+<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
+]]></content>
+      <categories>
+        <category>日期格式</category>
+      </categories>
+      <tags>
+        <tag>日期格式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java中的锁(偏向锁、轻量锁..）</title>
+    <url>/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</url>
+    <content><![CDATA[<p><strong>CAS操作：</strong><br>compareAndSwap,比较并替换，实现并发算法常用技术</p>
+<p>CAS需要有3个操作数：<br>内存地址V,旧预期值A，即将更新的目标值B。</p>
+<p><strong>锁的升级：</strong></p>
+<ul>
+<li><p>jdk1.6后，锁共有四种状态：无锁状态、偏向锁状态、轻量锁状态、重量锁状态</p>
+</li>
+<li><p>锁的状态会随着竞争情况逐渐升级，锁允许升级但不允许降级</p>
+</li>
+<li><p>不允许降级的目的是提高获取锁和释放锁的效率</p>
+</li>
+</ul>
+<p><strong>锁的升级过程</strong></p>
+<blockquote>
+<p>无锁–&gt;偏向锁–&gt;轻量级锁–&gt;重量级锁</p>
+</blockquote>
+<p><strong>偏向锁综述</strong></p>
+<ul>
+<li>问题：不是多线程竞争时，只是同一个线程多次获取同一锁，为让线程获得锁代价更低，自此设计了偏向锁。</li>
+</ul>
+<ul>
+<li><p>目的：偏向锁降低了一个线程访问临界区资源的时候，频繁CAS加锁、解锁操作的开支</p>
+</li>
+<li><p>原理：只有一个线程执行同步块时，通过增加标记检查，而减少CAS操作进一步提供性能。</p>
+</li>
+</ul>
+<ul>
+<li>场景：只有一个线程访问临界区资源的时候。</li>
+</ul>
+<ul>
+<li>数据结构： 占有锁的线程ID，是否偏向锁、epoch(偏向锁的时间戳)，对象分代年龄、锁标志位。</li>
+</ul>
+<p><img src="/images/java_lock_01/偏向锁_01.jpg" alt="Alt text"></p>
+<p><strong>偏向锁流程图：</strong></p>
+<ul>
+<li><p>线程1：偏向锁初始化过程</p>
+</li>
+<li><p>线程2：偏向锁的撤销锁过程</p>
+</li>
+</ul>
+<p><img src="/images/java_lock_01/轻量级锁_01.png" alt="Alt text"></p>
+<blockquote>
+<p>综述： 偏向锁适合只有一个线程访问同步代码块的场景。通过CAS操作来判断和更新对象头中的ThreadID。如果ThreadID是本线程，则直接进入同步代码块执行。无需进入和竞争内核级锁，原线程无间断继续执行。如果ThreadID不是本地线程或者CAS操作失败，则升级为轻量级锁。</p>
+</blockquote>
+<p><strong>偏向锁初始化</strong></p>
+<ul>
+<li><p>一个线程访问同步代码块获取到锁时，会在对象头和栈帧中的锁记录里，存储偏向锁的线程ID，以后该线程再进入和退出同步块时不需花费CAS操作来加锁和解锁，而是先检查对象头中的markword中是否存储了线程</p>
+<ul>
+<li><p>如果已存储，说明线程已经获取到锁，继续执行任务即可。</p>
+</li>
+<li><p>如果未存储，则需要再判断当前锁是否是偏向锁（对象头中偏向锁的标识是否设置为了1，锁标识位为01）:</p>
+<ul>
+<li><p>如果没有设置，则使用CAS竞争锁（说明此时不是偏向锁，一定是等级高于它的锁）</p>
+</li>
+<li><p>如果设置了，则尝试使用CAS将对象头的偏向锁指向当前线程，结构中的线程ID</p>
+<blockquote>
+<p>最顺利情况是线程ID指向该线程，只有一个线程频繁访问临界区资源，此时能够最大程度减少CAS操作。</p>
+</blockquote>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>轻量级</strong></p>
+<p>起源：由于线程阻塞、唤醒需要CPU在用户状态和内核状态间切换，频繁的转换会对CPU造成负担，对并发性能带来很大影响。</p>
+<p>原理：只有两个线程并发访问资源区时，一个持有锁，另一个自旋等待。</p>
+<p><strong>轻量锁加锁</strong></p>
+<p>线程在执行同步块之前，JVM会先在当前线程的栈帧中创建用户储存锁记录的空间，并将对象头中的mark word复制到锁记录中（displaced mark word)做一份拷贝</p>
+<p>拷贝成功后，线程尝试使用CAS将对象头中的mark word替换成指向锁记录的指针</p>
+<p>  如果更新成功，当前线程获得锁，继续执行同步方法<br>  如果更新失败，代表其他线程持有锁，当前线程便尝试使用自旋来获取锁，自旋后没有获得锁，此时轻量级锁会升级为重量级锁，当前线程会被阻塞。</p>
+<p><strong>轻量级锁解锁</strong></p>
+<p>解锁时会使用CAS操作将Displaced Mark Word替换回到对象头</p>
+<p>  如果解锁成功，则表示没有竞争发生</p>
+<p>  如果解锁失败，表示当前锁存在竞争，锁会膨胀为重量级锁，需要在释放锁的同事唤醒被阻塞的线程，之后线程间要根据重量级锁规则重新竞争重量级锁。</p>
+<p><img src="/images/java_lock_01/轻量级锁_01.png" alt="Alt text"></p>
+<p>偏向锁、轻量级锁、重量级锁比较</p>
+<p><img src="/images/java_lock_01/锁差异_01.png" alt="Alt text"></p>
+<p><strong>ReentrantLock，独占式锁的加锁流程：</strong></p>
+<ul>
+<li><p>ReentrantLock的lock方法的实现委托给了ReentrantLock内部的AQS的实现类Sync的acquire(int args)方法，而Sync并没有重写该方法，acquire的具体实现在抽象类AbstractQueuedSynchronizer</p>
+</li>
+<li><p>acquire方法会调用tryAcquire方法尝试获取锁，这是发生多个线程竞争的地方，其中只有一个线程可通过CAS方法获得锁并返回true,竞争失败的线程都返回false</p>
+</li>
+<li><p>竞争失败的线程会被addWaiter方法包装成一个节点，放入到双向队列的尾部。</p>
+</li>
+<li><p>放入队列之后，在acquireQueued方法中进行自旋操作，但只有头节点的后继节点才能调用tryAcquire方法尝试获取锁，其他的后继节点只会空自旋。</p>
+</li>
+</ul>
+]]></content>
+      <categories>
+        <category>lock</category>
+      </categories>
+      <tags>
+        <tag>lock</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>java类加载过程-jvm class loading 加载类机制</title>
+    <url>/2015/07/12/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B%E8%AF%A6%E7%BB%86%E8%A7%A3%E8%AF%BB/</url>
+    <content><![CDATA[<ul>
+<li><p>什么是类的加载</p>
+</li>
+<li><p>类的生命周期</p>
+</li>
+<li><p>运行时（晚期）绑定</p>
+<p>java源文件被javac编译为class字节码文件。<br>javac编译时不进行连接分配内存工作，而是在jvm运行时才动态加载和动态连接。</p>
+</li>
+</ul>
+<ul>
+<li>什么是类的加载</li>
+</ul>
+<blockquote>
+<p>JVM将class文件读取到内存中，经过对class文件的校验、转换、解析、初始化，最终在jvm<br>的heap和方法区分配内存形成可以被jvm直接使用的类型的过程。</p>
+</blockquote>
+<p>  <strong>类的生命周期</strong></p>
+<p>  7个阶段依次为：loading verification preparation resolution initialization using unloading</p>
+<p><img src="/images/classload_001/0001.jpg" alt="Alt text"></p>
+<p>  加载、验证、准备、初始化、卸载的顺序是确定的，“解析”不一定在初始化之前，也可能是在初始化之后。</p>
+<p>  <strong>运行时（晚期）绑定</strong></p>
+<p>  一个阶段的执行过程中会调用或激活另一个阶段</p>
+<p>  <strong>分阶段</strong></p>
+<ul>
+<li>1、加载loading</li>
+</ul>
+<blockquote>
+<p>这个阶段jvm完成如下工作：<br>首先  类加载器通过类的全路径限定名读取类的二进制字节流。<br>然后  将二进制字节流代表的类结构转化到运行时数据区的 方法区中。<br>最后  jvm heap中生成代表这个类的java.lang.class实例（不是这个类的实例）。</p>
+</blockquote>
+<p>  类加载器: </p>
+<blockquote>
+<p>获取类的二进制流可以使用jvm自带的类加载器，也可以使用自己写的类加载器，这是可控的。不同的类加载器<br>可以从各种地方读取：zip包、jar包、class文件、网络流等读取类的二进制字节流。<br>同一个加载器加载的同源类才是真的同类。不同加载器加载同源类，不是同类！ instanceof为false</p>
+</blockquote>
+<p>类加载的双亲委派模型:</p>
+<blockquote>
+<p>各个加载器都是先委托自己的父加载器加载类，若确实没加载到再自己来加载。<br>于是java默认的类查找加载顺序是自顶向下的，树状结构。<br>双亲委托的意图是保证java类型体系中最基础的行为一致，优先加载jdk中的类。</p>
+</blockquote>
+<p><img src="/images/classload_001/0002.jpg" alt="Alt text"></p>
+<p>加载器主要有四种：</p>
+<blockquote>
+<p>jvm启动类加载器bootstrap loader，用c++实现为jvm的一部分（仅指sun的hotspot)，负责JAVA_HOME/lib下面<br>的类库中的类的加载，这个加载器，java程序无法引用到。</p>
+<p>扩展类加载器 Extension loader，由sun.misc.Launcher$ExtClassLoader类实现，可在java中使用，<br>负责JAVA_HOME/lib/ext目录和java.ext.dir目录中类库的类的加载。</p>
+<p>应用系统类加载器Application System Loader，由sum.misc.Louncher$AppClassLoader实现，负责加载<br>用户类路径中类库中的类，如果没有使用自定义的加载器，这个就是默认加载器。</p>
+</blockquote>
+<p>OSGI的网状加载模型</p>
+<p><img src="/images/classload_001/0003.jpg" alt="Alt text"></p>
+<ul>
+<li>2、验证verification</li>
+</ul>
+<blockquote>
+<p>Loading和验证是交叉进行的，验证二进制字节流代表的字节码文件是否合格，从以下几个方面判断：<br>文件格式：参看class文件格式详解，经过文件格式验证之后的字节流才能进入方法区分配内存来储存。<br>元数据验证：数据流和控制流的分析，最复杂。<br>符号引用验证：符号引用转化为直接引用时（解析阶段），检测对类自身以外的信息进行存在性，可访问性验证<br>如果确认代码安全，可用-Xverify:none关闭大部分类的验证，加快雷佳在时间。</p>
+</blockquote>
+<ul>
+<li>3、准备preparation</li>
+</ul>
+<blockquote>
+<p>在方法区中类的类变量（static修饰）分配内存。<br>然后初始化其值，如果类变量是常量，则直接赋值为该变量值否则为java类型的默认的零值。</p>
+</blockquote>
+<ul>
+<li>4、解析resolution</li>
+</ul>
+<blockquote>
+<p>指将常量池内的符号引用替换为直接引用的过程。</p>
+</blockquote>
+<ul>
+<li>5、初始化initialization</li>
+</ul>
+<blockquote>
+<p>这个阶段才真正开始执行java代码，静态代码块和设置变量的初始化值为程序员设定的值。</p>
+</blockquote>
+<p><strong>主动引用</strong></p>
+<blockquote>
+<p>有且只有下面五种情况才会立即初始化类，成为主动引用：</p>
+<ol>
+<li><p>new 对象时</p>
+</li>
+<li><p>读取或设置类的静态字段（除了被final，已在编译期把结果放入常量池的静态字段）或调用类的</p>
+</li>
+<li><p>静态方法时；用java.lang.reflect包的方法对类进行反射调用没初始化过的类时</p>
+</li>
+<li><p>初始化一个雷时发现其父类没初始化，则要先初始化其父类。含main方法的那个类，jvm启动时，</p>
+</li>
+<li><p>需要指定一个执行主类，jvm先初始化这个类，其他对类的引用成为被动引用，加载类时不会进行初始化。</p>
+</li>
+</ol>
+<p><strong>子类继承父类时的初始化顺序</strong></p>
+<ol>
+<li>首先初始化父类的static变量和static块，按出现顺序。</li>
+<li>初始化子类的static变量和static块，按出现顺序。</li>
+<li>初始化父类的普通变量，调用父类的构造函数。</li>
+<li>初始化子类的普通变量，调用子类的构造函数。</li>
+</ol>
+</blockquote>
+<p><a href="https://blog.csdn.net/tangdong3415/article/details/53768099" target="_blank" rel="noopener">https://blog.csdn.net/tangdong3415/article/details/53768099</a></p>
+]]></content>
+      <categories>
+        <category>classloader</category>
+      </categories>
+      <tags>
+        <tag>classloader</tag>
+        <tag>jvm</tag>
       </tags>
   </entry>
   <entry>
@@ -2568,111 +2659,6 @@ public static void main(String[] args) {
       </tags>
   </entry>
   <entry>
-    <title>java类加载过程-jvm class loading 加载类机制</title>
-    <url>/2015/07/12/java%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B%E8%AF%A6%E7%BB%86%E8%A7%A3%E8%AF%BB/</url>
-    <content><![CDATA[<ul>
-<li><p>什么是类的加载</p>
-</li>
-<li><p>类的生命周期</p>
-</li>
-<li><p>运行时（晚期）绑定</p>
-<p>java源文件被javac编译为class字节码文件。<br>javac编译时不进行连接分配内存工作，而是在jvm运行时才动态加载和动态连接。</p>
-</li>
-</ul>
-<ul>
-<li>什么是类的加载</li>
-</ul>
-<blockquote>
-<p>JVM将class文件读取到内存中，经过对class文件的校验、转换、解析、初始化，最终在jvm<br>的heap和方法区分配内存形成可以被jvm直接使用的类型的过程。</p>
-</blockquote>
-<p>  <strong>类的生命周期</strong></p>
-<p>  7个阶段依次为：loading verification preparation resolution initialization using unloading</p>
-<p><img src="/images/classload_001/0001.jpg" alt="Alt text"></p>
-<p>  加载、验证、准备、初始化、卸载的顺序是确定的，“解析”不一定在初始化之前，也可能是在初始化之后。</p>
-<p>  <strong>运行时（晚期）绑定</strong></p>
-<p>  一个阶段的执行过程中会调用或激活另一个阶段</p>
-<p>  <strong>分阶段</strong></p>
-<ul>
-<li>1、加载loading</li>
-</ul>
-<blockquote>
-<p>这个阶段jvm完成如下工作：<br>首先  类加载器通过类的全路径限定名读取类的二进制字节流。<br>然后  将二进制字节流代表的类结构转化到运行时数据区的 方法区中。<br>最后  jvm heap中生成代表这个类的java.lang.class实例（不是这个类的实例）。</p>
-</blockquote>
-<p>  类加载器: </p>
-<blockquote>
-<p>获取类的二进制流可以使用jvm自带的类加载器，也可以使用自己写的类加载器，这是可控的。不同的类加载器<br>可以从各种地方读取：zip包、jar包、class文件、网络流等读取类的二进制字节流。<br>同一个加载器加载的同源类才是真的同类。不同加载器加载同源类，不是同类！ instanceof为false</p>
-</blockquote>
-<p>类加载的双亲委派模型:</p>
-<blockquote>
-<p>各个加载器都是先委托自己的父加载器加载类，若确实没加载到再自己来加载。<br>于是java默认的类查找加载顺序是自顶向下的，树状结构。<br>双亲委托的意图是保证java类型体系中最基础的行为一致，优先加载jdk中的类。</p>
-</blockquote>
-<p><img src="/images/classload_001/0002.jpg" alt="Alt text"></p>
-<p>加载器主要有四种：</p>
-<blockquote>
-<p>jvm启动类加载器bootstrap loader，用c++实现为jvm的一部分（仅指sun的hotspot)，负责JAVA_HOME/lib下面<br>的类库中的类的加载，这个加载器，java程序无法引用到。</p>
-<p>扩展类加载器 Extension loader，由sun.misc.Launcher$ExtClassLoader类实现，可在java中使用，<br>负责JAVA_HOME/lib/ext目录和java.ext.dir目录中类库的类的加载。</p>
-<p>应用系统类加载器Application System Loader，由sum.misc.Louncher$AppClassLoader实现，负责加载<br>用户类路径中类库中的类，如果没有使用自定义的加载器，这个就是默认加载器。</p>
-</blockquote>
-<p>OSGI的网状加载模型</p>
-<p><img src="/images/classload_001/0003.jpg" alt="Alt text"></p>
-<ul>
-<li>2、验证verification</li>
-</ul>
-<blockquote>
-<p>Loading和验证是交叉进行的，验证二进制字节流代表的字节码文件是否合格，从以下几个方面判断：<br>文件格式：参看class文件格式详解，经过文件格式验证之后的字节流才能进入方法区分配内存来储存。<br>元数据验证：数据流和控制流的分析，最复杂。<br>符号引用验证：符号引用转化为直接引用时（解析阶段），检测对类自身以外的信息进行存在性，可访问性验证<br>如果确认代码安全，可用-Xverify:none关闭大部分类的验证，加快雷佳在时间。</p>
-</blockquote>
-<ul>
-<li>3、准备preparation</li>
-</ul>
-<blockquote>
-<p>在方法区中类的类变量（static修饰）分配内存。<br>然后初始化其值，如果类变量是常量，则直接赋值为该变量值否则为java类型的默认的零值。</p>
-</blockquote>
-<ul>
-<li>4、解析resolution</li>
-</ul>
-<blockquote>
-<p>指将常量池内的符号引用替换为直接引用的过程。</p>
-</blockquote>
-<ul>
-<li>5、初始化initialization</li>
-</ul>
-<blockquote>
-<p>这个阶段才真正开始执行java代码，静态代码块和设置变量的初始化值为程序员设定的值。</p>
-</blockquote>
-<p><strong>主动引用</strong></p>
-<blockquote>
-<p>有且只有下面五种情况才会立即初始化类，成为主动引用：</p>
-<ol>
-<li><p>new 对象时</p>
-</li>
-<li><p>读取或设置类的静态字段（除了被final，已在编译期把结果放入常量池的静态字段）或调用类的</p>
-</li>
-<li><p>静态方法时；用java.lang.reflect包的方法对类进行反射调用没初始化过的类时</p>
-</li>
-<li><p>初始化一个雷时发现其父类没初始化，则要先初始化其父类。含main方法的那个类，jvm启动时，</p>
-</li>
-<li><p>需要指定一个执行主类，jvm先初始化这个类，其他对类的引用成为被动引用，加载类时不会进行初始化。</p>
-</li>
-</ol>
-<p><strong>子类继承父类时的初始化顺序</strong></p>
-<ol>
-<li>首先初始化父类的static变量和static块，按出现顺序。</li>
-<li>初始化子类的static变量和static块，按出现顺序。</li>
-<li>初始化父类的普通变量，调用父类的构造函数。</li>
-<li>初始化子类的普通变量，调用子类的构造函数。</li>
-</ol>
-</blockquote>
-<p><a href="https://blog.csdn.net/tangdong3415/article/details/53768099" target="_blank" rel="noopener">https://blog.csdn.net/tangdong3415/article/details/53768099</a></p>
-]]></content>
-      <categories>
-        <category>classloader</category>
-      </categories>
-      <tags>
-        <tag>classloader</tag>
-        <tag>jvm</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>jdk8链接mysql问题</title>
     <url>/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/</url>
     <content><![CDATA[<p>前几天发现一直跑的项目本地无法启动了：<br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure</span><br><span class="line"></span><br><span class="line">The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.</span><br><span class="line">	at com.mysql.cj.jdbc.exceptions.SQLError.createCommunicationsException(SQLError.java:174) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:64) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.mysql.cj.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:827) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.mysql.cj.jdbc.ConnectionImpl.&lt;init&gt;(ConnectionImpl.java:447) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:237) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:199) ~[mysql-connector-java-8.0.17.jar:8.0.17]</span><br><span class="line">	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:136) ~[HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:369) ~[HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:198) ~[HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:467) [HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:541) [HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.pool.HikariPool.&lt;init&gt;(HikariPool.java:115) [HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:112) [HikariCP-3.2.0.jar:na]</span><br><span class="line">	at com.zaxxer.hikari.HikariDataSource$$FastClassBySpringCGLIB$$eeb1ae86.invoke(&lt;generated&gt;) [HikariCP-3.2.0.jar:na]</span><br></pre></td></tr></table></figure></p>
@@ -2713,87 +2699,6 @@ public static void main(String[] args) {
       <tags>
         <tag>linux</tag>
         <tag>port</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>linux配置调度任务</title>
-    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
-    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
-<pre><code># crontab
--bash: crontab: command not found
-</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
-<pre><code># yum -y install vixie-cron
- Loaded plusgins:security
- ........
-</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
-<pre><code># service crond start
-# service crond stop
-# service crond restart
-# service crond reload
-# service crond status 
-</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
-<ol start="2">
-<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
-</ol>
-<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
-<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
-java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
-</code></pre><p>4.授权project-job.sh文件</p>
-<p>  chmod 755 *</p>
-<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
-]]></content>
-      <categories>
-        <category>linux</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-        <tag>crontab</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>mybatis动态代理</title>
-    <url>/2015/06/25/mybatis%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</url>
-    <content><![CDATA[<p>在使用Mybatis的时候，我们可以只定义一个XxxMaper接口，然后直接利用这个接口定义的抽象方法来进行增删改查操作，Mybatis内部实际上利用了动态代理技术帮我们生成了这个接口的代理类。<br>举例来说，假设有映射文件：<br><img src="/images/mybatis/20171019215820.jpg" alt="Alt text"></p>
-<p>我们只要定义一个UserMapper接口，注意这个接口的路径就是映射文件的namespace属性值，然后在这个接口中定义几个方法，方法名分别于映射文件中定义的<insert>、<select>等元素的id属性值相同，如下：</select></insert></p>
-<p><img src="/images/mybatis/20171019215821.jpg" alt="Alt text"></p>
-<p>之后我们就可以直接使用UserMapper类来进行增删改查，使用方式如下：</p>
-<p><img src="/images/mybatis/20171019215822.jpg" alt="Alt text"></p>
-<p>之所以可以这样使用，是因为Mybatis对生成了UserMapper接口的动态代理类，当执行某个方法时，代理类内部会首选获取调用的方法的全路径，例如当我们调用UserMapper的insert方法时，其对应的全路径是com.tianshouzhi.mybatis.quickstart.UserMapper.insert。而这个值刚好对应着namespace属性值为com.tianshouzhi.mybatis.quickstart.UserMapper的mapper映射文件的id=”insert”的insert元素，从而执行相应的sql。真正在执行时，还是利用SqlSession的insert方法来执行的，只不过这个过程对于用于来说屏蔽了。<br>我们带着2个问题来进行源码分析：<br>1、动态代理类是如何生成的<br>2、动态代理类是如何对方法进行拦截的<br>一、动态代理类的生成时机<br>每次当我们调用sqlSession的getMapper方法时，都会创建一个新的动态代理类实例，如：</p>
-<p><img src="/images/mybatis/20171019215823.jpg" alt="Alt text"></p>
-<p>也就是说，生成的动态代理类不是唯一的，而是每次都创建一个新的。<br>而SqlSession对象又将getMapper方法委给了Configuration对象执行，如下所示：</p>
-<p><img src="/images/mybatis/20171019215824.jpg" alt="Alt text"></p>
-<p>Configuration类里面通过MapperRegistry对象维护了所有要生成动态代理类的XxxMapper接口信息。</p>
-<p><img src="/images/mybatis/20171019215825.jpg" alt="Alt text"></p>
-<p>其中，getMapper方法就是用于创建接口的动态类。而addMapper方法是mybatis在解析配置文件时，会将需要生成动态代理类的接口注册到其中。目前我们主要介绍的getMapper方法，addMapper方法我们将会在之后进行介绍。<br>可以看到Configuration类的addMapper和getMapper方法最终又都是委派给MapperRegistry的addMapper和getMapper方法执行的。<br>MapperRegistry类的getMapper方法源码如下所示：</p>
-<p><img src="/images/mybatis/20171019215826.jpg" alt="Alt text"></p>
-<p>可以看到，创建动态代理类的核心代码都位于MapperProxyFactory的newInstance方法中。目前对这个方法不做分析，放到后面分析生成的代理类是如何对接口的方法进行拦截一起说。目前只需要知道，每次调用SqlSession的getMapper方法，都会创建一个新的代理类即可。<br>现在我们考虑，Mybatis是如何知道要生成一个类的动态代理类的，这个过程是在mybatis解析xml配置文件的时候就确定了。<br>具体逻辑是，根据<mapper namespace="....">的namespace属性值，判断有没有这样一个接口的全路径与namespace属性值完全相同，如果有，就生成这个接口的动态代理类。<br>相关解析代码位于XMLMapperBuilder的 parse方法中：</mapper></p>
-<p><img src="/images/mybatis/20171019215827.jpg" alt="Alt text"></p>
-<p>bindMapperForNamespace方法源码如下所示：</p>
-<p><img src="/images/mybatis/20171019215828.jpg" alt="Alt text"></p>
-<p>在前面的代码中，我们已经看到，Configuration的addMapper方法是委派给MapperRegistry的addMapper进行的，源码如下所示：<br>org.apache.ibatis.binding.MapperRegistry#addMapper</p>
-<p><img src="/images/mybatis/20171019215829.jpg" alt="Alt text"></p>
-<p>二、动态代理类是如何对方法进行拦截的<br>通过前面的分析，我们知道当调用SqlSession的getMapper方法时，通过一层一层的委派，最终会通过MapperProxyFactory的newInstance(sqlSession)方法，来创建动态代理类，MapperProxyFactory类源码如下所示：</p>
-<p><img src="/images/mybatis/a.jpg" alt="Alt text"></p>
-<p>可以看到，MapperProxyFactory的newInstance(sqlSession)方法中，首先会创建一个MapperProxy对象，然后将其当做参数传递给newInstance(mapperProxy)方法，这个方法内部通过JDK提供的Proxy.newProxyInstance方法生成动态代理类。Proxy.newProxyInstance方法声明如下所示：<br>java.lang.reflect.Proxy#newProxyInstance</p>
-<p><img src="/images/mybatis/b.jpg" alt="Alt text"></p>
-<p>InvocationHandler接口定义如下所示：</p>
-<p><img src="/images/mybatis/c.jpg" alt="Alt text"></p>
-<p>当接口中的任何一个方法被调用时，JVM都会回调InvocationHandler接口实现类的invoke方法。并会传递三个回调参数：<br>Object proxy：被代理的类<br>Method method：表示当前被调用的接口的方法对象<br>Object[] args：表示接口方法被调用时，传递的参数。<br>MapperProxy类实现了InvocationHandler接口，因此我们只要从其实现的invoke方法入手进行分析</p>
-<p><img src="/images/mybatis/d.jpg" alt="Alt text"></p>
-<p>现在我们定义为到，最终的拦截代码位于MapperMethod类的execute方法中，当把这个方法的代码分析完成，本小节也就分析完成了。MapperMethod类源码如下所示：</p>
-<p><img src="/images/mybatis/e.jpg" alt="Alt text"></p>
-<p>在MapperMethod的构造方法中，例如参数构造了两个对象SqlCommand、MethodSignature，这两个类都是MapperMethod的内部类。<br>而execute方法中，会首选调用SqlCommand的getType方法，判断要执行的sql类型INSERT、UPDATE、DELETE、SELECT、FLUSH。然后分别调用SqlSession的insert、update、delete、selectOne、selectMap、selectList等方法来执行。<br>这说明，我们通过SqlSession的getMapper方法获得接口代理来进行CRUD操作，其底层还是依赖于最原始的SqlSession的使用方法。<br>关于SqlCommand，我们不做过多介绍，这里只提一点，SqlCommand.getType中是如何确定当前要执行的sql类型的。因为不同的Sql类型意味着我们要对sql操作的结果做不同的处理，例如：<br>对于insert、update和delete，这样的sql，其返回值是影响的结果集的行数，因此我们看到上述相关代码在执行的时候，都调用了一个rowCountResult方法。<br>对于select：要对查询的结果集ResultSet进行封装。由于SqlSession提供了众多方法对查询结果集进行处理，例如selectOne，selectMap、selectList等，因此根据接口中定义的方法的返回值的类型，来选择执行不同的方法，对ResultSet进行封装。<br>由于我们在SqlCommand对象构造的时候，将当前代理的接口和当执行被调用的方法method对象传递过去，其内部会通过以下方式查找对应的MappedStatement对象</p>
-<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
-<p>MappedStatement是我们在定义mapper映射文件时，内部的<insert>、<update>、<delete>、<select>元素的解析结果，每个这样的元素都会被解析成一个MappedStatement对象，并保存到Configuration类中的mappedStatements 属性中。</select></delete></update></insert></p>
-<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
-<p>其中key就是就是”namespace.id”，由于我们定义的映射文件中，namespace属性就是XxxMapper的全路径，而<insert>等元素的id属性就是方法名，因此可以通过这种方式找到对应的解析后的MappedStatement。<br>由于这些标签(<insert>、<update>…)本身就代表了自己的sql类型，这些信息也会被保存到MappedStatement对象中，因此我们就可以通过SqlCommand的getType方法获取当前要执行的sql类型。<br>当调用SqlSession的相关方法时，第一个参数都是传入的都是command.getName方法，这个方法返回值，也是”namespace.id”，不再做过多分析。</update></insert></insert></p>
-]]></content>
-      <categories>
-        <category>mybatis</category>
-      </categories>
-      <tags>
-        <tag>mybatis</tag>
       </tags>
   </entry>
   <entry>
@@ -2886,230 +2791,84 @@ for(int i=0;i&lt;10;i++){
       </tags>
   </entry>
   <entry>
-    <title>索引添加的几种方式</title>
-    <url>/2014/03/15/mysql%E6%B7%BB%E5%8A%A0%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/</url>
-    <content><![CDATA[<p><strong>索引</strong></p>
-<ul>
-<li>是一种特殊的文件：它们包含着对数据表里所有记录的引用指针（InnoDB数据表上的索引是表空间的一个组成部分）。</li>
-<li>是一种数据结构：数据库索引是数据库管理系统中一个排序的数据结构，以协助快速查询、更新数据库表中的数据。索引的实现通常使用B树及B+树。</li>
-<li>相当于一个目录：查找书中内容，通常为了方便对内容建立索引形成目录。索引是一个文件，会占据物理空间。</li>
-</ul>
-<p><strong>索引有哪些优缺点：</strong></p>
-<ul>
-<li><p>索引的优点</p>
-<ul>
-<li>加快数据检索速度，是创建索引原因。</li>
-<li>使用索引可在查询过程中优化隐藏器，提高系统性能。</li>
-</ul>
-</li>
-<li><p>索引的缺点</p>
-<ul>
-<li>时间方面：创建和维护索引要消耗时间，具体地当对表中的数据进行增删改时，索引也需动态维护，会降低增删改的执行效率。</li>
-<li>空间方面：索引需占物理内存。</li>
-</ul>
-</li>
-</ul>
-<p><strong>索引的几种类型</strong></p>
-<ul>
-<li><p>主键索引(Primary Key)<br>定义：数据列不可重复，不能为null,一个表中只有一个主键</p>
-</li>
-<li><p>唯一索引(Unique) 定义：数据列不能重复，允许为null，一个表允许多个列创建唯一索引</p>
-<ul>
-<li>创建唯一索引：可通过ALTER TABLE table_name ADD UNIQUE (column);</li>
-<li>创建唯一组合索引：ALTER TABLE table_name ADD UNIQUE(column1,column2);</li>
-<li>建表后添加：CREATE UNIQUE INDEX <code>UK_uname</code> ON userinfo(<code>uname</code>)</li>
-</ul>
-</li>
-<li><p>普通索引(index)：基本的索引类型，么有唯一性限制，允许为null</p>
-<ul>
-<li>创建普通索引：ALTER TABLE table_name ADD INDEX index_name(column);</li>
-<li>创建组合索引：ALTER TABLE table_name ADD INDEX index_name(column1,column2);</li>
-</ul>
-</li>
-<li><p>组合索引(index):创建一个（多个字段的索引），这个概念相对于上面的的单列索引而言，组合索引遵循最左侧前缀原则。</p>
-</li>
-<li><p>全文索引： 目前搜索引擎使用的一种关键技术。</p>
-<ul>
-<li>创建：ALTER TABLE table_name ADD FULLTEXT(column);</li>
-</ul>
-</li>
-<li><p>聚簇索引和非聚簇索引：概念上要比上面的大，属于包含和被包含关系。如：InnoDB中主键索引使用的就是聚簇索引。</p>
-</li>
-</ul>
-<p><strong>创建索引的三种方式，删除索引</strong></p>
-<ul>
-<li><p>第一种方式：再执行create table 时创建索引</p>
-<p>  CREATE TABLE user_index2 (<br>  id INT auto_increment PRIMARY KEY,<br>  first_name VARCHAR (16),<br>  last_name VARCHAR (16),<br>  id_card VARCHAR (18),<br>  information text,<br>  KEY name (first_name, last_name),<br>  FULLTEXT KEY (information),<br>  UNIQUE KEY (id_card)<br>  );</p>
-</li>
-</ul>
-<ul>
-<li><p>第二种方式：使用ALTER TABLE 命令去添加索引</p>
-<ul>
-<li>ALTER TABLE用来创建普通索引、UNIQUE索引或PRIMARY KEY索引。</li>
-<li>table_name 是要添加索引的表名,</li>
-<li>column_list指出对哪些列进行索引，多列时各列之间用逗号分割。</li>
-<li><p>索引名index_name可自命名，缺省时，MYSQL根据第一个索引列赋一个名称。另外，ALTER TABLE允许在单个语句中更改多个表，因此可在同事创建多个索引。</p>
-<pre><code>ALTER TABLE table_name ADD INDEX index_name(column_list);
-</code></pre></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li>第三种方式：使用create index创建</li>
-</ul>
-<p>create index index_name on table_name (column_list);</p>
-<p>create index 可对表添加普通索引或UNIQUE索引。（但不能创建PRIMARY KEY索引）</p>
-<ul>
-<li>删除索引</li>
-</ul>
-<p>根据索引名删除普通索引、唯一索引、全文索引；alter table 表名 drop KEY 索引名</p>
-<pre><code>alter table user_index drop KEY name;
-
-alter table user_index drop KEY id_card;
-
-alter table user_index drop KEY information;
-</code></pre><p><strong>删除主键索引</strong>：alter table 表名 drop primary key （因为主键只有一个）。注意：如主键自增长，不可直接执行此操作（自增长依赖主键索引）</p>
-<pre><code>alter table user_index drop primary key;
-
-[SQL] alter table user_index drop primary key
-[ERR] 1075 - Incorrect table definition;there can be only one auto column and it must be ....
-</code></pre><p><strong>需要取消自增长再进行删除：</strong></p>
-<pre><code>alert table user_index
---重新定义字段
-MODIFY id int,
-drop PRIMARY KEY
-</code></pre><blockquote>
-<p>一般不会删除主键，设计主键一定与业务逻辑无关。</p>
-</blockquote>
-<p><strong>组合(复合)索引的最左侧优先原则</strong></p>
-<blockquote>
-<p>最左侧优先，在检索数据时从联合索引的最左边开始匹配，组合索引的第一个字段必须出现在查询组句中，这个索引才会被用到。</p>
-<p>对于列col1、col2、col3建立联合索引</p>
-<p>key test_col1_col2_col3 on test(col1,col2,col3);</p>
-<p>联合索引test_col1_col2_col3 可以看成建立了（col1)、（col1,col2)、（col1,col2,col3)三个索引。实则是建立个一个B+树索引。</p>
-<p>根据最左侧披索原则，where语句必须要有col1才能调用索引（如果没有col1字段那么一个索引也不调用），如果where 语句后同时出现col1、col2，则会调用两者的组合索引，如果where语句后同时出现col1、col2、col3作为条件，则调用三者的组合索引。</p>
-</blockquote>
+    <title>linux配置调度任务</title>
+    <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
+    <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
+<pre><code># crontab
+-bash: crontab: command not found
+</code></pre><p>   执行crontab命令如果报 comman not found，表明没有安装。<br>  1.2 yum安装</p>
+<pre><code># yum -y install vixie-cron
+ Loaded plusgins:security
+ ........
+</code></pre><p>  1.3 安装完成后，可使用info crontab命令查看详细的帮助信息<br>  cron服务提供crontab命令来设定cron服务的，以下命令的一些参数说明：<br>    crontab -u //设定某个用户的cron服务，一般root用户在执行这个命令的时候<br>    需要此参数<br>    crontab -l //列出某个用户cron服务的详细内容<br>    crontab -r //删除每个用户的cron服务<br>    crontab -e //编辑某个用户的cron服务<br>  例如：root查看自己的cron设置：  crontab -u root -l<br>        root想删除fred的cron设置：crontab -u fred -r<br>    在编辑cron服务时，编辑的内容有一些格式和约定，输入：<br>    crontab -u root -e<br>   1.4 crontab 服务状态操作：<br>     /sbin/service crond start    //启动服务<br>     /sbin/service crond stop     //关闭服务<br>     /sbin/service crond restart  //重启服务<br>     /sbin/service crond reload   //重新载入配置<br>     /sbin/service crond status   //查看状态<br>    或者</p>
+<pre><code># service crond start
+# service crond stop
+# service crond restart
+# service crond reload
+# service crond status 
+</code></pre><p>   1.5 添加开机服务<br>     在/etc/rc.d/rc.local这个脚本的末尾加上：<br>      /sbin/service crond start</p>
+<ol start="2">
+<li>配置linux自动执行任务<br>crontab -e<br>10 1 <em> </em> * /data/pay/bin/project-job.sh(每天凌晨一点十分执行)</li>
+</ol>
+<p>3.在/data/pay/bin/配置执行脚本<br>project-job.sh<br>   source /etc/profile<br>     source ~/.bash_profile</p>
+<pre><code>#sudo chown -R lemsuser.lemsuser /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+#sudo chmod -R 777 /share/NSIT_LEMS/* &gt;/dev/null 2&gt;&amp;1
+java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
+</code></pre><p>4.授权project-job.sh文件</p>
+<p>  chmod 755 *</p>
+<p>5.jar包位置：<br>    /project/apps/project-job/project-job.jar</p>
 ]]></content>
       <categories>
-        <category>索引</category>
+        <category>linux</category>
       </categories>
       <tags>
-        <tag>索引</tag>
+        <tag>linux</tag>
+        <tag>crontab</tag>
       </tags>
   </entry>
   <entry>
-    <title>redis内存管理及数据淘汰机制</title>
-    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
-<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
- 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
- 的问题。
-
- 通过如下配置控制redis使用的最大内存：
- maxmemory 100mb
-
- 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
-
-* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
-* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
-  请求仍然可以正常执行。
-
- 在为redis设置maxmemory时，需要注意：
-
-* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
-maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
-主机可用的内存，留出一部分预留用作主从同步。
-</code></pre><p>  数据淘汰机制</p>
-<pre><code>  redis提供了5中数据淘汰策略：
-
-*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
-   只淘汰设定了有效期的key。
-
-*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
-
-*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
-
-*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
-
-*  volatile-ttl： 淘汰剩余有效期最短的key。
-</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
-<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
-</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
-<pre><code>配置方法：
-  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
-</code></pre>]]></content>
+    <title>mybatis动态代理</title>
+    <url>/2015/06/25/mybatis%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</url>
+    <content><![CDATA[<p>在使用Mybatis的时候，我们可以只定义一个XxxMaper接口，然后直接利用这个接口定义的抽象方法来进行增删改查操作，Mybatis内部实际上利用了动态代理技术帮我们生成了这个接口的代理类。<br>举例来说，假设有映射文件：<br><img src="/images/mybatis/20171019215820.jpg" alt="Alt text"></p>
+<p>我们只要定义一个UserMapper接口，注意这个接口的路径就是映射文件的namespace属性值，然后在这个接口中定义几个方法，方法名分别于映射文件中定义的<insert>、<select>等元素的id属性值相同，如下：</select></insert></p>
+<p><img src="/images/mybatis/20171019215821.jpg" alt="Alt text"></p>
+<p>之后我们就可以直接使用UserMapper类来进行增删改查，使用方式如下：</p>
+<p><img src="/images/mybatis/20171019215822.jpg" alt="Alt text"></p>
+<p>之所以可以这样使用，是因为Mybatis对生成了UserMapper接口的动态代理类，当执行某个方法时，代理类内部会首选获取调用的方法的全路径，例如当我们调用UserMapper的insert方法时，其对应的全路径是com.tianshouzhi.mybatis.quickstart.UserMapper.insert。而这个值刚好对应着namespace属性值为com.tianshouzhi.mybatis.quickstart.UserMapper的mapper映射文件的id=”insert”的insert元素，从而执行相应的sql。真正在执行时，还是利用SqlSession的insert方法来执行的，只不过这个过程对于用于来说屏蔽了。<br>我们带着2个问题来进行源码分析：<br>1、动态代理类是如何生成的<br>2、动态代理类是如何对方法进行拦截的<br>一、动态代理类的生成时机<br>每次当我们调用sqlSession的getMapper方法时，都会创建一个新的动态代理类实例，如：</p>
+<p><img src="/images/mybatis/20171019215823.jpg" alt="Alt text"></p>
+<p>也就是说，生成的动态代理类不是唯一的，而是每次都创建一个新的。<br>而SqlSession对象又将getMapper方法委给了Configuration对象执行，如下所示：</p>
+<p><img src="/images/mybatis/20171019215824.jpg" alt="Alt text"></p>
+<p>Configuration类里面通过MapperRegistry对象维护了所有要生成动态代理类的XxxMapper接口信息。</p>
+<p><img src="/images/mybatis/20171019215825.jpg" alt="Alt text"></p>
+<p>其中，getMapper方法就是用于创建接口的动态类。而addMapper方法是mybatis在解析配置文件时，会将需要生成动态代理类的接口注册到其中。目前我们主要介绍的getMapper方法，addMapper方法我们将会在之后进行介绍。<br>可以看到Configuration类的addMapper和getMapper方法最终又都是委派给MapperRegistry的addMapper和getMapper方法执行的。<br>MapperRegistry类的getMapper方法源码如下所示：</p>
+<p><img src="/images/mybatis/20171019215826.jpg" alt="Alt text"></p>
+<p>可以看到，创建动态代理类的核心代码都位于MapperProxyFactory的newInstance方法中。目前对这个方法不做分析，放到后面分析生成的代理类是如何对接口的方法进行拦截一起说。目前只需要知道，每次调用SqlSession的getMapper方法，都会创建一个新的代理类即可。<br>现在我们考虑，Mybatis是如何知道要生成一个类的动态代理类的，这个过程是在mybatis解析xml配置文件的时候就确定了。<br>具体逻辑是，根据<mapper namespace="....">的namespace属性值，判断有没有这样一个接口的全路径与namespace属性值完全相同，如果有，就生成这个接口的动态代理类。<br>相关解析代码位于XMLMapperBuilder的 parse方法中：</mapper></p>
+<p><img src="/images/mybatis/20171019215827.jpg" alt="Alt text"></p>
+<p>bindMapperForNamespace方法源码如下所示：</p>
+<p><img src="/images/mybatis/20171019215828.jpg" alt="Alt text"></p>
+<p>在前面的代码中，我们已经看到，Configuration的addMapper方法是委派给MapperRegistry的addMapper进行的，源码如下所示：<br>org.apache.ibatis.binding.MapperRegistry#addMapper</p>
+<p><img src="/images/mybatis/20171019215829.jpg" alt="Alt text"></p>
+<p>二、动态代理类是如何对方法进行拦截的<br>通过前面的分析，我们知道当调用SqlSession的getMapper方法时，通过一层一层的委派，最终会通过MapperProxyFactory的newInstance(sqlSession)方法，来创建动态代理类，MapperProxyFactory类源码如下所示：</p>
+<p><img src="/images/mybatis/a.jpg" alt="Alt text"></p>
+<p>可以看到，MapperProxyFactory的newInstance(sqlSession)方法中，首先会创建一个MapperProxy对象，然后将其当做参数传递给newInstance(mapperProxy)方法，这个方法内部通过JDK提供的Proxy.newProxyInstance方法生成动态代理类。Proxy.newProxyInstance方法声明如下所示：<br>java.lang.reflect.Proxy#newProxyInstance</p>
+<p><img src="/images/mybatis/b.jpg" alt="Alt text"></p>
+<p>InvocationHandler接口定义如下所示：</p>
+<p><img src="/images/mybatis/c.jpg" alt="Alt text"></p>
+<p>当接口中的任何一个方法被调用时，JVM都会回调InvocationHandler接口实现类的invoke方法。并会传递三个回调参数：<br>Object proxy：被代理的类<br>Method method：表示当前被调用的接口的方法对象<br>Object[] args：表示接口方法被调用时，传递的参数。<br>MapperProxy类实现了InvocationHandler接口，因此我们只要从其实现的invoke方法入手进行分析</p>
+<p><img src="/images/mybatis/d.jpg" alt="Alt text"></p>
+<p>现在我们定义为到，最终的拦截代码位于MapperMethod类的execute方法中，当把这个方法的代码分析完成，本小节也就分析完成了。MapperMethod类源码如下所示：</p>
+<p><img src="/images/mybatis/e.jpg" alt="Alt text"></p>
+<p>在MapperMethod的构造方法中，例如参数构造了两个对象SqlCommand、MethodSignature，这两个类都是MapperMethod的内部类。<br>而execute方法中，会首选调用SqlCommand的getType方法，判断要执行的sql类型INSERT、UPDATE、DELETE、SELECT、FLUSH。然后分别调用SqlSession的insert、update、delete、selectOne、selectMap、selectList等方法来执行。<br>这说明，我们通过SqlSession的getMapper方法获得接口代理来进行CRUD操作，其底层还是依赖于最原始的SqlSession的使用方法。<br>关于SqlCommand，我们不做过多介绍，这里只提一点，SqlCommand.getType中是如何确定当前要执行的sql类型的。因为不同的Sql类型意味着我们要对sql操作的结果做不同的处理，例如：<br>对于insert、update和delete，这样的sql，其返回值是影响的结果集的行数，因此我们看到上述相关代码在执行的时候，都调用了一个rowCountResult方法。<br>对于select：要对查询的结果集ResultSet进行封装。由于SqlSession提供了众多方法对查询结果集进行处理，例如selectOne，selectMap、selectList等，因此根据接口中定义的方法的返回值的类型，来选择执行不同的方法，对ResultSet进行封装。<br>由于我们在SqlCommand对象构造的时候，将当前代理的接口和当执行被调用的方法method对象传递过去，其内部会通过以下方式查找对应的MappedStatement对象</p>
+<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
+<p>MappedStatement是我们在定义mapper映射文件时，内部的<insert>、<update>、<delete>、<select>元素的解析结果，每个这样的元素都会被解析成一个MappedStatement对象，并保存到Configuration类中的mappedStatements 属性中。</select></delete></update></insert></p>
+<p><img src="/images/mybatis/f.jpg" alt="Alt text"></p>
+<p>其中key就是就是”namespace.id”，由于我们定义的映射文件中，namespace属性就是XxxMapper的全路径，而<insert>等元素的id属性就是方法名，因此可以通过这种方式找到对应的解析后的MappedStatement。<br>由于这些标签(<insert>、<update>…)本身就代表了自己的sql类型，这些信息也会被保存到MappedStatement对象中，因此我们就可以通过SqlCommand的getType方法获取当前要执行的sql类型。<br>当调用SqlSession的相关方法时，第一个参数都是传入的都是command.getName方法，这个方法返回值，也是”namespace.id”，不再做过多分析。</update></insert></insert></p>
+]]></content>
       <categories>
-        <category>redis</category>
+        <category>mybatis</category>
       </categories>
       <tags>
-        <tag>redis</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中Orderd接口</title>
-    <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
-    <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
-<blockquote>
-<p>ordered接口和@order注解都可控制类的处理顺序，遵循数字越小，优先加载。</p>
-</blockquote>
-<p><strong>场景：</strong></p>
-<ul>
-<li><p>过滤器filter中可以使用@order注解控制filter的拦截顺序</p>
-</li>
-<li><p>Spring中采用实现Ordered接口来控制拦截顺序。Spring中提供了AnnotationAwareOrderComparator类，只要实现接口ordered或用@order注解都可完成对类的排序。</p>
-</li>
-</ul>
-<p>例：</p>
-<pre><code>public abstract class ReadService {
-
-     public abstract void read();
-
-}
-
-
-public class WriteJavaServiceImpl extends WriteService implements Ordered {
-
-        @Override
-        public void write() {
-            System.err.println(&quot;6.写java&quot;);
-        }
-
-        @Override
-        public int getOrder() {
-
-            return 6;
-        }
-}
-
-@Order(2)
-public class WritePythonServiceImpl extends WriteService {
-
-    @Override
-    public void write() {
-        System.err.println(&quot;2.写Python&quot;);
-    }
-}
-
-@RunWith(SpringRunner.class)
-@SpringBootTest
-public class OrderTest {
-
-    @Test
-    public void orderTest() {
-        List&lt;WriteService&gt; list = new ArrayList&lt;&gt;();
-        list.add(new WriteJavaServiceImpl());
-        list.add(new WritePythonServiceImpl());
-        //对list进行排序
-        AnnotationAwareOrderComparator.sort(list);
-        list.forEach(WriteService::write);
-    }
-}
-</code></pre>]]></content>
-      <categories>
-        <category>orderd</category>
-      </categories>
-      <tags>
-        <tag>orderd</tag>
+        <tag>mybatis</tag>
       </tags>
   </entry>
   <entry>
@@ -3277,93 +3036,230 @@ public News getHystrixNews(@PathVariable(&quot;id&quot;) int id) {
       </tags>
   </entry>
   <entry>
-    <title>spring-boot中关于jpa异常问题</title>
-    <url>/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/</url>
-    <content><![CDATA[<p><strong>spring-boot异常问题记录</strong></p>
-<p>Bug in org.springframework.boot on 2.2.3.RELEASE version</p>
-<p>当我们使用spring-boot 的版本为2.2.3.RELEASE时，持久层ORM使用JPA时，会出现异常问题。</p>
-<pre><code>org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction; nested exception is java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransactionManager$JpaTransactionObject.setReadOnly(Z)V
-    at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:448)
-    at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:376)
-Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransactionManager$JpaTransactionObject.setReadOnly(Z)V
-</code></pre><p>解决方式：<br>将spring-jdbc改为5.2.6.RELEASE,spring-orm改为5.2.6RELEASE</p>
-<pre><code>&lt;dependency&gt;
-    &lt;groupId&gt;org.springframework&lt;/groupId&gt;
-    &lt;artifactId&gt;spring-jdbc&lt;/artifactId&gt;
-    &lt;version&gt;5.2.6.RELEASE&lt;/version&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;org.springframework&lt;/groupId&gt;
-    &lt;artifactId&gt;spring-orm&lt;/artifactId&gt;
-    &lt;version&gt;5.2.6.RELEASE&lt;/version&gt;
-&lt;/dependency&gt;
+    <title>java中Orderd接口</title>
+    <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
+    <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
+<blockquote>
+<p>ordered接口和@order注解都可控制类的处理顺序，遵循数字越小，优先加载。</p>
+</blockquote>
+<p><strong>场景：</strong></p>
+<ul>
+<li><p>过滤器filter中可以使用@order注解控制filter的拦截顺序</p>
+</li>
+<li><p>Spring中采用实现Ordered接口来控制拦截顺序。Spring中提供了AnnotationAwareOrderComparator类，只要实现接口ordered或用@order注解都可完成对类的排序。</p>
+</li>
+</ul>
+<p>例：</p>
+<pre><code>public abstract class ReadService {
+
+     public abstract void read();
+
+}
+
+
+public class WriteJavaServiceImpl extends WriteService implements Ordered {
+
+        @Override
+        public void write() {
+            System.err.println(&quot;6.写java&quot;);
+        }
+
+        @Override
+        public int getOrder() {
+
+            return 6;
+        }
+}
+
+@Order(2)
+public class WritePythonServiceImpl extends WriteService {
+
+    @Override
+    public void write() {
+        System.err.println(&quot;2.写Python&quot;);
+    }
+}
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class OrderTest {
+
+    @Test
+    public void orderTest() {
+        List&lt;WriteService&gt; list = new ArrayList&lt;&gt;();
+        list.add(new WriteJavaServiceImpl());
+        list.add(new WritePythonServiceImpl());
+        //对list进行排序
+        AnnotationAwareOrderComparator.sort(list);
+        list.forEach(WriteService::write);
+    }
+}
 </code></pre>]]></content>
       <categories>
-        <category>jpa</category>
+        <category>orderd</category>
       </categories>
       <tags>
-        <tag>spring-boot</tag>
-        <tag>jpa</tag>
-        <tag>bug</tag>
+        <tag>orderd</tag>
       </tags>
   </entry>
   <entry>
-    <title>window中将redis注册为本地服务</title>
-    <url>/2016/08/06/window%E4%B8%AD%E5%B0%86redis%E6%B3%A8%E5%86%8C%E4%B8%BA%E6%9C%8D%E5%8A%A1/</url>
-    <content><![CDATA[<p><strong>在window中将redis注册为本地服务</strong></p>
-<p>一般可以通过 redis-server.exe 和配置文件启动redis服务 :</p>
-<p>redis-server.exe  redis.windows.conf </p>
-<p>另外开启一个命令行窗口 redis-cli.exe 即可做一些简单的操作命令行</p>
-<p>但我们关闭控制台，Redis服务也跟随着一起关闭了，想使用的时候又得执行命令重新开启动redis 服务，是非常低效又麻烦的。</p>
-<p>在Windows中有个本地服务的概念，我们的目标就是将Redis注册成这里面的一个服务，然后就可以不受控制台退出的影响了。</p>
-<p><strong>注册为本地服务</strong></p>
-<p>redis-server.exe –service-install redis.windows.conf </p>
-<p><img src="/images/window_install_redis_001/00001.png" alt="图1"></p>
-<p>从图中看到已成功授权并且注册成功，接下来，我们到windows服务中去看一下是否有redis服务：</p>
-<p><img src="/images/window_install_redis_001/00002.png" alt="图2"></p>
-<p>查看已在</p>
-<p><strong>开启Redis服务</strong></p>
+    <title>索引添加的几种方式</title>
+    <url>/2014/03/15/mysql%E6%B7%BB%E5%8A%A0%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F/</url>
+    <content><![CDATA[<p><strong>索引</strong></p>
 <ul>
-<li>方法一：选中Redis项右击-》启动</li>
+<li>是一种特殊的文件：它们包含着对数据表里所有记录的引用指针（InnoDB数据表上的索引是表空间的一个组成部分）。</li>
+<li>是一种数据结构：数据库索引是数据库管理系统中一个排序的数据结构，以协助快速查询、更新数据库表中的数据。索引的实现通常使用B树及B+树。</li>
+<li>相当于一个目录：查找书中内容，通常为了方便对内容建立索引形成目录。索引是一个文件，会占据物理空间。</li>
 </ul>
-<p><img src="/images/window_install_redis_001/00003.png" alt="图3"></p>
+<p><strong>索引有哪些优缺点：</strong></p>
 <ul>
-<li>方法二：redis-server –service-start</li>
+<li><p>索引的优点</p>
+<ul>
+<li>加快数据检索速度，是创建索引原因。</li>
+<li>使用索引可在查询过程中优化隐藏器，提高系统性能。</li>
 </ul>
-<p><img src="/images/window_install_redis_001/00004.png" alt="图4"></p>
-<p><strong>常用命令：</strong></p>
+</li>
+<li><p>索引的缺点</p>
 <ul>
-<li><p>注册服务   redis-server –service-install redis.windows.conf</p>
-</li>
-<li><p>删除服务   redis-server –service-uninstall</p>
-</li>
-<li><p>开启服务   redis-server –service-start</p>
-</li>
-<li><p>停止服务   redis-server –service-stop</p>
+<li>时间方面：创建和维护索引要消耗时间，具体地当对表中的数据进行增删改时，索引也需动态维护，会降低增删改的执行效率。</li>
+<li>空间方面：索引需占物理内存。</li>
+</ul>
 </li>
 </ul>
-<p><strong>创建多个Redis实例</strong></p>
+<p><strong>索引的几种类型</strong></p>
 <ul>
-<li>1.复制一份redis.windows.conf 配置文件，改名为 redis.windows10001.conf</li>
-</ul>
-<p><img src="/images/window_install_redis_001/00005.png" alt="图5"></p>
+<li><p>主键索引(Primary Key)<br>定义：数据列不可重复，不能为null,一个表中只有一个主键</p>
+</li>
+<li><p>唯一索引(Unique) 定义：数据列不能重复，允许为null，一个表允许多个列创建唯一索引</p>
 <ul>
-<li>2.更改 redis.windows10001.conf 配置文件的信息 端口号 port 为 10001</li>
+<li>创建唯一索引：可通过ALTER TABLE table_name ADD UNIQUE (column);</li>
+<li>创建唯一组合索引：ALTER TABLE table_name ADD UNIQUE(column1,column2);</li>
+<li>建表后添加：CREATE UNIQUE INDEX <code>UK_uname</code> ON userinfo(<code>uname</code>)</li>
+</ul>
+</li>
+<li><p>普通索引(index)：基本的索引类型，么有唯一性限制，允许为null</p>
+<ul>
+<li>创建普通索引：ALTER TABLE table_name ADD INDEX index_name(column);</li>
+<li>创建组合索引：ALTER TABLE table_name ADD INDEX index_name(column1,column2);</li>
+</ul>
+</li>
+<li><p>组合索引(index):创建一个（多个字段的索引），这个概念相对于上面的的单列索引而言，组合索引遵循最左侧前缀原则。</p>
+</li>
+<li><p>全文索引： 目前搜索引擎使用的一种关键技术。</p>
+<ul>
+<li>创建：ALTER TABLE table_name ADD FULLTEXT(column);</li>
+</ul>
+</li>
+<li><p>聚簇索引和非聚簇索引：概念上要比上面的大，属于包含和被包含关系。如：InnoDB中主键索引使用的就是聚簇索引。</p>
+</li>
+</ul>
+<p><strong>创建索引的三种方式，删除索引</strong></p>
+<ul>
+<li><p>第一种方式：再执行create table 时创建索引</p>
+<p>  CREATE TABLE user_index2 (<br>  id INT auto_increment PRIMARY KEY,<br>  first_name VARCHAR (16),<br>  last_name VARCHAR (16),<br>  id_card VARCHAR (18),<br>  information text,<br>  KEY name (first_name, last_name),<br>  FULLTEXT KEY (information),<br>  UNIQUE KEY (id_card)<br>  );</p>
+</li>
 </ul>
 <ul>
-<li>3.注册为window服务</li>
+<li><p>第二种方式：使用ALTER TABLE 命令去添加索引</p>
+<ul>
+<li>ALTER TABLE用来创建普通索引、UNIQUE索引或PRIMARY KEY索引。</li>
+<li>table_name 是要添加索引的表名,</li>
+<li>column_list指出对哪些列进行索引，多列时各列之间用逗号分割。</li>
+<li><p>索引名index_name可自命名，缺省时，MYSQL根据第一个索引列赋一个名称。另外，ALTER TABLE允许在单个语句中更改多个表，因此可在同事创建多个索引。</p>
+<pre><code>ALTER TABLE table_name ADD INDEX index_name(column_list);
+</code></pre></li>
 </ul>
-<p>redis-server.exe –service-install redis.windows10001.conf –service-name redis10001 –port 10001</p>
-<p><img src="/images/window_install_redis_001/00006.png" alt="图6"></p>
-<p>从windows服务中可以看到，有两个redis服务，刚才注册的是redis10001，服务还未开启，如下图所示：</p>
-<p><img src="/images/window_install_redis_001/00007.png" alt="图7"></p>
+</li>
+</ul>
+<ul>
+<li>第三种方式：使用create index创建</li>
+</ul>
+<p>create index index_name on table_name (column_list);</p>
+<p>create index 可对表添加普通索引或UNIQUE索引。（但不能创建PRIMARY KEY索引）</p>
+<ul>
+<li>删除索引</li>
+</ul>
+<p>根据索引名删除普通索引、唯一索引、全文索引；alter table 表名 drop KEY 索引名</p>
+<pre><code>alter table user_index drop KEY name;
+
+alter table user_index drop KEY id_card;
+
+alter table user_index drop KEY information;
+</code></pre><p><strong>删除主键索引</strong>：alter table 表名 drop primary key （因为主键只有一个）。注意：如主键自增长，不可直接执行此操作（自增长依赖主键索引）</p>
+<pre><code>alter table user_index drop primary key;
+
+[SQL] alter table user_index drop primary key
+[ERR] 1075 - Incorrect table definition;there can be only one auto column and it must be ....
+</code></pre><p><strong>需要取消自增长再进行删除：</strong></p>
+<pre><code>alert table user_index
+--重新定义字段
+MODIFY id int,
+drop PRIMARY KEY
+</code></pre><blockquote>
+<p>一般不会删除主键，设计主键一定与业务逻辑无关。</p>
+</blockquote>
+<p><strong>组合(复合)索引的最左侧优先原则</strong></p>
+<blockquote>
+<p>最左侧优先，在检索数据时从联合索引的最左边开始匹配，组合索引的第一个字段必须出现在查询组句中，这个索引才会被用到。</p>
+<p>对于列col1、col2、col3建立联合索引</p>
+<p>key test_col1_col2_col3 on test(col1,col2,col3);</p>
+<p>联合索引test_col1_col2_col3 可以看成建立了（col1)、（col1,col2)、（col1,col2,col3)三个索引。实则是建立个一个B+树索引。</p>
+<p>根据最左侧披索原则，where语句必须要有col1才能调用索引（如果没有col1字段那么一个索引也不调用），如果where 语句后同时出现col1、col2，则会调用两者的组合索引，如果where语句后同时出现col1、col2、col3作为条件，则调用三者的组合索引。</p>
+</blockquote>
 ]]></content>
+      <categories>
+        <category>索引</category>
+      </categories>
+      <tags>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>redis内存管理及数据淘汰机制</title>
+    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
+<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
+ 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
+ 的问题。
+
+ 通过如下配置控制redis使用的最大内存：
+ maxmemory 100mb
+
+ 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
+
+* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
+* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
+  请求仍然可以正常执行。
+
+ 在为redis设置maxmemory时，需要注意：
+
+* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
+maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
+主机可用的内存，留出一部分预留用作主从同步。
+</code></pre><p>  数据淘汰机制</p>
+<pre><code>  redis提供了5中数据淘汰策略：
+
+*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
+   只淘汰设定了有效期的key。
+
+*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
+
+*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
+
+*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
+
+*  volatile-ttl： 淘汰剩余有效期最短的key。
+</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
+<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
+</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
+<pre><code>配置方法：
+  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
+</code></pre>]]></content>
       <categories>
         <category>redis</category>
       </categories>
       <tags>
         <tag>redis</tag>
-        <tag>window</tag>
       </tags>
   </entry>
   <entry>
@@ -3467,6 +3363,37 @@ Background saving started
       </tags>
   </entry>
   <entry>
+    <title>spring-boot中关于jpa异常问题</title>
+    <url>/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/</url>
+    <content><![CDATA[<p><strong>spring-boot异常问题记录</strong></p>
+<p>Bug in org.springframework.boot on 2.2.3.RELEASE version</p>
+<p>当我们使用spring-boot 的版本为2.2.3.RELEASE时，持久层ORM使用JPA时，会出现异常问题。</p>
+<pre><code>org.springframework.transaction.CannotCreateTransactionException: Could not open JPA EntityManager for transaction; nested exception is java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransactionManager$JpaTransactionObject.setReadOnly(Z)V
+    at org.springframework.orm.jpa.JpaTransactionManager.doBegin(JpaTransactionManager.java:448)
+    at org.springframework.transaction.support.AbstractPlatformTransactionManager.getTransaction(AbstractPlatformTransactionManager.java:376)
+Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransactionManager$JpaTransactionObject.setReadOnly(Z)V
+</code></pre><p>解决方式：<br>将spring-jdbc改为5.2.6.RELEASE,spring-orm改为5.2.6RELEASE</p>
+<pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-jdbc&lt;/artifactId&gt;
+    &lt;version&gt;5.2.6.RELEASE&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-orm&lt;/artifactId&gt;
+    &lt;version&gt;5.2.6.RELEASE&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>]]></content>
+      <categories>
+        <category>jpa</category>
+      </categories>
+      <tags>
+        <tag>spring-boot</tag>
+        <tag>jpa</tag>
+        <tag>bug</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>synchronized关键字的介绍</title>
     <url>/2018/10/05/synchronized%E5%85%B3%E9%94%AE%E5%AD%97%E7%9A%84%E4%BB%8B%E7%BB%8D/</url>
     <content><![CDATA[<p>synchronized关键字的介绍</p>
@@ -3479,6 +3406,65 @@ Background saving started
       </categories>
       <tags>
         <tag>synchronized</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>window中将redis注册为本地服务</title>
+    <url>/2016/08/06/window%E4%B8%AD%E5%B0%86redis%E6%B3%A8%E5%86%8C%E4%B8%BA%E6%9C%8D%E5%8A%A1/</url>
+    <content><![CDATA[<p><strong>在window中将redis注册为本地服务</strong></p>
+<p>一般可以通过 redis-server.exe 和配置文件启动redis服务 :</p>
+<p>redis-server.exe  redis.windows.conf </p>
+<p>另外开启一个命令行窗口 redis-cli.exe 即可做一些简单的操作命令行</p>
+<p>但我们关闭控制台，Redis服务也跟随着一起关闭了，想使用的时候又得执行命令重新开启动redis 服务，是非常低效又麻烦的。</p>
+<p>在Windows中有个本地服务的概念，我们的目标就是将Redis注册成这里面的一个服务，然后就可以不受控制台退出的影响了。</p>
+<p><strong>注册为本地服务</strong></p>
+<p>redis-server.exe –service-install redis.windows.conf </p>
+<p><img src="/images/window_install_redis_001/00001.png" alt="图1"></p>
+<p>从图中看到已成功授权并且注册成功，接下来，我们到windows服务中去看一下是否有redis服务：</p>
+<p><img src="/images/window_install_redis_001/00002.png" alt="图2"></p>
+<p>查看已在</p>
+<p><strong>开启Redis服务</strong></p>
+<ul>
+<li>方法一：选中Redis项右击-》启动</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00003.png" alt="图3"></p>
+<ul>
+<li>方法二：redis-server –service-start</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00004.png" alt="图4"></p>
+<p><strong>常用命令：</strong></p>
+<ul>
+<li><p>注册服务   redis-server –service-install redis.windows.conf</p>
+</li>
+<li><p>删除服务   redis-server –service-uninstall</p>
+</li>
+<li><p>开启服务   redis-server –service-start</p>
+</li>
+<li><p>停止服务   redis-server –service-stop</p>
+</li>
+</ul>
+<p><strong>创建多个Redis实例</strong></p>
+<ul>
+<li>1.复制一份redis.windows.conf 配置文件，改名为 redis.windows10001.conf</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00005.png" alt="图5"></p>
+<ul>
+<li>2.更改 redis.windows10001.conf 配置文件的信息 端口号 port 为 10001</li>
+</ul>
+<ul>
+<li>3.注册为window服务</li>
+</ul>
+<p>redis-server.exe –service-install redis.windows10001.conf –service-name redis10001 –port 10001</p>
+<p><img src="/images/window_install_redis_001/00006.png" alt="图6"></p>
+<p>从windows服务中可以看到，有两个redis服务，刚才注册的是redis10001，服务还未开启，如下图所示：</p>
+<p><img src="/images/window_install_redis_001/00007.png" alt="图7"></p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
+        <tag>window</tag>
       </tags>
   </entry>
   <entry>
@@ -3559,26 +3545,6 @@ Background saving started
       </tags>
   </entry>
   <entry>
-    <title>java中Orderd接口</title>
-    <url>/2018/06/10/%E5%88%86%E5%B8%83%E5%BC%8FCAP%E8%A7%84%E5%88%99/</url>
-    <content><![CDATA[<p><strong>分区容错性Partition</strong></p>
-<p>分布式系统中的某个节点出现故障问题，整个系统仍能对外提供满足一致性和可用性的服务。</p>
-<p><strong>可用性Availability</strong><br>一直可正常访问并得到系统的正常响应。</p>
-<p><strong>一致性Consistency</strong><br>分布式系统中各节点时刻保持数据一致。如完成写操作后，任何操作都应该可获取到改写操作的写入的最新值。</p>
-<p><strong>CAP三者不可兼得</strong></p>
-<p>CA:优先保持一致性、可用性，放弃容错性。放弃系统扩展性，系统不合符腹分布式系统设计。</p>
-<p>CP:优先保持一致性、容错性。放弃可用性。数据一致性要求较高时使用，发生网络故障、消息丢失，以用户体验为代价，等恢复后才可逐渐访问。</p>
-<p>AP：优先保证可用性和分区容错性，放弃一致性。做相应补偿机制来处理一致性问题。</p>
-]]></content>
-      <categories>
-        <category>分布式</category>
-      </categories>
-      <tags>
-        <tag>CAP</tag>
-        <tag>分布式</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>多线程中ThreadLocal</title>
     <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
     <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
@@ -3614,19 +3580,192 @@ Background saving started
       </tags>
   </entry>
   <entry>
-    <title>排序算法-冒泡</title>
-    <url>/2015/05/17/%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95-%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F/</url>
-    <content><![CDATA[<ul>
-<li><p>冒泡排序</p>
-<p>待排序的数据中，自上而下对相邻的两个数依次进行比较和调整，让较大的数往下沉，较小的往上冒。</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">/**</span><br><span class="line">  * 冒泡排序（待排序的数据中，自上而下对相邻的两个数依次进行比较和调整，让较大的数往下沉，较小的往上冒）</span><br><span class="line">  */</span><br><span class="line"></span><br><span class="line"> public int[] bubbleSort() &#123;</span><br><span class="line">     int[] a = &#123;10, 2, 3, 5, 6, 12, 89&#125;;</span><br><span class="line"></span><br><span class="line">     for (int i = 0; i &lt; a.length; i++) &#123;</span><br><span class="line">         for (int j = 0; j &lt; a.length - 1 - i; j++) &#123;</span><br><span class="line">             if (a[j + 1] &lt; a[j]) &#123;</span><br><span class="line">                 int temp = a[j + 1];</span><br><span class="line">                 a[j + 1] = a[j];</span><br><span class="line">                 a[j] = temp;</span><br><span class="line">             &#125;</span><br><span class="line">         &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     return a;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> @Test</span><br><span class="line"> public void bubbleSortTest() &#123;</span><br><span class="line"></span><br><span class="line">     int[] result = bubbleSort();</span><br><span class="line">     for (int i=0;i&lt;result.length;i++) &#123;</span><br><span class="line">         System.err.println(result[i]);</span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></li>
-</ul>
+    <title>java中Orderd接口</title>
+    <url>/2018/06/10/%E5%88%86%E5%B8%83%E5%BC%8FCAP%E8%A7%84%E5%88%99/</url>
+    <content><![CDATA[<p><strong>分区容错性Partition</strong></p>
+<p>分布式系统中的某个节点出现故障问题，整个系统仍能对外提供满足一致性和可用性的服务。</p>
+<p><strong>可用性Availability</strong><br>一直可正常访问并得到系统的正常响应。</p>
+<p><strong>一致性Consistency</strong><br>分布式系统中各节点时刻保持数据一致。如完成写操作后，任何操作都应该可获取到改写操作的写入的最新值。</p>
+<p><strong>CAP三者不可兼得</strong></p>
+<p>CA:优先保持一致性、可用性，放弃容错性。放弃系统扩展性，系统不合符腹分布式系统设计。</p>
+<p>CP:优先保持一致性、容错性。放弃可用性。数据一致性要求较高时使用，发生网络故障、消息丢失，以用户体验为代价，等恢复后才可逐渐访问。</p>
+<p>AP：优先保证可用性和分区容错性，放弃一致性。做相应补偿机制来处理一致性问题。</p>
 ]]></content>
       <categories>
-        <category>排序</category>
+        <category>分布式</category>
       </categories>
       <tags>
-        <tag>排序</tag>
+        <tag>CAP</tag>
+        <tag>分布式</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>初步理解线程池核心知识</title>
+    <url>/2017/06/25/%E5%88%9D%E6%AD%A5%E7%90%86%E8%A7%A3%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/</url>
+    <content><![CDATA[<p>  先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。</p>
+<p>  <strong>并发与并行</strong></p>
+<p>   并行：表示两个线程同时做事情。<br>   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，</p>
+<p>  临界区</p>
+<pre><code>临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程
+使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。
+</code></pre><p>   <img src="/images/threadPool/1.jpg" alt="Alt text"></p>
+<p>  <strong>阻塞与非阻塞</strong></p>
+<p>   阻塞和非阻塞通常用来形容多线程间的相互影响。比如一个线程占用了临界区资源，那么其它所有需要这个资源的线程就必须在这个临界区中进行等待，等待会导致线程挂起。这种情况就是阻塞。</p>
+<p>  此时，如果占用资源的线程一直不愿意释放资源，那么其它所有阻塞在这个临界区上的线程都不能工作。阻塞是指线程在操作系统层面被挂起。阻塞一般性能不好，需大约8万个时钟周期来做调度。</p>
+<p>  非阻塞则允许多个线程同时进入临界区。</p>
+<p>  <strong>死锁</strong></p>
+<p>  死锁是进程死锁的简称，是指多个进程循环等待他方占有的资源而无限的僵持下去的局面。</p>
+<p>   <img src="/images/threadPool/死锁.jpg" alt="Alt text"></p>
+<p><strong>活锁</strong></p>
+<p>假设有两个线程1、2，它们都需要资源 A/B，假设1号线程占有了 A 资源，2号线程占有了 B 资源；由于两个线程都需要同时拥有这两个资源才可以工作，为了避免死锁，1号线程释放了 A 资源占有锁，2号线程释放了 B 资源占有锁；此时 AB 空闲，两个线程又同时抢锁，再次出现上述情况，此时发生了活锁。</p>
+<p>简单类比，电梯遇到人，一个进的一个出的，对面占路，两个人同时往一个方向让路，来回重复，还是堵着路。</p>
+<p>如果线上应用遇到了活锁问题，恭喜你中奖了，这类问题比较难排查。</p>
+<p>饥饿</p>
+<p>饥饿是指某一个或者多个线程因为种种原因无法获得所需要的资源，导致一直无法执行。</p>
+<p>线程的生命周期</p>
+<p>在线程的生命周期中，它要经历创建、可运行、不可运行几种状态。</p>
+<p><strong>创建状态</strong></p>
+<p>当用 new 操作符创建一个新的线程对象时，该线程处于创建状态。</p>
+<p>处于创建状态的线程只是一个空的线程对象，系统不为它分配资源。</p>
+<p><strong>可运行状态</strong></p>
+<p>执行线程的 start() 方法将为线程分配必须的系统资源，安排其运行，并调用线程体——run()方法，这样就使得该线程处于可运行状态（Runnable）。</p>
+<p>这一状态并不是运行中状态（Running），因为线程也许实际上并未真正运行。</p>
+<p><strong>不可运行状态</strong></p>
+<p>当发生下列事件时，处于运行状态的线程会转入到不可运行状态：</p>
+<p>调用了 sleep() 方法；<br>线程调用 wait() 方法等待特定条件的满足；<br>线程输入/输出阻塞；<br>返回可运行状态；<br>处于睡眠状态的线程在指定的时间过去后；<br>如果线程在等待某一条件，另一个对象必须通过 notify() 或 notifyAll() 方法通知等待线程条件的改变；<br>如果线程是因为输入输出阻塞，等待输入输出完成。<br>线程的优先级</p>
+<p><strong>线程优先级及设置</strong></p>
+<p>线程的优先级是为了在多线程环境中便于系统对线程的调度，优先级高的线程将优先执行。一个线程的优先级设置遵从以下原则：</p>
+<p>线程创建时，子继承父的优先级；<br>线程创建后，可通过调用 setPriority() 方法改变优先级；<br>线程的优先级是1-10之间的正整数。<br>线程的调度策略</p>
+<p>线程调度器选择优先级最高的线程运行。但是，如果发生以下情况，就会终止线程的运行：</p>
+<p>线程体中调用了 yield() 方法，让出了对 CPU 的占用权；<br>线程体中调用了 sleep() 方法，使线程进入睡眠状态；<br>线程由于 I/O 操作而受阻塞；<br>另一个更高优先级的线程出现；<br>在支持时间片的系统中，该线程的时间片用完。<br>单线程创建方式</p>
+<p>单线程创建方式比较简单，一般只有两种方式：继承 Thread 类和实现 Runnable 接口；这两种方式比较常用就不在 Demo 了，但是对于新手需要注意的问题有：</p>
+<p>不管是继承 Thread 类还是实现 Runable 接口，业务逻辑是写在 run 方法里面，线程启动的时候是执行 start() 方法；<br>开启新的线程，不影响主线程的代码执行顺序也不会阻塞主线程的执行；<br>新的线程和主线程的代码执行顺序是不能够保证先后的；<br>对于多线程程序，从微观上来讲某一时刻只有一个线程在工作，多线程目的是让 CPU 忙起来；<br>通过查看 Thread 的源码可以看到，Thread 类是实现了 Runnable 接口的，所以这两种本质上来讲是一个；<br>PS：平时在工作中也可以借鉴这种代码结构，对上层调用来讲提供更多的选择，作为服务提供方核心业务归一维护</p>
+<p>为什么要用线程池</p>
+<p>通过上面的介绍，完全可以开发一个多线程的程序，为什么还要引入线程池呢。主要是因为上述单线程方式存在以下几个问题：</p>
+<p>线程的工作周期：线程创建所需时间为 T1，线程执行任务所需时间为 T2，线程销毁所需时间为 T3，往往是 T1+T3 大于 T2，所有如果频繁创建线程会损耗过多额外的时间；<br>如果有任务来了，再去创建线程的话效率比较低，如果从一个池子中可以直接获取可用的线程，那效率会有所提高。所以线程池省去了任务过来，要先创建线程再去执行的过程，节省了时间，提升了效率；<br>线程池可以管理和控制线程，因为线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控；<br>线程池提供队列，存放缓冲等待执行的任务。<br>大致总结了上述的几个原因，所以可以得出一个结论就是在平时工作中，如果要开发多线程程序，尽量要使用线程池的方式来创建和管理线程。</p>
+<p>通过线程池创建线程从调用 API 角度来说分为两种，一种是原生的线程池，另外该一种是通过 Java 提供的并发包来创建，后者比较简单，后者其实是对原生的线程池创建方式做了一次简化包装，让调用者使用起来更方便，但道理都是一样的。所以搞明白原生线程池的原理是非常重要的。</p>
+<p>ThreadPoolExecutor</p>
+<p>通过 ThreadPoolExecutor 创建线程池，API 如下所示：</p>
+<p>/**</p>
+<pre><code> * public ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,
+ *                           TimeUnit unit,BlockingQueue&lt;Runnable&gt; workQueue)
+ * corePoolSize用于指定核心线程数量
+ * maximumPoolSize指定最大线程数
+ * keepAliveTime和TimeUnit指定线程空闲后的最大存活时间
+ * workQueue则是线程池的缓冲队列,还未执行的线程会在队列中等待
+ * 监控队列长度，确保队列有界
+ * 不当的线程池大小会使得处理速度变慢，稳定性下降，并且导致内存泄露。如果配置的线程过少，则队列会持续变大，消耗过多内存。
+ * 而过多的线程又会 由于频繁的上下文切换导致整个系统的速度变缓——殊途而同归。队列的长度至关重要，它必须得是有界的，这样如果线程池不堪重负了它可以暂时拒绝掉新的请求。
+ * ExecutorService 默认的实现是一个无界的 LinkedBlockingQueue。
+ */
+private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, corePoolSize+1, 10l, TimeUnit.SECONDS,
+        new LinkedBlockingQueue&lt;Runnable&gt;(1000));
+</code></pre><p>先来解释下其中的参数含义（如果看的比较模糊可以大致有个印象，后面的图是关键）。</p>
+<p>corePoolSize<br>核心池的大小。<br>在创建了线程池后，默认情况下，线程池中并没有任何线程，而是等待有任务到来才创建线程去执行任务，除非调用了 prestartAllCoreThreads() 或者 prestartCoreThread() 方法，从这两个方法的名字就可以看出，是预创建线程的意思，即在没有任务到来之前就创建 corePoolSize 个线程或者一个线程。默认情况下，在创建了线程池后，线程池中的线程数为0，当有任务来之后，就会创建一个线程去执行任务，当线程池中的线程数目达到 corePoolSize 后，就会把到达的任务放到缓存队列当中。</p>
+<p>maximumPoolSize<br>线程池最大线程数，这个参数也是一个非常重要的参数，它表示在线程池中最多能创建多少个线程。</p>
+<p>keepAliveTime<br>表示线程没有任务执行时最多保持多久时间会终止。默认情况下，只有当线程池中的线程数大于 corePoolSize 时，keepAliveTime 才会起作用，直到线程池中的线程数不大于 corePoolSize，即当线程池中的线程数大于 corePoolSize 时，如果一个线程空闲的时间达到 keepAliveTime，则会终止，直到线程池中的线程数不超过 corePoolSize。</p>
+<p>但是如果调用了 allowCoreThreadTimeOut(boolean) 方法，在线程池中的线程数不大于 corePoolSize 时，keepAliveTime 参数也会起作用，直到线程池中的线程数为0。</p>
+<p>unit<br>参数 keepAliveTime 的时间单位。</p>
+<p>workQueue<br>一个阻塞队列，用来存储等待执行的任务，这个参数的选择也很重要，会对线程池的运行过程产生重大影响，一般来说，这里的阻塞队列有以下这几种选择：</p>
+<ul>
+<li><p>ArrayBlockingQueue：<br>是一个基于数组结构的有界阻塞队列，此队列安FIFO（先进先出）原则对元素进行排序。</p>
+</li>
+<li><p>LinkedBlockingQueue、<br>基于链表结构的阻塞队列，次队列按照</p>
+</li>
+<li>SynchronousQueue。</li>
+</ul>
+<p>threadFactory<br>线程工厂，主要用来创建线程。</p>
+<p>handler<br>表示当拒绝处理任务时的策略，有以下四种取值：</p>
+<p>ThreadPoolExecutor.AbortPolicy：丢弃任务并抛出 RejectedExecutionException 异常；<br>ThreadPoolExecutor.DiscardPolicy：也是丢弃任务，但是不抛出异常；<br>ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）；<br>ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务。<br>上面这些参数是如何配合工作的呢？请看下图：</p>
+<p>   <img src="/images/threadPool/线程池参数配置详解.jpg" alt="Alt text"></p>
+<p>注意图上面的序号。</p>
+<p>简单总结下线程池之间的参数协作分为以下几步：</p>
+<p>线程优先向 CorePool 中提交；<br>在 Corepool 满了之后，线程被提交到任务队列，等待线程池空闲；<br>在任务队列满了之后 corePool 还没有空闲，那么任务将被提交到 maxPool 中，如果 MaxPool 满了之后执行 task 拒绝策略。<br>流程图如下：</p>
+<p>   <img src="/images/threadPool/线程池执行流程.jpg" alt="Alt text"></p>
+<p>以上就是原生线程池创建的核心原理。除了原生线程池之外并发包还提供了简单的创建方式，上面也说了它们是对原生线程池的一种包装，可以让开发者简单快捷的创建所需要的线程池。</p>
+<p>Executors</p>
+<p>newSingleThreadExecutor</p>
+<p>创建一个线程的线程池，在这个线程池中始终只有一个线程存在。如果线程池中的线程因为异常问题退出，那么会有一个新的线程来替代它。此线程池保证所有任务的执行顺序按照任务的提交顺序执行。</p>
+<p>newFixedThreadPool</p>
+<p>创建固定大小的线程池。每次提交一个任务就创建一个线程，直到线程达到线程池的最大大小。线程池的大小一旦达到最大值就会保持不变，如果某个线程因为执行异常而结束，那么线程池会补充一个新线程。</p>
+<p>newCachedThreadPool</p>
+<p>可根据实际情况，调整线程数量的线程池，线程池中的线程数量不确定，如果有空闲线程会优先选择空闲线程，如果没有空闲线程并且此时有任务提交会创建新的线程。在正常开发中并不推荐这个线程池，因为在极端情况下，会因为 newCachedThreadPool 创建过多线程而耗尽 CPU 和内存资源。</p>
+<p>newScheduledThreadPool</p>
+<p>此线程池可以指定固定数量的线程来周期性的去执行。比如通过 scheduleAtFixedRate 或者 scheduleWithFixedDelay 来指定周期时间。</p>
+<p>PS：另外在写定时任务时（如果不用 Quartz 框架），最好采用这种线程池来做，因为它可以保证里面始终是存在活的线程的。</p>
+<p>推荐使用 ThreadPoolExecutor 方式</p>
+<p>在阿里的 Java 开发手册时有一条是不推荐使用 Executors 去创建，而是推荐去使用 ThreadPoolExecutor 来创建线程池。</p>
+<p>这样做的目的主要原因是：使用 Executors 创建线程池不会传入核心参数，而是采用的默认值，这样的话我们往往会忽略掉里面参数的含义，如果业务场景要求比较苛刻的话，存在资源耗尽的风险；另外采用 ThreadPoolExecutor 的方式可以让我们更加清楚地了解线程池的运行规则，不管是面试还是对技术成长都有莫大的好处。</p>
+<p><strong>线程池有5种状态：</strong><br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">volatile int runState;</span><br><span class="line">// runState is stored in the high-order bits</span><br><span class="line">private static final int RUNNING    = -1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int SHUTDOWN   =  0 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int STOP       =  1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TIDYING    =  2 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TERMINATED =  3 &lt;&lt; COUNT_BITS;</span><br></pre></td></tr></table></figure></p>
+<p>runState表示当前线程池的状态，它是一个 volatile 变量用来保证线程之间的可见性。<br>下面的几个static final变量表示runState可能的几个取值，有以下几个状态：</p>
+<ul>
+<li>RUNNING：能接受新提交的任务，并且也能处理阻塞队列中的任务。(线程池初始时，线程池处于RUNNING状态；)</li>
+<li>SHUTDOWN：关闭状态，不接受新提交的任务，但可以处理阻塞队列中已保存的任务。在线程池处于 RUNNING 状态时，调用 shutdown() 方法会使线程池进入到该状态。（finalize() 方法在执行过程中也会调用 shutdown() 方法进入该状态）</li>
+<li>STOP：不能接受新任务，也不处理阻塞队列中的任务，会中断正在处理任务的线程。在线程池处于 RUNNING 或 SHUTDOWN 状态时，调用 shutdownNow() 方法会使线程池进入到该状态。</li>
+<li>TIDYING：如果所有的任务都已终止了，workerCount (有效线程数) 为0，线程池进入该状态后会调用 terminated() 方法进入 TERMINATED 状态。</li>
+<li>TERMINATED：在 terminated() 方法执行完后进入该状态，默认 terminated() 方法中什么也没有做。</li>
+</ul>
+<p>改了变量，其他线程可以立即知道。保证可见性的方法有以下几种：</p>
+<p>volatile<br>加入 volatile 关键字的变量在进行汇编时会多出一个 lock 前缀指令，这个前缀指令相当于一个内存屏障，内存屏障可以保证内存操作的顺序。当声明为 volatile 的变量进行写操作时，那么这个变量需要将数据写到主内存中。</p>
+<p>由于处理器会实现缓存一致性协议，所以写到主内存后会导致其他处理器的缓存无效，也就是线程工作内存无效，需要从主内存中重新刷新数据。</p>
+]]></content>
+      <categories>
+        <category>多线程</category>
+      </categories>
+      <tags>
+        <tag>线程池</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>并发编程设置合适线程数</title>
+    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
+    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
+<ul>
+<li>并发编程在所有场景下都是快的吗？</li>
+<li>快怎样度量</li>
+</ul>
+<p>需要从定性—-&gt;定量的分析过程。</p>
+<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
+<ul>
+<li><p>CPU密集型程序</p>
+<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
+<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
+</li>
+</ul>
+<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
+<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
+<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
+<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
+<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
+<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
+<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
+<ul>
+<li>I/O密集型程序</li>
+</ul>
+<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
+<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
+<p>同样的单核CPU情况下：</p>
+<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
+<p>综合两种情况可总结：</p>
+<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
+<ul>
+<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
+</ul>
+<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
+<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
+<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
+<p> 对于单核CPU计算：</p>
+<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
+<p> 对于多核CPU计算：</p>
+<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
+<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
+<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
+]]></content>
+      <categories>
+        <category>thread</category>
+      </categories>
+      <tags>
+        <tag>线程数</tag>
       </tags>
   </entry>
   <entry>
@@ -3810,172 +3949,19 @@ Background saving started
       </tags>
   </entry>
   <entry>
-    <title>并发编程设置合适线程数</title>
-    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
-    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
-<ul>
-<li>并发编程在所有场景下都是快的吗？</li>
-<li>快怎样度量</li>
+    <title>排序算法-冒泡</title>
+    <url>/2015/05/17/%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95-%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F/</url>
+    <content><![CDATA[<ul>
+<li><p>冒泡排序</p>
+<p>待排序的数据中，自上而下对相邻的两个数依次进行比较和调整，让较大的数往下沉，较小的往上冒。</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">/**</span><br><span class="line">  * 冒泡排序（待排序的数据中，自上而下对相邻的两个数依次进行比较和调整，让较大的数往下沉，较小的往上冒）</span><br><span class="line">  */</span><br><span class="line"></span><br><span class="line"> public int[] bubbleSort() &#123;</span><br><span class="line">     int[] a = &#123;10, 2, 3, 5, 6, 12, 89&#125;;</span><br><span class="line"></span><br><span class="line">     for (int i = 0; i &lt; a.length; i++) &#123;</span><br><span class="line">         for (int j = 0; j &lt; a.length - 1 - i; j++) &#123;</span><br><span class="line">             if (a[j + 1] &lt; a[j]) &#123;</span><br><span class="line">                 int temp = a[j + 1];</span><br><span class="line">                 a[j + 1] = a[j];</span><br><span class="line">                 a[j] = temp;</span><br><span class="line">             &#125;</span><br><span class="line">         &#125;</span><br><span class="line">     &#125;</span><br><span class="line">     return a;</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"> @Test</span><br><span class="line"> public void bubbleSortTest() &#123;</span><br><span class="line"></span><br><span class="line">     int[] result = bubbleSort();</span><br><span class="line">     for (int i=0;i&lt;result.length;i++) &#123;</span><br><span class="line">         System.err.println(result[i]);</span><br><span class="line">     &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure></li>
 </ul>
-<p>需要从定性—-&gt;定量的分析过程。</p>
-<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
-<ul>
-<li><p>CPU密集型程序</p>
-<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
-<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
-</li>
-</ul>
-<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
-<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
-<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
-<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
-<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
-<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
-<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
-<ul>
-<li>I/O密集型程序</li>
-</ul>
-<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
-<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
-<p>同样的单核CPU情况下：</p>
-<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
-<p>综合两种情况可总结：</p>
-<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
-<ul>
-<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
-</ul>
-<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
-<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
-<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
-<p> 对于单核CPU计算：</p>
-<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
-<p> 对于多核CPU计算：</p>
-<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
-<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
-<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
 ]]></content>
       <categories>
-        <category>thread</category>
+        <category>排序</category>
       </categories>
       <tags>
-        <tag>线程数</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>初步理解线程池核心知识</title>
-    <url>/2017/06/25/%E5%88%9D%E6%AD%A5%E7%90%86%E8%A7%A3%E7%BA%BF%E7%A8%8B%E6%B1%A0%E6%A0%B8%E5%BF%83%E7%9F%A5%E8%AF%86/</url>
-    <content><![CDATA[<p>  先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。</p>
-<p>  <strong>并发与并行</strong></p>
-<p>   并行：表示两个线程同时做事情。<br>   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，</p>
-<p>  临界区</p>
-<pre><code>临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程
-使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。
-</code></pre><p>   <img src="/images/threadPool/1.jpg" alt="Alt text"></p>
-<p>  <strong>阻塞与非阻塞</strong></p>
-<p>   阻塞和非阻塞通常用来形容多线程间的相互影响。比如一个线程占用了临界区资源，那么其它所有需要这个资源的线程就必须在这个临界区中进行等待，等待会导致线程挂起。这种情况就是阻塞。</p>
-<p>  此时，如果占用资源的线程一直不愿意释放资源，那么其它所有阻塞在这个临界区上的线程都不能工作。阻塞是指线程在操作系统层面被挂起。阻塞一般性能不好，需大约8万个时钟周期来做调度。</p>
-<p>  非阻塞则允许多个线程同时进入临界区。</p>
-<p>  <strong>死锁</strong></p>
-<p>  死锁是进程死锁的简称，是指多个进程循环等待他方占有的资源而无限的僵持下去的局面。</p>
-<p>   <img src="/images/threadPool/死锁.jpg" alt="Alt text"></p>
-<p><strong>活锁</strong></p>
-<p>假设有两个线程1、2，它们都需要资源 A/B，假设1号线程占有了 A 资源，2号线程占有了 B 资源；由于两个线程都需要同时拥有这两个资源才可以工作，为了避免死锁，1号线程释放了 A 资源占有锁，2号线程释放了 B 资源占有锁；此时 AB 空闲，两个线程又同时抢锁，再次出现上述情况，此时发生了活锁。</p>
-<p>简单类比，电梯遇到人，一个进的一个出的，对面占路，两个人同时往一个方向让路，来回重复，还是堵着路。</p>
-<p>如果线上应用遇到了活锁问题，恭喜你中奖了，这类问题比较难排查。</p>
-<p>饥饿</p>
-<p>饥饿是指某一个或者多个线程因为种种原因无法获得所需要的资源，导致一直无法执行。</p>
-<p>线程的生命周期</p>
-<p>在线程的生命周期中，它要经历创建、可运行、不可运行几种状态。</p>
-<p><strong>创建状态</strong></p>
-<p>当用 new 操作符创建一个新的线程对象时，该线程处于创建状态。</p>
-<p>处于创建状态的线程只是一个空的线程对象，系统不为它分配资源。</p>
-<p><strong>可运行状态</strong></p>
-<p>执行线程的 start() 方法将为线程分配必须的系统资源，安排其运行，并调用线程体——run()方法，这样就使得该线程处于可运行状态（Runnable）。</p>
-<p>这一状态并不是运行中状态（Running），因为线程也许实际上并未真正运行。</p>
-<p><strong>不可运行状态</strong></p>
-<p>当发生下列事件时，处于运行状态的线程会转入到不可运行状态：</p>
-<p>调用了 sleep() 方法；<br>线程调用 wait() 方法等待特定条件的满足；<br>线程输入/输出阻塞；<br>返回可运行状态；<br>处于睡眠状态的线程在指定的时间过去后；<br>如果线程在等待某一条件，另一个对象必须通过 notify() 或 notifyAll() 方法通知等待线程条件的改变；<br>如果线程是因为输入输出阻塞，等待输入输出完成。<br>线程的优先级</p>
-<p><strong>线程优先级及设置</strong></p>
-<p>线程的优先级是为了在多线程环境中便于系统对线程的调度，优先级高的线程将优先执行。一个线程的优先级设置遵从以下原则：</p>
-<p>线程创建时，子继承父的优先级；<br>线程创建后，可通过调用 setPriority() 方法改变优先级；<br>线程的优先级是1-10之间的正整数。<br>线程的调度策略</p>
-<p>线程调度器选择优先级最高的线程运行。但是，如果发生以下情况，就会终止线程的运行：</p>
-<p>线程体中调用了 yield() 方法，让出了对 CPU 的占用权；<br>线程体中调用了 sleep() 方法，使线程进入睡眠状态；<br>线程由于 I/O 操作而受阻塞；<br>另一个更高优先级的线程出现；<br>在支持时间片的系统中，该线程的时间片用完。<br>单线程创建方式</p>
-<p>单线程创建方式比较简单，一般只有两种方式：继承 Thread 类和实现 Runnable 接口；这两种方式比较常用就不在 Demo 了，但是对于新手需要注意的问题有：</p>
-<p>不管是继承 Thread 类还是实现 Runable 接口，业务逻辑是写在 run 方法里面，线程启动的时候是执行 start() 方法；<br>开启新的线程，不影响主线程的代码执行顺序也不会阻塞主线程的执行；<br>新的线程和主线程的代码执行顺序是不能够保证先后的；<br>对于多线程程序，从微观上来讲某一时刻只有一个线程在工作，多线程目的是让 CPU 忙起来；<br>通过查看 Thread 的源码可以看到，Thread 类是实现了 Runnable 接口的，所以这两种本质上来讲是一个；<br>PS：平时在工作中也可以借鉴这种代码结构，对上层调用来讲提供更多的选择，作为服务提供方核心业务归一维护</p>
-<p>为什么要用线程池</p>
-<p>通过上面的介绍，完全可以开发一个多线程的程序，为什么还要引入线程池呢。主要是因为上述单线程方式存在以下几个问题：</p>
-<p>线程的工作周期：线程创建所需时间为 T1，线程执行任务所需时间为 T2，线程销毁所需时间为 T3，往往是 T1+T3 大于 T2，所有如果频繁创建线程会损耗过多额外的时间；<br>如果有任务来了，再去创建线程的话效率比较低，如果从一个池子中可以直接获取可用的线程，那效率会有所提高。所以线程池省去了任务过来，要先创建线程再去执行的过程，节省了时间，提升了效率；<br>线程池可以管理和控制线程，因为线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控；<br>线程池提供队列，存放缓冲等待执行的任务。<br>大致总结了上述的几个原因，所以可以得出一个结论就是在平时工作中，如果要开发多线程程序，尽量要使用线程池的方式来创建和管理线程。</p>
-<p>通过线程池创建线程从调用 API 角度来说分为两种，一种是原生的线程池，另外该一种是通过 Java 提供的并发包来创建，后者比较简单，后者其实是对原生的线程池创建方式做了一次简化包装，让调用者使用起来更方便，但道理都是一样的。所以搞明白原生线程池的原理是非常重要的。</p>
-<p>ThreadPoolExecutor</p>
-<p>通过 ThreadPoolExecutor 创建线程池，API 如下所示：</p>
-<p>/**</p>
-<pre><code> * public ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,
- *                           TimeUnit unit,BlockingQueue&lt;Runnable&gt; workQueue)
- * corePoolSize用于指定核心线程数量
- * maximumPoolSize指定最大线程数
- * keepAliveTime和TimeUnit指定线程空闲后的最大存活时间
- * workQueue则是线程池的缓冲队列,还未执行的线程会在队列中等待
- * 监控队列长度，确保队列有界
- * 不当的线程池大小会使得处理速度变慢，稳定性下降，并且导致内存泄露。如果配置的线程过少，则队列会持续变大，消耗过多内存。
- * 而过多的线程又会 由于频繁的上下文切换导致整个系统的速度变缓——殊途而同归。队列的长度至关重要，它必须得是有界的，这样如果线程池不堪重负了它可以暂时拒绝掉新的请求。
- * ExecutorService 默认的实现是一个无界的 LinkedBlockingQueue。
- */
-private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, corePoolSize+1, 10l, TimeUnit.SECONDS,
-        new LinkedBlockingQueue&lt;Runnable&gt;(1000));
-</code></pre><p>先来解释下其中的参数含义（如果看的比较模糊可以大致有个印象，后面的图是关键）。</p>
-<p>corePoolSize<br>核心池的大小。<br>在创建了线程池后，默认情况下，线程池中并没有任何线程，而是等待有任务到来才创建线程去执行任务，除非调用了 prestartAllCoreThreads() 或者 prestartCoreThread() 方法，从这两个方法的名字就可以看出，是预创建线程的意思，即在没有任务到来之前就创建 corePoolSize 个线程或者一个线程。默认情况下，在创建了线程池后，线程池中的线程数为0，当有任务来之后，就会创建一个线程去执行任务，当线程池中的线程数目达到 corePoolSize 后，就会把到达的任务放到缓存队列当中。</p>
-<p>maximumPoolSize<br>线程池最大线程数，这个参数也是一个非常重要的参数，它表示在线程池中最多能创建多少个线程。</p>
-<p>keepAliveTime<br>表示线程没有任务执行时最多保持多久时间会终止。默认情况下，只有当线程池中的线程数大于 corePoolSize 时，keepAliveTime 才会起作用，直到线程池中的线程数不大于 corePoolSize，即当线程池中的线程数大于 corePoolSize 时，如果一个线程空闲的时间达到 keepAliveTime，则会终止，直到线程池中的线程数不超过 corePoolSize。</p>
-<p>但是如果调用了 allowCoreThreadTimeOut(boolean) 方法，在线程池中的线程数不大于 corePoolSize 时，keepAliveTime 参数也会起作用，直到线程池中的线程数为0。</p>
-<p>unit<br>参数 keepAliveTime 的时间单位。</p>
-<p>workQueue<br>一个阻塞队列，用来存储等待执行的任务，这个参数的选择也很重要，会对线程池的运行过程产生重大影响，一般来说，这里的阻塞队列有以下这几种选择：</p>
-<ul>
-<li><p>ArrayBlockingQueue：<br>是一个基于数组结构的有界阻塞队列，此队列安FIFO（先进先出）原则对元素进行排序。</p>
-</li>
-<li><p>LinkedBlockingQueue、<br>基于链表结构的阻塞队列，次队列按照</p>
-</li>
-<li>SynchronousQueue。</li>
-</ul>
-<p>threadFactory<br>线程工厂，主要用来创建线程。</p>
-<p>handler<br>表示当拒绝处理任务时的策略，有以下四种取值：</p>
-<p>ThreadPoolExecutor.AbortPolicy：丢弃任务并抛出 RejectedExecutionException 异常；<br>ThreadPoolExecutor.DiscardPolicy：也是丢弃任务，但是不抛出异常；<br>ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）；<br>ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务。<br>上面这些参数是如何配合工作的呢？请看下图：</p>
-<p>   <img src="/images/threadPool/线程池参数配置详解.jpg" alt="Alt text"></p>
-<p>注意图上面的序号。</p>
-<p>简单总结下线程池之间的参数协作分为以下几步：</p>
-<p>线程优先向 CorePool 中提交；<br>在 Corepool 满了之后，线程被提交到任务队列，等待线程池空闲；<br>在任务队列满了之后 corePool 还没有空闲，那么任务将被提交到 maxPool 中，如果 MaxPool 满了之后执行 task 拒绝策略。<br>流程图如下：</p>
-<p>   <img src="/images/threadPool/线程池执行流程.jpg" alt="Alt text"></p>
-<p>以上就是原生线程池创建的核心原理。除了原生线程池之外并发包还提供了简单的创建方式，上面也说了它们是对原生线程池的一种包装，可以让开发者简单快捷的创建所需要的线程池。</p>
-<p>Executors</p>
-<p>newSingleThreadExecutor</p>
-<p>创建一个线程的线程池，在这个线程池中始终只有一个线程存在。如果线程池中的线程因为异常问题退出，那么会有一个新的线程来替代它。此线程池保证所有任务的执行顺序按照任务的提交顺序执行。</p>
-<p>newFixedThreadPool</p>
-<p>创建固定大小的线程池。每次提交一个任务就创建一个线程，直到线程达到线程池的最大大小。线程池的大小一旦达到最大值就会保持不变，如果某个线程因为执行异常而结束，那么线程池会补充一个新线程。</p>
-<p>newCachedThreadPool</p>
-<p>可根据实际情况，调整线程数量的线程池，线程池中的线程数量不确定，如果有空闲线程会优先选择空闲线程，如果没有空闲线程并且此时有任务提交会创建新的线程。在正常开发中并不推荐这个线程池，因为在极端情况下，会因为 newCachedThreadPool 创建过多线程而耗尽 CPU 和内存资源。</p>
-<p>newScheduledThreadPool</p>
-<p>此线程池可以指定固定数量的线程来周期性的去执行。比如通过 scheduleAtFixedRate 或者 scheduleWithFixedDelay 来指定周期时间。</p>
-<p>PS：另外在写定时任务时（如果不用 Quartz 框架），最好采用这种线程池来做，因为它可以保证里面始终是存在活的线程的。</p>
-<p>推荐使用 ThreadPoolExecutor 方式</p>
-<p>在阿里的 Java 开发手册时有一条是不推荐使用 Executors 去创建，而是推荐去使用 ThreadPoolExecutor 来创建线程池。</p>
-<p>这样做的目的主要原因是：使用 Executors 创建线程池不会传入核心参数，而是采用的默认值，这样的话我们往往会忽略掉里面参数的含义，如果业务场景要求比较苛刻的话，存在资源耗尽的风险；另外采用 ThreadPoolExecutor 的方式可以让我们更加清楚地了解线程池的运行规则，不管是面试还是对技术成长都有莫大的好处。</p>
-<p><strong>线程池有5种状态：</strong><br><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">volatile int runState;</span><br><span class="line">// runState is stored in the high-order bits</span><br><span class="line">private static final int RUNNING    = -1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int SHUTDOWN   =  0 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int STOP       =  1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TIDYING    =  2 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TERMINATED =  3 &lt;&lt; COUNT_BITS;</span><br></pre></td></tr></table></figure></p>
-<p>runState表示当前线程池的状态，它是一个 volatile 变量用来保证线程之间的可见性。<br>下面的几个static final变量表示runState可能的几个取值，有以下几个状态：</p>
-<ul>
-<li>RUNNING：能接受新提交的任务，并且也能处理阻塞队列中的任务。(线程池初始时，线程池处于RUNNING状态；)</li>
-<li>SHUTDOWN：关闭状态，不接受新提交的任务，但可以处理阻塞队列中已保存的任务。在线程池处于 RUNNING 状态时，调用 shutdown() 方法会使线程池进入到该状态。（finalize() 方法在执行过程中也会调用 shutdown() 方法进入该状态）</li>
-<li>STOP：不能接受新任务，也不处理阻塞队列中的任务，会中断正在处理任务的线程。在线程池处于 RUNNING 或 SHUTDOWN 状态时，调用 shutdownNow() 方法会使线程池进入到该状态。</li>
-<li>TIDYING：如果所有的任务都已终止了，workerCount (有效线程数) 为0，线程池进入该状态后会调用 terminated() 方法进入 TERMINATED 状态。</li>
-<li>TERMINATED：在 terminated() 方法执行完后进入该状态，默认 terminated() 方法中什么也没有做。</li>
-</ul>
-<p>改了变量，其他线程可以立即知道。保证可见性的方法有以下几种：</p>
-<p>volatile<br>加入 volatile 关键字的变量在进行汇编时会多出一个 lock 前缀指令，这个前缀指令相当于一个内存屏障，内存屏障可以保证内存操作的顺序。当声明为 volatile 的变量进行写操作时，那么这个变量需要将数据写到主内存中。</p>
-<p>由于处理器会实现缓存一致性协议，所以写到主内存后会导致其他处理器的缓存无效，也就是线程工作内存无效，需要从主内存中重新刷新数据。</p>
-]]></content>
-      <categories>
-        <category>多线程</category>
-      </categories>
-      <tags>
-        <tag>线程池</tag>
+        <tag>排序</tag>
       </tags>
   </entry>
   <entry>
