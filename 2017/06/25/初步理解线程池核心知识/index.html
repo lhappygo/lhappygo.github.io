@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="线程池,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="happygo's blog" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。   并发与并行    并行：表示两个线程同时做事情。   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，   临界区 临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程 使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。">
+<meta name="keywords" content="线程池">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初步理解线程池核心知识">
+<meta property="og:url" content="http://lhappygo.github.io/2017/06/25/初步理解线程池核心知识/index.html">
+<meta property="og:site_name" content="happygo&#39;s blog">
+<meta property="og:description" content="先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。   并发与并行    并行：表示两个线程同时做事情。   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，   临界区 临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程 使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://lhappygo.github.io/images/threadPool/1.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/threadPool/死锁.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/threadPool/线程池参数配置详解.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/threadPool/线程池执行流程.jpg">
+<meta property="og:updated_time" content="2025-06-09T08:49:28.984Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="初步理解线程池核心知识">
+<meta name="twitter:description" content="先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。   并发与并行    并行：表示两个线程同时做事情。   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，   临界区 临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程 使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。">
+<meta name="twitter:image" content="http://lhappygo.github.io/images/threadPool/1.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lhappygo.github.io/2017/06/25/初步理解线程池核心知识/">
+
+
+
+
+
+  <title>初步理解线程池核心知识 | happygo's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">happygo's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input">
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'y_LfGyHvCBYL1bZG5tke','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lhappygo.github.io/2017/06/25/初步理解线程池核心知识/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="happygo">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="happygo's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">初步理解线程池核心知识</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2017-06-25T20:25:20+08:00">
+                2017-06-25
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/多线程/" itemprop="url" rel="index">
+                    <span itemprop="name">多线程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>  先从基础概念开始到最后的并发模型由浅入深来加深理解，总结下线程方面的认知。</p>
+<p>  <strong>并发与并行</strong></p>
+<p>   并行：表示两个线程同时做事情。<br>   并发：表示一会儿做这个事情，一会儿做另一个事情，存在着调度，单核cpu不可能存在并行，</p>
+<p>  临界区</p>
+<pre><code>临界区用来表示一种公共资源或者说是共享数据，可以被多个线程使用。但是每一次，只能有一个线程
+使用它，一旦临界区资源被占用，其他线程要想使用这个资源，就必须等待。
+</code></pre><p>   <img src="/images/threadPool/1.jpg" alt="Alt text"></p>
+<p>  <strong>阻塞与非阻塞</strong></p>
+<p>   阻塞和非阻塞通常用来形容多线程间的相互影响。比如一个线程占用了临界区资源，那么其它所有需要这个资源的线程就必须在这个临界区中进行等待，等待会导致线程挂起。这种情况就是阻塞。</p>
+<p>  此时，如果占用资源的线程一直不愿意释放资源，那么其它所有阻塞在这个临界区上的线程都不能工作。阻塞是指线程在操作系统层面被挂起。阻塞一般性能不好，需大约8万个时钟周期来做调度。</p>
+<p>  非阻塞则允许多个线程同时进入临界区。</p>
+<p>  <strong>死锁</strong></p>
+<p>  死锁是进程死锁的简称，是指多个进程循环等待他方占有的资源而无限的僵持下去的局面。</p>
+<p>   <img src="/images/threadPool/死锁.jpg" alt="Alt text"></p>
+<p><strong>活锁</strong></p>
+<p>假设有两个线程1、2，它们都需要资源 A/B，假设1号线程占有了 A 资源，2号线程占有了 B 资源；由于两个线程都需要同时拥有这两个资源才可以工作，为了避免死锁，1号线程释放了 A 资源占有锁，2号线程释放了 B 资源占有锁；此时 AB 空闲，两个线程又同时抢锁，再次出现上述情况，此时发生了活锁。</p>
+<p>简单类比，电梯遇到人，一个进的一个出的，对面占路，两个人同时往一个方向让路，来回重复，还是堵着路。</p>
+<p>如果线上应用遇到了活锁问题，恭喜你中奖了，这类问题比较难排查。</p>
+<p>饥饿</p>
+<p>饥饿是指某一个或者多个线程因为种种原因无法获得所需要的资源，导致一直无法执行。</p>
+<p>线程的生命周期</p>
+<p>在线程的生命周期中，它要经历创建、可运行、不可运行几种状态。</p>
+<p><strong>创建状态</strong></p>
+<p>当用 new 操作符创建一个新的线程对象时，该线程处于创建状态。</p>
+<p>处于创建状态的线程只是一个空的线程对象，系统不为它分配资源。</p>
+<p><strong>可运行状态</strong></p>
+<p>执行线程的 start() 方法将为线程分配必须的系统资源，安排其运行，并调用线程体——run()方法，这样就使得该线程处于可运行状态（Runnable）。</p>
+<p>这一状态并不是运行中状态（Running），因为线程也许实际上并未真正运行。</p>
+<p><strong>不可运行状态</strong></p>
+<p>当发生下列事件时，处于运行状态的线程会转入到不可运行状态：</p>
+<p>调用了 sleep() 方法；<br>线程调用 wait() 方法等待特定条件的满足；<br>线程输入/输出阻塞；<br>返回可运行状态；<br>处于睡眠状态的线程在指定的时间过去后；<br>如果线程在等待某一条件，另一个对象必须通过 notify() 或 notifyAll() 方法通知等待线程条件的改变；<br>如果线程是因为输入输出阻塞，等待输入输出完成。<br>线程的优先级</p>
+<p><strong>线程优先级及设置</strong></p>
+<p>线程的优先级是为了在多线程环境中便于系统对线程的调度，优先级高的线程将优先执行。一个线程的优先级设置遵从以下原则：</p>
+<p>线程创建时，子继承父的优先级；<br>线程创建后，可通过调用 setPriority() 方法改变优先级；<br>线程的优先级是1-10之间的正整数。<br>线程的调度策略</p>
+<p>线程调度器选择优先级最高的线程运行。但是，如果发生以下情况，就会终止线程的运行：</p>
+<p>线程体中调用了 yield() 方法，让出了对 CPU 的占用权；<br>线程体中调用了 sleep() 方法，使线程进入睡眠状态；<br>线程由于 I/O 操作而受阻塞；<br>另一个更高优先级的线程出现；<br>在支持时间片的系统中，该线程的时间片用完。<br>单线程创建方式</p>
+<p>单线程创建方式比较简单，一般只有两种方式：继承 Thread 类和实现 Runnable 接口；这两种方式比较常用就不在 Demo 了，但是对于新手需要注意的问题有：</p>
+<p>不管是继承 Thread 类还是实现 Runable 接口，业务逻辑是写在 run 方法里面，线程启动的时候是执行 start() 方法；<br>开启新的线程，不影响主线程的代码执行顺序也不会阻塞主线程的执行；<br>新的线程和主线程的代码执行顺序是不能够保证先后的；<br>对于多线程程序，从微观上来讲某一时刻只有一个线程在工作，多线程目的是让 CPU 忙起来；<br>通过查看 Thread 的源码可以看到，Thread 类是实现了 Runnable 接口的，所以这两种本质上来讲是一个；<br>PS：平时在工作中也可以借鉴这种代码结构，对上层调用来讲提供更多的选择，作为服务提供方核心业务归一维护</p>
+<p>为什么要用线程池</p>
+<p>通过上面的介绍，完全可以开发一个多线程的程序，为什么还要引入线程池呢。主要是因为上述单线程方式存在以下几个问题：</p>
+<p>线程的工作周期：线程创建所需时间为 T1，线程执行任务所需时间为 T2，线程销毁所需时间为 T3，往往是 T1+T3 大于 T2，所有如果频繁创建线程会损耗过多额外的时间；<br>如果有任务来了，再去创建线程的话效率比较低，如果从一个池子中可以直接获取可用的线程，那效率会有所提高。所以线程池省去了任务过来，要先创建线程再去执行的过程，节省了时间，提升了效率；<br>线程池可以管理和控制线程，因为线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控；<br>线程池提供队列，存放缓冲等待执行的任务。<br>大致总结了上述的几个原因，所以可以得出一个结论就是在平时工作中，如果要开发多线程程序，尽量要使用线程池的方式来创建和管理线程。</p>
+<p>通过线程池创建线程从调用 API 角度来说分为两种，一种是原生的线程池，另外该一种是通过 Java 提供的并发包来创建，后者比较简单，后者其实是对原生的线程池创建方式做了一次简化包装，让调用者使用起来更方便，但道理都是一样的。所以搞明白原生线程池的原理是非常重要的。</p>
+<p>ThreadPoolExecutor</p>
+<p>通过 ThreadPoolExecutor 创建线程池，API 如下所示：</p>
+<p>/**</p>
+<pre><code> * public ThreadPoolExecutor(int corePoolSize,int maximumPoolSize,long keepAliveTime,
+ *                           TimeUnit unit,BlockingQueue&lt;Runnable&gt; workQueue)
+ * corePoolSize用于指定核心线程数量
+ * maximumPoolSize指定最大线程数
+ * keepAliveTime和TimeUnit指定线程空闲后的最大存活时间
+ * workQueue则是线程池的缓冲队列,还未执行的线程会在队列中等待
+ * 监控队列长度，确保队列有界
+ * 不当的线程池大小会使得处理速度变慢，稳定性下降，并且导致内存泄露。如果配置的线程过少，则队列会持续变大，消耗过多内存。
+ * 而过多的线程又会 由于频繁的上下文切换导致整个系统的速度变缓——殊途而同归。队列的长度至关重要，它必须得是有界的，这样如果线程池不堪重负了它可以暂时拒绝掉新的请求。
+ * ExecutorService 默认的实现是一个无界的 LinkedBlockingQueue。
+ */
+private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, corePoolSize+1, 10l, TimeUnit.SECONDS,
+        new LinkedBlockingQueue&lt;Runnable&gt;(1000));
+</code></pre><p>先来解释下其中的参数含义（如果看的比较模糊可以大致有个印象，后面的图是关键）。</p>
+<p>corePoolSize<br>核心池的大小。<br>在创建了线程池后，默认情况下，线程池中并没有任何线程，而是等待有任务到来才创建线程去执行任务，除非调用了 prestartAllCoreThreads() 或者 prestartCoreThread() 方法，从这两个方法的名字就可以看出，是预创建线程的意思，即在没有任务到来之前就创建 corePoolSize 个线程或者一个线程。默认情况下，在创建了线程池后，线程池中的线程数为0，当有任务来之后，就会创建一个线程去执行任务，当线程池中的线程数目达到 corePoolSize 后，就会把到达的任务放到缓存队列当中。</p>
+<p>maximumPoolSize<br>线程池最大线程数，这个参数也是一个非常重要的参数，它表示在线程池中最多能创建多少个线程。</p>
+<p>keepAliveTime<br>表示线程没有任务执行时最多保持多久时间会终止。默认情况下，只有当线程池中的线程数大于 corePoolSize 时，keepAliveTime 才会起作用，直到线程池中的线程数不大于 corePoolSize，即当线程池中的线程数大于 corePoolSize 时，如果一个线程空闲的时间达到 keepAliveTime，则会终止，直到线程池中的线程数不超过 corePoolSize。</p>
+<p>但是如果调用了 allowCoreThreadTimeOut(boolean) 方法，在线程池中的线程数不大于 corePoolSize 时，keepAliveTime 参数也会起作用，直到线程池中的线程数为0。</p>
+<p>unit<br>参数 keepAliveTime 的时间单位。</p>
+<p>workQueue<br>一个阻塞队列，用来存储等待执行的任务，这个参数的选择也很重要，会对线程池的运行过程产生重大影响，一般来说，这里的阻塞队列有以下这几种选择：</p>
+<ul>
+<li><p>ArrayBlockingQueue：<br>是一个基于数组结构的有界阻塞队列，此队列安FIFO（先进先出）原则对元素进行排序。</p>
+</li>
+<li><p>LinkedBlockingQueue、<br>基于链表结构的阻塞队列，次队列按照</p>
+</li>
+<li>SynchronousQueue。</li>
+</ul>
+<p>threadFactory<br>线程工厂，主要用来创建线程。</p>
+<p>handler<br>表示当拒绝处理任务时的策略，有以下四种取值：</p>
+<p>ThreadPoolExecutor.AbortPolicy：丢弃任务并抛出 RejectedExecutionException 异常；<br>ThreadPoolExecutor.DiscardPolicy：也是丢弃任务，但是不抛出异常；<br>ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）；<br>ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务。<br>上面这些参数是如何配合工作的呢？请看下图：</p>
+<p>   <img src="/images/threadPool/线程池参数配置详解.jpg" alt="Alt text"></p>
+<p>注意图上面的序号。</p>
+<p>简单总结下线程池之间的参数协作分为以下几步：</p>
+<p>线程优先向 CorePool 中提交；<br>在 Corepool 满了之后，线程被提交到任务队列，等待线程池空闲；<br>在任务队列满了之后 corePool 还没有空闲，那么任务将被提交到 maxPool 中，如果 MaxPool 满了之后执行 task 拒绝策略。<br>流程图如下：</p>
+<p>   <img src="/images/threadPool/线程池执行流程.jpg" alt="Alt text"></p>
+<p>以上就是原生线程池创建的核心原理。除了原生线程池之外并发包还提供了简单的创建方式，上面也说了它们是对原生线程池的一种包装，可以让开发者简单快捷的创建所需要的线程池。</p>
+<p>Executors</p>
+<p>newSingleThreadExecutor</p>
+<p>创建一个线程的线程池，在这个线程池中始终只有一个线程存在。如果线程池中的线程因为异常问题退出，那么会有一个新的线程来替代它。此线程池保证所有任务的执行顺序按照任务的提交顺序执行。</p>
+<p>newFixedThreadPool</p>
+<p>创建固定大小的线程池。每次提交一个任务就创建一个线程，直到线程达到线程池的最大大小。线程池的大小一旦达到最大值就会保持不变，如果某个线程因为执行异常而结束，那么线程池会补充一个新线程。</p>
+<p>newCachedThreadPool</p>
+<p>可根据实际情况，调整线程数量的线程池，线程池中的线程数量不确定，如果有空闲线程会优先选择空闲线程，如果没有空闲线程并且此时有任务提交会创建新的线程。在正常开发中并不推荐这个线程池，因为在极端情况下，会因为 newCachedThreadPool 创建过多线程而耗尽 CPU 和内存资源。</p>
+<p>newScheduledThreadPool</p>
+<p>此线程池可以指定固定数量的线程来周期性的去执行。比如通过 scheduleAtFixedRate 或者 scheduleWithFixedDelay 来指定周期时间。</p>
+<p>PS：另外在写定时任务时（如果不用 Quartz 框架），最好采用这种线程池来做，因为它可以保证里面始终是存在活的线程的。</p>
+<p>推荐使用 ThreadPoolExecutor 方式</p>
+<p>在阿里的 Java 开发手册时有一条是不推荐使用 Executors 去创建，而是推荐去使用 ThreadPoolExecutor 来创建线程池。</p>
+<p>这样做的目的主要原因是：使用 Executors 创建线程池不会传入核心参数，而是采用的默认值，这样的话我们往往会忽略掉里面参数的含义，如果业务场景要求比较苛刻的话，存在资源耗尽的风险；另外采用 ThreadPoolExecutor 的方式可以让我们更加清楚地了解线程池的运行规则，不管是面试还是对技术成长都有莫大的好处。</p>
+<p><strong>线程池有5种状态：</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">volatile int runState;</span><br><span class="line">// runState is stored in the high-order bits</span><br><span class="line">private static final int RUNNING    = -1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int SHUTDOWN   =  0 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int STOP       =  1 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TIDYING    =  2 &lt;&lt; COUNT_BITS;</span><br><span class="line">private static final int TERMINATED =  3 &lt;&lt; COUNT_BITS;</span><br></pre></td></tr></table></figure></p>
+<p>runState表示当前线程池的状态，它是一个 volatile 变量用来保证线程之间的可见性。<br>下面的几个static final变量表示runState可能的几个取值，有以下几个状态：</p>
+<ul>
+<li>RUNNING：能接受新提交的任务，并且也能处理阻塞队列中的任务。(线程池初始时，线程池处于RUNNING状态；)</li>
+<li>SHUTDOWN：关闭状态，不接受新提交的任务，但可以处理阻塞队列中已保存的任务。在线程池处于 RUNNING 状态时，调用 shutdown() 方法会使线程池进入到该状态。（finalize() 方法在执行过程中也会调用 shutdown() 方法进入该状态）</li>
+<li>STOP：不能接受新任务，也不处理阻塞队列中的任务，会中断正在处理任务的线程。在线程池处于 RUNNING 或 SHUTDOWN 状态时，调用 shutdownNow() 方法会使线程池进入到该状态。</li>
+<li>TIDYING：如果所有的任务都已终止了，workerCount (有效线程数) 为0，线程池进入该状态后会调用 terminated() 方法进入 TERMINATED 状态。</li>
+<li>TERMINATED：在 terminated() 方法执行完后进入该状态，默认 terminated() 方法中什么也没有做。</li>
+</ul>
+<p>改了变量，其他线程可以立即知道。保证可见性的方法有以下几种：</p>
+<p>volatile<br>加入 volatile 关键字的变量在进行汇编时会多出一个 lock 前缀指令，这个前缀指令相当于一个内存屏障，内存屏障可以保证内存操作的顺序。当声明为 volatile 的变量进行写操作时，那么这个变量需要将数据写到主内存中。</p>
+<p>由于处理器会实现缓存一致性协议，所以写到主内存后会导致其他处理器的缓存无效，也就是线程工作内存无效，需要从主内存中重新刷新数据。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/线程池/" rel="tag"># 线程池</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/06/25/跨越问题解决方式/" rel="next" title="Spring Boot中解决跨域问题">
+                <i class="fa fa-chevron-left"></i> Spring Boot中解决跨域问题
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/12/18/linux开放新端口/" rel="prev" title="linux开放新端口">
+                linux开放新端口 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="happygo">
+            
+              <p class="site-author-name" itemprop="name">happygo</p>
+              <p class="site-description motion-element" itemprop="description">Everthing will going to be all right.</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">54</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">39</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">62</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">happygo</span>
+
+  
+</div>
+
+
+  <div class="powered-by">  个人专属</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">博客 v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2157634"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

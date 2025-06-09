@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="reids,sentinel,哨兵,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="happygo's blog" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="哨兵  定义：哨兵是redis集群机构中重要的一个组件，有以下功能：  集群监控：负责监控redis master、slave进行是否正常（redis主从是否正常）  消息通知：某个redis实例有故障，哨兵负责发送报警消息给管理员。    故障转移：如果master node挂了，会自动转移到slave node上。（主节点挂了自动转移到从节点）   配置中心：故障转移发生了，通知client客">
+<meta name="keywords" content="reids,sentinel,哨兵">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis集群中哨兵机制">
+<meta property="og:url" content="http://lhappygo.github.io/2018/09/15/哨兵/index.html">
+<meta property="og:site_name" content="happygo&#39;s blog">
+<meta property="og:description" content="哨兵  定义：哨兵是redis集群机构中重要的一个组件，有以下功能：  集群监控：负责监控redis master、slave进行是否正常（redis主从是否正常）  消息通知：某个redis实例有故障，哨兵负责发送报警消息给管理员。    故障转移：如果master node挂了，会自动转移到slave node上。（主节点挂了自动转移到从节点）   配置中心：故障转移发生了，通知client客">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://lhappygo.github.io/images/sentinel_01/00001.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/sentinel_01/00002.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/sentinel_01/00003.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/sentinel_01/00004.jpg">
+<meta property="og:image" content="http://lhappygo.github.io/images/sentinel_01/00005.jpg">
+<meta property="og:updated_time" content="2025-06-09T08:49:28.986Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis集群中哨兵机制">
+<meta name="twitter:description" content="哨兵  定义：哨兵是redis集群机构中重要的一个组件，有以下功能：  集群监控：负责监控redis master、slave进行是否正常（redis主从是否正常）  消息通知：某个redis实例有故障，哨兵负责发送报警消息给管理员。    故障转移：如果master node挂了，会自动转移到slave node上。（主节点挂了自动转移到从节点）   配置中心：故障转移发生了，通知client客">
+<meta name="twitter:image" content="http://lhappygo.github.io/images/sentinel_01/00001.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lhappygo.github.io/2018/09/15/哨兵/">
+
+
+
+
+
+  <title>redis集群中哨兵机制 | happygo's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">happygo's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input">
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'y_LfGyHvCBYL1bZG5tke','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lhappygo.github.io/2018/09/15/哨兵/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="happygo">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="happygo's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">redis集群中哨兵机制</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-09-15T21:19:29+08:00">
+                2018-09-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><strong>哨兵</strong></p>
+<p><img src="/images/sentinel_01/00001.jpg" alt="Alt text"></p>
+<p>定义：哨兵是redis集群机构中重要的一个组件，有以下功能：</p>
+<ul>
+<li><p>集群监控：负责监控redis master、slave进行是否正常（redis主从是否正常）</p>
+</li>
+<li><p>消息通知：某个redis实例有故障，哨兵负责发送报警消息给管理员。</p>
+</li>
+</ul>
+<ul>
+<li>故障转移：如果master node挂了，会自动转移到slave node上。（主节点挂了自动转移到从节点）</li>
+</ul>
+<ul>
+<li>配置中心：故障转移发生了，通知client客户端新的master地址。</li>
+</ul>
+<blockquote>
+<p>哨兵用于redis集群的高可用，是分布式的，作为一个哨兵集群去运行，互相协同工作。</p>
+</blockquote>
+<ul>
+<li><p>故障转移时，判断一个master node(主节点）是否宕机需大部分哨兵同意才可，设计分布式选举。</p>
+</li>
+<li><p>部分哨兵节点挂了，哨兵集群还是可正常运行的。如果作为一个高可用机制重要组成部分的故障转移系统本身是单点的，有点扯。</p>
+</li>
+</ul>
+<p><strong>核心点</strong></p>
+<ul>
+<li><p>哨兵至少需3个实例保证自身健壮性。</p>
+</li>
+<li><p>哨兵+redis主从部署架构，不保证数据无丢失，只保证redis集群的高可用。</p>
+</li>
+<li><p>哨兵+redis主从这种复杂部署架构，需在测试环境及生产环境进行充足的测试、演练。</p>
+</li>
+</ul>
+<p>Redis Cluster方案服务端路由查询</p>
+<p><img src="/images/sentinel_01/00002.jpg" alt="Alt text"></p>
+<ol>
+<li>redis集群模式工作原理</li>
+<li>集群模式下，redis的key如何寻址</li>
+<li>分布式寻址有哪些算法</li>
+<li>一致性hash算法原理</li>
+</ol>
+<p>Redis Cluster是一种服务端Sharding技术，3.0版本提供。Redis Cluster并没有使用一致性hash。而是采用slot（槽）概念。一共分为16384个槽。将请求发送到任意节点，接收到请求的节点会将查询请求发送到正确节点上运行。</p>
+<p><strong>方案说明：</strong></p>
+<ol>
+<li><p>通过哈希方式，将数据分片，每个节点均分储存一定哈希槽（哈希值）区间的数据，默认分配了16384个槽位。</p>
+</li>
+<li><p>每份数据分片储存在多个互为主从多节点上。</p>
+</li>
+<li><p>数据写入先写主节点，再同步到从节点（支持配置为阻塞同步）</p>
+</li>
+<li><p>同一分片多个节点间的数据不保持一致性。</p>
+</li>
+<li><p>读取数据时，客户端操作的key没有分配在该节点上时，redis会返回指向指令，指向正确的节点。</p>
+</li>
+<li><p>扩容时需把旧节点数据迁移一部分到新节点。</p>
+</li>
+</ol>
+<p>在redis cluster架构下，每个redis要开放两个端口号，如一个是6379，另一个是16379.</p>
+<p>16379端口号用来进行节点间通信（也是cluster bus的东西），cluster bus的通信，用来进行故障检测、配置更新、故障转移授权。cluster bus用了另外一种二进制的协议，gossip协议，用于节点间进行高效的数据交换，占用更少的网络宽带和处理时间。</p>
+<p><strong>节点间的内部通信机制</strong></p>
+<p>原理：集群元数据维护有两种方式：集中式、Gossip协议。Redis Cluster节点间采用了Gossip协议进行通信。</p>
+<p><strong>分布式寻址算法</strong></p>
+<ul>
+<li>hash算法（大量缓存重建）</li>
+</ul>
+<p>一致性hash算法（自动缓存迁移）+虚拟节点（自动负载均衡）</p>
+<ul>
+<li>redis cluster的hash slot算法</li>
+</ul>
+<p><strong>优点：</strong></p>
+<ul>
+<li><p>无中心架构，支持动态扩容，对业务透明。</p>
+</li>
+<li><p>具备Sentinel的监控和自动Failover（故障转移）能力</p>
+</li>
+<li><p>客户端无需连接集群所有结点，连接集群中任何一个可用节点即可。</p>
+</li>
+<li><p>高性能，客户端直连redis服务，免去了proxy代理的损耗</p>
+</li>
+</ul>
+<p><strong>缺点</strong></p>
+<ul>
+<li><p>运维复杂、数据迁移需人工干预</p>
+</li>
+<li><p>只能用0号数据库</p>
+</li>
+<li><p>不支持批量操作（pipeline管道操作）</p>
+</li>
+<li><p>分布式逻辑和储存模块耦合</p>
+</li>
+</ul>
+<p><strong>基于客户端分配</strong></p>
+<p><img src="/images/sentinel_01/00003.jpg" alt="Alt text"></p>
+<p>介绍：Redis Sharding是Redis Cluster出来之前，普遍使用的多Redis实例集群方法。其主要思想是采用哈希算法将Redis数据的key进行散列，通过hash函数，特定的key会映射到特定的Redis节点上。Java redis客户端jedis，支持redis shareing功能，即ShardedJedis以及结合缓存池ShardedJedisPool。</p>
+<p><strong>优点：</strong></p>
+<p>非常简单，服务器的Redis实例彼此独立，相互无关联，每个Redis实例像单服务器一样运行，容易线性扩展，灵活性高。</p>
+<p><strong>缺点：</strong></p>
+<ul>
+<li>由于Sharding处理放到客户端，规模扩大时给运维带来挑战。</li>
+</ul>
+<p>客户端sharding不支持动态增删节点。服务端Redis实例群拓扑结构变化时，每个客户端都需要更新调整。连接不能共享，应用规则增大会资源浪费制约。</p>
+<p><strong>基于代理服务器分片</strong></p>
+<p><img src="/images/sentinel_01/00004.jpg" alt="Alt text"></p>
+<p>简介</p>
+<p>客户端发送请求到一个代理组件，代理解析客户端数据，并将请求转发到正确的节点，最后将结果回复给客户端。</p>
+<p><strong>特征：</strong></p>
+<ul>
+<li><p>透明接入，业务程序不用关系后端Redis实例，切换成本低。</p>
+</li>
+<li><p>Proxy的逻辑和储存的逻辑是隔离的</p>
+</li>
+<li><p>代理层多了一次转发，性能有所损耗</p>
+</li>
+</ul>
+<p><strong>业界开源方案</strong></p>
+<ul>
+<li><p>Twtter 开源 Twemproxy</p>
+</li>
+<li><p>豌豆荚开源的Codis</p>
+</li>
+</ul>
+<p><strong>Redis主从架构</strong></p>
+<p>单机的Redis，能够承载的QPS大概上万到几万不等。对于缓存，一般都是用来支撑读高并发的。架构都做成主从（master-slave)架构，一主多从，主负责写，并且将数据复制到其他的slave节点，从节点负责读。所有的读请求全部走从节点。这样可轻松实现水平扩容，支撑读高并发。</p>
+<p><img src="/images/sentinel_01/00005.jpg" alt="Alt text"></p>
+<p>redis replication-&gt;主从架构-&gt;读写分离-&gt;水平扩容支撑读高并发</p>
+<p><strong>redis replication核心机制</strong></p>
+<ul>
+<li><p>redis采用异步方式复制数据到slave节点，不过Redis2.8开始，从节点(slave node)会周期性的确认自己每次复制的质量。</p>
+</li>
+<li><p>一个master node是可以配置多个slave node的。</p>
+</li>
+<li><p>slave node 也可连接其他的slave node </p>
+</li>
+<li><p>slave node 做复制时，不会block master node正常工作。</p>
+</li>
+<li><p>slave node在做复制时，也不会block对自己的查询操作，它会用旧的数据集来提供服务；但复制完成时，需删除旧数据集，加载新数据集，这时会暂停对外服务</p>
+</li>
+<li><p>slave node 主要用来进行横向扩容，做读写分离，扩容的slave node可提高读的吞吐量。</p>
+</li>
+</ul>
+<blockquote>
+<p>如采用了主从架构，建议必须开启master node的持久化，不建议用从节点（slave node）作为主节点（master node）的数据热备，如你关掉master持久化，可能在主节点（master）宕机重启时数据是空的，然后一经复制，slave node的数据也丢了。</p>
+</blockquote>
+<p>Redis主从复制的核心原理</p>
+<p>启动从节点(slave node)时，它会发送一个PSYNC命令给主节点(Master Node)</p>
+<p>如果是从节点（slave node)初次连接到主节点（master node)，那么会触发一次full resynchronization 全量复制。此时主服务节点(master)会启动一个后台线程，开始生成一份RDB快照文件。<br>同时还会将从客户端client新收到的所有写命令缓存到内存中。RDB文件生成完毕后，master会将这个RDB发送给slave，slave会先写入本地磁盘，然后再从本地磁盘加载到内存中，<br>主服务节点（master)会将内存中缓存的写命令发送到从服务节点（slave）,从服务节点（slave)也会同步这些数据。</p>
+<p>从节点（slave node)如果跟主节点（master node)存在网络故障，断开连接了，会自动重连，连接后主节点（master node)仅<br>会复制给slave部分缺少的数据。</p>
+<p>图六</p>
+<p><strong>过程原理</strong></p>
+<ul>
+<li><p>当从库和主库建立MS关系后，会向主数据库发送SYNC命令</p>
+</li>
+<li><p>主库接收到SYNC命令后开始在后台保存快照（RDB持久化过程），并将周期接收到的写命令缓存起来。</p>
+</li>
+<li><p>当快照完成后，主Redis会将快照文件和所有缓存的写命令发送给从Redis</p>
+</li>
+<li><p>从Redis接收到后，会载入快照文件并且执行收到的缓存命令</p>
+</li>
+<li><p>主Redis每当接收到写命令就会将命令发送给Redis，从而保证数据的一致</p>
+</li>
+</ul>
+<p><strong>缺点：</strong></p>
+<p>所有的slave节点数据的复制和同步都由master节点来处理，会造成master节点压力太大，使用主从结构来解决。</p>
+<p><strong>Redis集群的主从复制模型</strong></p>
+<p>集群使用了主从复制模型，每个节点都会有N-1个复制品，为了使在部分节点失败或大部分节点无法通信情况下集群仍可用。</p>
+<p><strong>Redis哈希槽概念</strong></p>
+<p>Redis集群没有使用一致性hash，而是引入哈希槽概念，Redis集群有16384个哈希槽，每个key通过CRC16校验后对16384取模来决定放置哪个槽，集群每个节点负责一部分hash槽。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/reids/" rel="tag"># reids</a>
+          
+            <a href="/tags/sentinel/" rel="tag"># sentinel</a>
+          
+            <a href="/tags/哨兵/" rel="tag"># 哨兵</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/08/25/redis持久化机制/" rel="next" title="redis持久化机制">
+                <i class="fa fa-chevron-left"></i> redis持久化机制
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/09/22/Linux中搭建maven+nexus私人仓库/" rel="prev" title="Linux中搭建maven+nexus仓库">
+                Linux中搭建maven+nexus仓库 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="happygo">
+            
+              <p class="site-author-name" itemprop="name">happygo</p>
+              <p class="site-description motion-element" itemprop="description">Everthing will going to be all right.</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">54</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">39</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">62</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">happygo</span>
+
+  
+</div>
+
+
+  <div class="powered-by">  个人专属</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">博客 v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2157634"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

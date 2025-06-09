@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>happygo&#39;s blog</title>
+  
+  
+  <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
+  
+  <link href="http://lhappygo.github.io/"/>
+  <updated>2025-06-09T08:49:12.552Z</updated>
+  <id>http://lhappygo.github.io/</id>
+  
+  <author>
+    <name>happygo</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://lhappygo.github.io/2025/06/09/hello-world/"/>
+    <id>http://lhappygo.github.io/2025/06/09/hello-world/</id>
+    <published>2025-06-09T08:49:12.552Z</published>
+    <updated>2025-06-09T08:49:12.552Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.</summary>
+      
+    
+    
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Feign和Dubbo组件分析</title>
+    <link href="http://lhappygo.github.io/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/</id>
+    <published>2022-03-22T12:15:50.000Z</published>
+    <updated>2025-06-09T08:49:29.002Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在 Spring Cloud Alibaba 中，&lt;strong&gt;Feign&lt;/strong&gt; 和 &lt;strong&gt;Dubbo&lt;/strong&gt; 都是实现微服务间通信的关键组件，但它们的设计目标、协议支持和使用场景有显著差异。以下是两者的对比及适用场景分析：&lt;/p&gt;
+&lt;hr</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="微服务中间件" scheme="http://lhappygo.github.io/tags/微服务中间件/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Docker日志实时查看和清理</title>
+    <link href="http://lhappygo.github.io/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/"/>
+    <id>http://lhappygo.github.io/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/</id>
+    <published>2021-09-25T12:25:20.000Z</published>
+    <updated>2025-06-09T08:49:28.996Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Docker日志实时查看和清理&quot;&gt;&lt;a href=&quot;#Docker日志实时查看和清理&quot; class=&quot;headerlink&quot; title=&quot;Docker日志实时查看和清理&quot;&gt;&lt;/a&gt;Docker日志实时查看和清理&lt;/h1&gt;&lt;h2 id=&quot;一、docker-logs</summary>
+      
+    
+    
+    
+    <category term="docker" scheme="http://lhappygo.github.io/categories/docker/"/>
+    
+    
+    <category term="log" scheme="http://lhappygo.github.io/tags/log/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>jdk8链接mysql问题</title>
+    <link href="http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/"/>
+    <id>http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/</id>
+    <published>2021-09-22T02:25:20.000Z</published>
+    <updated>2025-06-09T08:49:29.009Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;前几天发现一直跑的项目本地无法启动了：&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;lin</summary>
+      
+    
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/categories/jdk8/"/>
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/tags/jdk8/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>spring-boot中关于jpa异常问题</title>
+    <link href="http://lhappygo.github.io/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/"/>
+    <id>http://lhappygo.github.io/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/</id>
+    <published>2020-11-24T09:12:43.000Z</published>
+    <updated>2025-06-09T08:49:29.004Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;spring-boot异常问题记录&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Bug in org.springframework.boot on 2.2.3.RELEASE version&lt;/p&gt;
+&lt;p&gt;当我们使用spring-boot 的版本为2.2.3.RELE</summary>
+      
+    
+    
+    
+    <category term="jpa" scheme="http://lhappygo.github.io/categories/jpa/"/>
+    
+    
+    <category term="spring-boot" scheme="http://lhappygo.github.io/tags/spring-boot/"/>
+    
+    <category term="jpa" scheme="http://lhappygo.github.io/tags/jpa/"/>
+    
+    <category term="bug" scheme="http://lhappygo.github.io/tags/bug/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
+    <link href="http://lhappygo.github.io/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/"/>
+    <id>http://lhappygo.github.io/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</id>
+    <published>2020-09-19T12:12:43.000Z</published>
+    <updated>2025-06-09T08:49:28.998Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1.结论&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;在RR的隔离级别下，InnoDB使用MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。&lt;/p&gt;
+&lt;p&gt;&lt;</summary>
+      
+    
+    
+    
+    <category term="事务" scheme="http://lhappygo.github.io/categories/事务/"/>
+    
+    
+    <category term="事务" scheme="http://lhappygo.github.io/tags/事务/"/>
+    
+    <category term="幻读" scheme="http://lhappygo.github.io/tags/幻读/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>并发编程设置合适线程数</title>
+    <link href="http://lhappygo.github.io/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/"/>
+    <id>http://lhappygo.github.io/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</id>
+    <published>2020-09-06T02:39:50.000Z</published>
+    <updated>2025-06-09T08:49:28.972Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;并发编程创建多少个线程合适？&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;并发编程在所有场景下都是快的吗？&lt;/li&gt;
+&lt;li&gt;快怎样度量&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;需要从定性—-&amp;gt;定量的分析过程。&lt;/p&gt;
+&lt;p&gt;正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用</summary>
+      
+    
+    
+    
+    <category term="thread" scheme="http://lhappygo.github.io/categories/thread/"/>
+    
+    
+    <category term="线程数" scheme="http://lhappygo.github.io/tags/线程数/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>MySQL三大日志(bin log、redo log、undo log)</title>
+    <link href="http://lhappygo.github.io/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/"/>
+    <id>http://lhappygo.github.io/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/</id>
+    <published>2020-09-05T06:28:12.000Z</published>
+    <updated>2025-06-09T08:49:28.965Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;日志是mysql数据库的重要组成部分，记录着数据库运行期间各种状态信息。mysql日志主要包括错误日志、查询日志、慢查询日志、事务日志、二进制日志几大类。作为后端开发，需要重点关注的是二进制日志(binlog)和事务日志(包括redo log和undo log)，接下来会详</summary>
+      
+    
+    
+    
+    <category term="mysql" scheme="http://lhappygo.github.io/categories/mysql/"/>
+    
+    
+    <category term="mysql" scheme="http://lhappygo.github.io/tags/mysql/"/>
+    
+    <category term="log" scheme="http://lhappygo.github.io/tags/log/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>GC收集器优劣势及适用场景</title>
+    <link href="http://lhappygo.github.io/2020/08/29/GC%E4%BC%98%E5%8A%A3%E5%8A%BF%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/"/>
+    <id>http://lhappygo.github.io/2020/08/29/GC%E4%BC%98%E5%8A%A3%E5%8A%BF%E5%8F%8A%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF/</id>
+    <published>2020-08-29T03:26:19.000Z</published>
+    <updated>2025-06-09T08:49:28.982Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;JVM垃圾收集器特点、优劣势及使用场景&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;一、常见垃圾收集器&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;&lt;strong&gt;新生代收集器&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;Serial&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;p&gt;Par</summary>
+      
+    
+    
+    
+    <category term="GC" scheme="http://lhappygo.github.io/categories/GC/"/>
+    
+    
+    <category term="GC" scheme="http://lhappygo.github.io/tags/GC/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>CAS算法及ABA问题</title>
+    <link href="http://lhappygo.github.io/2020/03/07/CAS%E7%AE%97%E6%B3%95%E5%8F%8A%E5%AD%98%E5%9C%A8%E9%97%AE%E9%A2%98/"/>
+    <id>http://lhappygo.github.io/2020/03/07/CAS%E7%AE%97%E6%B3%95%E5%8F%8A%E5%AD%98%E5%9C%A8%E9%97%AE%E9%A2%98/</id>
+    <published>2020-03-07T07:10:22.000Z</published>
+    <updated>2025-06-09T08:49:28.977Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;CAS算法&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;CAS（Compare And Swap)比较并交换，乐观锁的思想，认为总可成功完成操作，在多线程同时使用CAS操作一个变量时，只会有一个线程获得操作更新的权利，其他的都会失败，失败的线程不会被挂起，仅被告知失败，</summary>
+      
+    
+    
+    
+    <category term="CAS" scheme="http://lhappygo.github.io/categories/CAS/"/>
+    
+    
+    <category term="CAS" scheme="http://lhappygo.github.io/tags/CAS/"/>
+    
+    <category term="乐观锁" scheme="http://lhappygo.github.io/tags/乐观锁/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>AQS独占模式解析</title>
+    <link href="http://lhappygo.github.io/2019/09/07/AbstractQueuedSynchronized(%E4%BA%8C%EF%BC%89/"/>
+    <id>http://lhappygo.github.io/2019/09/07/AbstractQueuedSynchronized(%E4%BA%8C%EF%BC%89/</id>
+    <published>2019-09-07T04:10:18.000Z</published>
+    <updated>2025-06-09T08:49:28.989Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;AbstractQueuedSynchronized独占模式&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;概述：独占模式下节点怎样进入同步队列排队，离开同步队列前会进行哪些操作。AQS在独占模式和共享模式下获取锁分别提供了三种方式&lt;br&gt;不响应线程中断获取，响应县城中断</summary>
+      
+    
+    
+    
+    <category term="AQS" scheme="http://lhappygo.github.io/categories/AQS/"/>
+    
+    
+    <category term="AQS" scheme="http://lhappygo.github.io/tags/AQS/"/>
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/tags/Lock/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Java中AQS</title>
+    <link href="http://lhappygo.github.io/2019/08/10/AbstractQueuedSynchronized/"/>
+    <id>http://lhappygo.github.io/2019/08/10/AbstractQueuedSynchronized/</id>
+    <published>2019-08-10T07:39:29.000Z</published>
+    <updated>2025-06-09T08:49:28.974Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;1.AbstractQueuedSynchronized&lt;/p&gt;
+&lt;p&gt;ReentrantLock实现了一个内部类Sync,该内部类继承了AQS，所有锁机制的实现都依赖于Sync这个内部类，ReentrantLock的实现依赖于AQS类。类似的还有CountDownLatc</summary>
+      
+    
+    
+    
+    <category term="AQS" scheme="http://lhappygo.github.io/categories/AQS/"/>
+    
+    
+    <category term="AQS" scheme="http://lhappygo.github.io/tags/AQS/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java中日期格式规范</title>
+    <link href="http://lhappygo.github.io/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/"/>
+    <id>http://lhappygo.github.io/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</id>
+    <published>2019-07-27T06:32:30.000Z</published>
+    <updated>2025-06-09T08:49:29.007Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;日期格式的规范：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;1.日期格式化时，传入pattern中表示年份统一使用小写的y。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的</summary>
+      
+    
+    
+    
+    <category term="日期格式" scheme="http://lhappygo.github.io/categories/日期格式/"/>
+    
+    
+    <category term="日期格式" scheme="http://lhappygo.github.io/tags/日期格式/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>SpringBoot中定时任务配置多线程</title>
+    <link href="http://lhappygo.github.io/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/"/>
+    <id>http://lhappygo.github.io/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</id>
+    <published>2019-05-18T10:19:23.000Z</published>
+    <updated>2025-06-09T08:49:28.997Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;//多线程执行定时任务
+@Slf4j
+@Configuration
+public c</summary>
+      
+    
+    
+    
+    <category term="定时任务" scheme="http://lhappygo.github.io/categories/定时任务/"/>
+    
+    
+    <category term="定时任务" scheme="http://lhappygo.github.io/tags/定时任务/"/>
+    
+    <category term="多线程" scheme="http://lhappygo.github.io/tags/多线程/"/>
+    
+    <category term="SpringBoot" scheme="http://lhappygo.github.io/tags/SpringBoot/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>LockSuport简述-1</title>
+    <link href="http://lhappygo.github.io/2019/03/17/Java%20LockSupport/"/>
+    <id>http://lhappygo.github.io/2019/03/17/Java%20LockSupport/</id>
+    <published>2019-03-17T10:50:19.000Z</published>
+    <updated>2025-06-09T08:49:28.995Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;blockquote&gt;
+&lt;p&gt;LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;p&gt;如果该许可可用，并且可在线程中使用，则调用park()将</summary>
+      
+    
+    
+    
+    <category term="lock" scheme="http://lhappygo.github.io/categories/lock/"/>
+    
+    
+    <category term="lock" scheme="http://lhappygo.github.io/tags/lock/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>java中的锁(偏向锁、轻量锁..）</title>
+    <link href="http://lhappygo.github.io/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/"/>
+    <id>http://lhappygo.github.io/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</id>
+    <published>2019-03-09T07:29:15.000Z</published>
+    <updated>2025-06-09T08:49:28.963Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;CAS操作：&lt;/strong&gt;&lt;br&gt;compareAndSwap,比较并替换，实现并发算法常用技术&lt;/p&gt;
+&lt;p&gt;CAS需要有3个操作数：&lt;br&gt;内存地址V,旧预期值A，即将更新的目标值B。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;锁的升级：&lt;/strong&gt;&lt;/p</summary>
+      
+    
+    
+    
+    <category term="lock" scheme="http://lhappygo.github.io/categories/lock/"/>
+    
+    
+    <category term="lock" scheme="http://lhappygo.github.io/tags/lock/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>JMM中happen-before八大规则</title>
+    <link href="http://lhappygo.github.io/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/"/>
+    <id>http://lhappygo.github.io/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</id>
+    <published>2019-02-23T07:19:50.000Z</published>
+    <updated>2025-06-09T08:49:28.998Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;JMM中happen-before八大规则&lt;/strong&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时j</summary>
+      
+    
+    
+    
+    <category term="JMM" scheme="http://lhappygo.github.io/categories/JMM/"/>
+    
+    
+    <category term="JMM" scheme="http://lhappygo.github.io/tags/JMM/"/>
+    
+    <category term="happen-before" scheme="http://lhappygo.github.io/tags/happen-before/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>多线程中ThreadLocal</title>
+    <link href="http://lhappygo.github.io/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/"/>
+    <id>http://lhappygo.github.io/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</id>
+    <published>2019-01-05T06:25:30.000Z</published>
+    <updated>2025-06-09T08:49:28.979Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;一、ThreadLocal介绍&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;变量的种类：&lt;/em&gt;&lt;/strong&gt; &lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;成员变量：整个类中可以访问&lt;/li&gt;
+&lt;li&gt;局部变量：代码块中可以访问&lt;/li&gt;
+&lt;li&gt;线程局</summary>
+      
+    
+    
+    
+    <category term="ThreadLocal" scheme="http://lhappygo.github.io/categories/ThreadLocal/"/>
+    
+    
+    <category term="ThreadLocal" scheme="http://lhappygo.github.io/tags/ThreadLocal/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Eureka的自我保护机制</title>
+    <link href="http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</id>
+    <published>2019-01-05T05:19:32.000Z</published>
+    <updated>2025-06-09T08:49:28.978Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Eureka的自我保护机制&quot;&gt;&lt;a href=&quot;#Eureka的自我保护机制&quot; class=&quot;headerlink&quot; title=&quot;Eureka的自我保护机制&quot;&gt;&lt;/a&gt;Eureka的自我保护机制&lt;/h1&gt;&lt;ul&gt;
+&lt;li&gt;原理：&lt;ul&gt;
+&lt;li&gt;a、默认情况下,</summary>
+      
+    
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Eureka工作流程小记</title>
+    <link href="http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/"/>
+    <id>http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</id>
+    <published>2018-12-30T04:39:50.000Z</published>
+    <updated>2025-06-09T08:49:28.994Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Eureka保证AP（可用性、分区容错性）&lt;/p&gt;
+&lt;p&gt;Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。</summary>
+      
+    
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
+    
+    
+    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
+    
+  </entry>
+  
+</feed>
