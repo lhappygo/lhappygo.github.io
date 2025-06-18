@@ -348,6 +348,32 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
       </tags>
   </entry>
   <entry>
+    <title>Eureka的自我保护机制</title>
+    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
+<li>原理：<ul>
+<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
+<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
+</ul>
+</li>
+<li><p>产生原因</p>
+<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
+</li>
+<li><p>何时使用</p>
+<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
+</li>
+<li><p>如何配置</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">服务端</span><br><span class="line">server:</span><br><span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span><br><span class="line">    enable-self-preservation: false</span><br><span class="line">    ##剔除失效服务间隔</span><br><span class="line">    eviction-interval-timer-in-ms: 2000</span><br><span class="line"></span><br><span class="line">客户端：</span><br><span class="line">eureka:</span><br><span class="line"># 心跳检测检测与续约时间</span><br><span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span><br><span class="line">	client:</span><br><span class="line">		service-url:</span><br><span class="line">			defaultZone: http://localhost:8081/eureka/</span><br><span class="line">	instance:</span><br><span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span><br><span class="line">    	lease-renewal-interval-in-seconds: 1</span><br><span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span><br><span class="line">    	lease-expiration-duration-in-seconds: 2</span><br></pre></td></tr></table></figure></li>
+</ul>
+]]></content>
+      <categories>
+        <category>eureka</category>
+      </categories>
+      <tags>
+        <tag>eureka</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Eureka高可用及数据一致性</title>
     <url>/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</url>
     <content><![CDATA[<p><strong>一致性问题：</strong></p>
@@ -420,32 +446,6 @@ private boolean casPair(Pair&lt;V&gt; cmp, Pair&lt;V&gt; val) {
 <li>Eureka采用Peer to Peer 模式进行数据复制。</li>
 <li>Eureka通过lastDirtyTimestamp解决复制冲突问题。</li>
 <li>Eureka通过心跳机制实现数据修复。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>eureka</category>
-      </categories>
-      <tags>
-        <tag>eureka</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Eureka的自我保护机制</title>
-    <url>/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<h1 id="Eureka的自我保护机制"><a href="#Eureka的自我保护机制" class="headerlink" title="Eureka的自我保护机制"></a>Eureka的自我保护机制</h1><ul>
-<li>原理：<ul>
-<li>a、默认情况下,EurekaClient会定时向EurekaServer端发送心跳，如果EurekaServer在一定时间内没有收到EurekaClient发送的心跳，便会把该实例从注册服务列表中剔除（默认是90秒）。</li>
-<li>b、但是在短时间内丢失大量的实例心跳，这时候EurekaServer会开启自我保护机制，Eureka不会踢出该服务。</li>
-</ul>
-</li>
-<li><p>产生原因</p>
-<p>   为了防止EurekaClient正常运行，但是与EurekaServer网络不通的情况下，EurekaServer不会对EurekaClient服务进行剔除。</p>
-</li>
-<li><p>何时使用</p>
-<p> 本地环境建议禁止自我保护，生产环境建议开启自我保护。</p>
-</li>
-<li><p>如何配置</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">服务端</span><br><span class="line">server:</span><br><span class="line">    # 测试时关闭自我保护机制，保证不可用服务及时踢出</span><br><span class="line">    enable-self-preservation: false</span><br><span class="line">    ##剔除失效服务间隔</span><br><span class="line">    eviction-interval-timer-in-ms: 2000</span><br><span class="line"></span><br><span class="line">客户端：</span><br><span class="line">eureka:</span><br><span class="line"># 心跳检测检测与续约时间</span><br><span class="line"># 测试时将值设置设置小些，保证服务关闭后注册中心能及时踢出服务</span><br><span class="line">	client:</span><br><span class="line">		service-url:</span><br><span class="line">			defaultZone: http://localhost:8081/eureka/</span><br><span class="line">	instance:</span><br><span class="line">###Eureka客户端向服务端发送心跳的时间间隔，单位为秒（客户端告诉服务端自己会按照该规则）  </span><br><span class="line">    	lease-renewal-interval-in-seconds: 1</span><br><span class="line">####Eureka服务端在收到最后一次心跳之后等待的时间上限，单位为秒，超过则剔除（客户端告诉服务端按照此规则等待自己）</span><br><span class="line">    	lease-expiration-duration-in-seconds: 2</span><br></pre></td></tr></table></figure></li>
 </ul>
 ]]></content>
       <categories>
@@ -1547,6 +1547,117 @@ public class QuartzDemo{
       </tags>
   </entry>
   <entry>
+    <title>Maven中问题点滴记录</title>
+    <url>/2016/06/19/Maven%E4%B8%AD%E9%97%AE%E9%A2%98%E7%82%B9%E6%BB%B4%E8%AE%B0%E5%BD%95/</url>
+    <content><![CDATA[<p>Maven项目在进行maven install时中出现：<br>    Failed to execute goal on project …: Could not resolve dependencies for project …</p>
+<p>解决方式：</p>
+<p>1.项目结构为一个父项目，多个子项目目录如下：</p>
+<p><img src="/images/maven_0001/maven_00001.jpg" alt="Alt text"></p>
+<p>2.举个栗子：应用的是account、gateway这两个项目</p>
+<p>3.这两个项目都继承父项目 xpay</p>
+<p>4.在模块中gateway依赖与xxaccount,在xxaccount中执行完clean和install之后，本地仓库也存在依赖，但是在domain中进行install就会出现</p>
+<pre><code>Failed to execute goal on project ...: Could not resolve dependencies for project ...
+</code></pre><p>这样的错误，后来发现是自己没有首先对父项目也就是xpay项目尽心clean和install。</p>
+<p>5.总结：在父项目下有子项目在首次运行clean和install前应该先运行父项目的clean和install。</p>
+]]></content>
+      <categories>
+        <category>maven</category>
+      </categories>
+      <tags>
+        <tag>maven</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL三大日志(bin log、redo log、undo log)</title>
+    <url>/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/</url>
+    <content><![CDATA[<p>日志是mysql数据库的重要组成部分，记录着数据库运行期间各种状态信息。mysql日志主要包括错误日志、查询日志、慢查询日志、事务日志、二进制日志几大类。作为后端开发，需要重点关注的是二进制日志(binlog)和事务日志(包括redo log和undo log)，接下来会详细介绍</p>
+<p><strong>binlog</strong></p>
+<p>binlog用于记录数据库执行的写入性操作（不包括查询）信息，以二进制的形式保存在磁盘中。binlog是mysql的逻辑日志，并且由Server层进行记录，使用任何存储引擎的mysql数据库都会记录binlog日志。</p>
+<ul>
+<li><p>逻辑日志： 记录的就是sql语句。</p>
+</li>
+<li><p>物理日志： 因为mysql数据最终是保存在数据页中的，屋里日志记录的就是数据页变更。</p>
+</li>
+</ul>
+<p>binlog是以追加的方式进行写入的，可通过max_binlog_size参数设置每个binlog文件的大小，当文件大小达到给定值后，会生成新的文件来保存日志。</p>
+<p><strong>binlog使用场景</strong></p>
+<p>在实际应用中，binlog的主要是用场景有两个，分别是主从复制和数据恢复。</p>
+<ul>
+<li><p>主从复制：在Master端开启binlog,然后将binlog发送到各个slave端，slave端重放binlog从而达到主从一致。</p>
+</li>
+<li><p>数据恢复：通过使用mysqlbinlog工具来恢复数据。</p>
+</li>
+</ul>
+<p><strong>binlog刷盘时机</strong></p>
+<p>对于InnoDB存储引擎，只有在事务提交时才会记录binlog，此时记录还在内存中，那binlog是什么时候刷到磁盘中的？mysql通过sync_binlog参数控制binlog的刷盘时机，其值范围0-N：</p>
+<p>0：不强制要求，由系统自行判断何时写入磁盘。<br>1：每次commit时都要将binlog写入磁盘。<br>N: 每N个事务，才会将binlog写入磁盘。</p>
+<p>由此可见，sync_binlog最安全是设置1，这也是MySQL5.7.7版本后的默认值，但是设置一个大一些的值可以提升数据库性能，因此实际情况也可将值适当调大，牺牲一定的一致性来获取更好的性能。</p>
+<p><strong>binlog日志格式</strong></p>
+<p>binlog日志有三种格式，分为为STATEMENT、ROW和MIXED。</p>
+<p>MySQL5.7.7前，默认格式是STATEMENT，MySQL5.7.7后，默认是ROW。日志格式通过binlog-format指定。</p>
+<ul>
+<li><p>STATEMENT<br>：基于SQL语句复制(statement-based replication,SBR），每一条会修改数据的sql语句会记录到binlog中。</p>
+<ul>
+<li><p>优点</p>
+<pre><code>不需要记录每一行的变化，减少了binlog日志量，节约了IO，从而提高性能。
+</code></pre></li>
+<li><p>缺点：</p>
+<pre><code>某些情况下会导致主从数据不一致，比如执行sysdate()、sleep()等。
+</code></pre></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>ROW</p>
+<p>  基于行的复制(row-based replication,RBR),不记录每条sql语句的上下文信息，仅需记录哪条数据被修改了。</p>
+<ul>
+<li><p>优点：<br>不会出现某些特定情况下的存储过程、function、trigger的调用触发无法被正常赋值的问题。</p>
+</li>
+<li><p>缺点：会产生大量的日志，尤其是alter table的时候会让日志暴涨。</p>
+</li>
+</ul>
+</li>
+<li><p>MIXED<br>基于STATEMENT和ROW两种模式的混合赋值(mixed-based replication, MBR),一般的赋值使用STATEMENT模式保存binlog,对于STATEMENT模式无法复制的操作使用ROW模式来保存binlog。</p>
+</li>
+</ul>
+<p><strong>redo log</strong></p>
+<p>事务的四大特性有一个是持久性，只要数据提交成功，那么对数据库做的修改就被永久保存下来了。不可能因为任何原因再回到原来的状态。mysql是怎样保证一致性的呢？简单的做法是每次事务提交时，将事务设计修改的数据页全部刷新到磁盘中。但是这么做再在两方面有严重的性能问题：</p>
+<ul>
+<li><p>因为InnoDB是以页为单位进行磁盘交互的，一个事务很可能只修改一个数据页里的几个字节，这时将完整的数据页刷新到磁盘，太浪费资源了。</p>
+</li>
+<li><p>一个事务可能涉及修改多个数据页，并且这些数据页在物理上并不连续，使用随机IO写入性能太差。</p>
+</li>
+</ul>
+<p>因此mysql涉及了redo log，它就是只记录事务对数据页做了哪些修改，这样就能完美地解决性能问题了（相对而言文件更小且顺序IO）</p>
+<p><strong>redo log基本概念：</strong></p>
+<p>redo log 包括两部分,一个是内存中的日志缓冲（redo log buffer),另一个是磁盘上的日志文件（redo log file)。mysql每执行一条DML语句，先将记录写入redo log buffer,后续某个时间点再一次性将多个记录写到redo log file。这种先写日志，在写磁盘的技术就是mysql中常说的WAL（Write-Ahead Logging)技术。</p>
+<p>计算机中操作系统，用户空间(user space)下的缓冲区数据一般情况下是无法直接写入磁盘的，中间必须经过操作系统内核空间（kernel space)缓冲区（OS Buffer)。因此，redo log buffer 写入redo log file实际上是先写入OS Buffer,然后再通过系统调用fsync()将其刷到redo log file中，过程如：</p>
+<p><img src="/images/mysql_3_log/000001.png" alt="Alt text"></p>
+<p>mysql支持三种将redo log buffer写入 redo log file的时机，可通过innodb_flush_log_at_trx_commit参数设置，各参数值含义如下：</p>
+<p><img src="/images/mysql_3_log/000002.png" alt="Alt text"></p>
+<p><strong>redo log 记录形式</strong></p>
+<p>redo log实际上记录数据页的变更，这种变更是没必要全部保存，因此redo log实现上采用了大小固定，循环写入的方式，当写到结尾时，会回到开头循环写日志。如下：</p>
+<p><img src="/images/mysql_3_log/000003.png" alt="Alt text"></p>
+<p>同时在InnoDB中，既有redo log需要刷盘，还有数据页也需要刷盘，redo log存在的含义主要是降低对数据页刷盘的要求。如上图，write pos标识redo log当前记录的LSN（逻辑序列号)位置，check point标识数据页更改记录刷盘后对应redo log所处的LSN（逻辑序列号)位置。</p>
+<p>write pos到check point之间的部分是redo log空着的部分，用于记录新的记录；check point到write pos之间是redo log待落盘的数据页更改记录。当write pos追上check point时，会先推动check point向前移动，空出位置在记录新的日志。</p>
+<p>启动InnoDB时，不管上次是否正常关闭，总是会进行恢复操作。因为redo log记录的是数据页的物理变化，因此恢复的时候速度比逻辑日志（binlog）要快很多。</p>
+<p>重启InnoDB时，首先会检查磁盘中数据页的LSN，如数据页的LSN小于日志中的LSN,则会从checkpoint开始恢复。</p>
+<p>还有一种情况，在宕机前正处于checkpoint的刷盘过程，且数据页的刷盘进度超过了日志页的刷盘进度，此时会出现数据页中记录的LSN大于日志中的LSN，这时超出日志进度的部分将不会重做，因为这本身就表示已经做过的事情，无需再重做。</p>
+<p><img src="/images/mysql_3_log/000004.png" alt="Alt text"></p>
+<p><strong>redo log与binlog区别</strong></p>
+<p>由binlog和redo log的区别可知：binlog日志只用于归档，只依靠binlog是没有crash-safe能力的。但只有redo log也不行，因为redo log是InnoDB特有的，且日志上的记录落盘后会被覆盖掉。因此需要binlog和redo log二者同时记录，才能保证当数据库发生宕机重启时，数据不会丢失。</p>
+<p><strong>undo log</strong></p>
+<p>数据库事务四大特性中有一个是原子性，具体来说就是 原子性是指对数据库的一系列操作，要么全部成功，要么全部失败，不可能出现部分成功的情况。<br>实际上，原子性底层就是通过undo log实现的。undo log主要记录了数据的逻辑变化，比如一条INSERT语句，对应一条DELETE的undo log，对于每个UPDATE语句，对应一条相反的UPDATE的undo log，这样在发生错误时，就能回滚到事务之前的数据状态。推荐阅读：Java面试题拆解<br>同时，undo log也是MVCC(多版本并发控制)实现的关键，这部分内容在面试中的老大难-mysql事务和锁，一次性讲清楚！中有介绍，不再赘述。</p>
+]]></content>
+      <categories>
+        <category>mysql</category>
+      </categories>
+      <tags>
+        <tag>mysql</tag>
+        <tag>log</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Mysql存储引擎InnoDB是怎样解决幻读的</title>
     <url>/2020/09/19/Mysql%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8EInnoDB%E6%98%AF%E6%80%8E%E6%A0%B7%E8%A7%A3%E5%86%B3%E5%B9%BB%E8%AF%BB/</url>
     <content><![CDATA[<p>。</p>
@@ -1633,181 +1744,6 @@ public class QuartzDemo{
       <tags>
         <tag>事务</tag>
         <tag>幻读</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Ribbon及Sentinel解析</title>
-    <url>/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/</url>
-    <content><![CDATA[<h3 id="Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南"><a href="#Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南" class="headerlink" title="Spring Cloud Alibaba 中 Ribbon LoadBalancer 与 Sentinel 原理解析及配置指南"></a>Spring Cloud Alibaba 中 Ribbon LoadBalancer 与 Sentinel 原理解析及配置指南</h3><hr>
-<h4 id="一、Ribbon-LoadBalancer-原理解析"><a href="#一、Ribbon-LoadBalancer-原理解析" class="headerlink" title="一、Ribbon LoadBalancer 原理解析"></a><strong>一、Ribbon LoadBalancer 原理解析</strong></h4><h5 id="1-核心原理"><a href="#1-核心原理" class="headerlink" title="1. 核心原理"></a><strong>1. 核心原理</strong></h5><p>Ribbon 是 Netflix 开源的 <strong>客户端负载均衡器</strong>，在 Spring Cloud Alibaba 中与 Nacos 深度集成，实现服务实例的动态选择。其工作原理如下：</p>
-<ul>
-<li><strong>服务实例获取</strong><br>从 Nacos 注册中心拉取服务实例列表（如 <code>service-A</code> 的多个实例 IP+Port）。</li>
-<li><strong>负载均衡策略</strong><br>根据预设策略（如轮询、随机、加权等）选择一个目标实例。</li>
-<li><strong>请求转发</strong><br>将 HTTP 请求发送到选中的实例，并处理失败重试逻辑。</li>
-</ul>
-<h5 id="2-负载均衡策略"><a href="#2-负载均衡策略" class="headerlink" title="2. 负载均衡策略"></a><strong>2. 负载均衡策略</strong></h5><p>Ribbon 内置多种策略，常见的有：</p>
-<ul>
-<li><strong>RoundRobinRule</strong>：轮询（默认策略）。</li>
-<li><strong>RandomRule</strong>：随机选择。</li>
-<li><strong>WeightedResponseTimeRule</strong>：根据响应时间动态调整权重。</li>
-<li><strong>RetryRule</strong>：在选定策略基础上添加重试机制。</li>
-</ul>
-<h5 id="3-与-Nacos-的集成"><a href="#3-与-Nacos-的集成" class="headerlink" title="3. 与 Nacos 的集成"></a><strong>3. 与 Nacos 的集成</strong></h5><ul>
-<li><strong>服务发现</strong><br>通过 <code>spring-cloud-starter-alibaba-nacos-discovery</code> 自动从 Nacos 获取服务实例列表。</li>
-<li><strong>动态更新</strong><br>Nacos 服务实例变化时，Ribbon 自动刷新本地缓存。</li>
-</ul>
-<hr>
-<h4 id="二、Ribbon-配置详解"><a href="#二、Ribbon-配置详解" class="headerlink" title="二、Ribbon 配置详解"></a><strong>二、Ribbon 配置详解</strong></h4><h5 id="1-基础配置"><a href="#1-基础配置" class="headerlink" title="1. 基础配置"></a><strong>1. 基础配置</strong></h5><p>在 <code>application.yml</code> 中配置 Ribbon 参数：<br><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 全局配置</span></span><br><span class="line"><span class="attr">ribbon:</span></span><br><span class="line">  <span class="attr">ConnectTimeout:</span> <span class="number">2000</span>   <span class="comment"># 连接超时（ms）</span></span><br><span class="line">  <span class="attr">ReadTimeout:</span> <span class="number">5000</span>      <span class="comment"># 读取超时（ms）</span></span><br><span class="line">  <span class="attr">MaxAutoRetries:</span> <span class="number">1</span>      <span class="comment"># 同一实例重试次数</span></span><br><span class="line">  <span class="attr">MaxAutoRetriesNextServer:</span> <span class="number">2</span>  <span class="comment"># 切换实例重试次数</span></span><br><span class="line">  <span class="attr">OkToRetryOnAllOperations:</span> <span class="literal">true</span>  <span class="comment"># 对所有操作重试</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 针对特定服务的配置</span></span><br><span class="line"><span class="attr">service-A:</span></span><br><span class="line">  <span class="attr">ribbon:</span></span><br><span class="line">    <span class="attr">NFLoadBalancerRuleClassName:</span> <span class="string">com.netflix.loadbalancer.RandomRule</span>  <span class="comment"># 指定策略</span></span><br></pre></td></tr></table></figure></p>
-<h5 id="2-自定义负载均衡策略"><a href="#2-自定义负载均衡策略" class="headerlink" title="2. 自定义负载均衡策略"></a><strong>2. 自定义负载均衡策略</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RibbonConfig</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 为特定服务定义策略</span></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> IRule <span class="title">ribbonRule</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RandomRule();  <span class="comment">// 随机策略</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h5 id="3-启用配置"><a href="#3-启用配置" class="headerlink" title="3. 启用配置"></a><strong>3. 启用配置</strong></h5><p>在启动类或配置类添加 <code>@RibbonClient</code>：<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RibbonClient</span>(name = <span class="string">"service-A"</span>, configuration = RibbonConfig<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">class</span> <span class="title">AppConfig</span> </span>&#123; &#125;</span><br></pre></td></tr></table></figure></p>
-<hr>
-<h4 id="三、Sentinel-原理解析"><a href="#三、Sentinel-原理解析" class="headerlink" title="三、Sentinel 原理解析"></a><strong>三、Sentinel 原理解析</strong></h4><h5 id="1-核心功能"><a href="#1-核心功能" class="headerlink" title="1. 核心功能"></a><strong>1. 核心功能</strong></h5><p>Sentinel 是 Alibaba 开源的 <strong>流量控制与熔断降级组件</strong>，主要功能：</p>
-<ul>
-<li><strong>流量控制</strong>：限制资源的 QPS 或并发线程数。</li>
-<li><strong>熔断降级</strong>：当资源响应时间过长或异常比例过高时，自动熔断。</li>
-<li><strong>系统保护</strong>：根据系统负载（如 CPU、请求数）动态调整入口流量。</li>
-</ul>
-<h5 id="2-工作原理"><a href="#2-工作原理" class="headerlink" title="2. 工作原理"></a><strong>2. 工作原理</strong></h5><ul>
-<li><strong>资源定义</strong><br>通过注解（如 <code>@SentinelResource</code>）或 HTTP 请求路径定义受保护的资源。</li>
-<li><strong>规则管理</strong><br>配置流量控制规则（FlowRule）、熔断规则（DegradeRule）等，支持动态推送。</li>
-<li><strong>实时监控</strong><br>统计资源访问的 QPS、响应时间、异常比例等指标。</li>
-<li><strong>拦截机制</strong><br>对超出规则的请求进行拦截，触发降级逻辑或直接拒绝。</li>
-</ul>
-<h5 id="3-与-Feign-的集成"><a href="#3-与-Feign-的集成" class="headerlink" title="3. 与 Feign 的集成"></a><strong>3. 与 Feign 的集成</strong></h5><ul>
-<li><strong>自动熔断</strong><br>通过 <code>@FeignClient(fallback = ...)</code> 指定降级类。</li>
-<li><strong>埋点支持</strong><br>Sentinel 自动为 Feign 客户端生成资源名称（如 <code>GET:http://service-A/api</code>）。</li>
-</ul>
-<hr>
-<h4 id="四、Sentinel-配置详解"><a href="#四、Sentinel-配置详解" class="headerlink" title="四、Sentinel 配置详解"></a><strong>四、Sentinel 配置详解</strong></h4><h5 id="1-基础配置-1"><a href="#1-基础配置-1" class="headerlink" title="1. 基础配置"></a><strong>1. 基础配置</strong></h5><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">sentinel:</span></span><br><span class="line">      <span class="attr">transport:</span></span><br><span class="line">        <span class="attr">dashboard:</span> <span class="string">localhost:8080</span>  <span class="comment"># Sentinel 控制台地址</span></span><br><span class="line">      <span class="attr">eager:</span> <span class="literal">true</span>  <span class="comment"># 启动时立即连接控制台</span></span><br><span class="line">      <span class="attr">feign:</span></span><br><span class="line">        <span class="attr">enabled:</span> <span class="literal">true</span>  <span class="comment"># 启用 Feign 支持</span></span><br></pre></td></tr></table></figure>
-<h5 id="2-定义流量控制规则"><a href="#2-定义流量控制规则" class="headerlink" title="2. 定义流量控制规则"></a><strong>2. 定义流量控制规则</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@PostConstruct</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initRules</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;FlowRule&gt; rules = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    FlowRule rule = <span class="keyword">new</span> FlowRule();</span><br><span class="line">    rule.setResource(<span class="string">"GET:/user/&#123;id&#125;"</span>);  <span class="comment">// 资源名称</span></span><br><span class="line">    rule.setGrade(RuleConstant.FLOW_GRADE_QPS);  <span class="comment">// 限流类型（QPS）</span></span><br><span class="line">    rule.setCount(<span class="number">100</span>);  <span class="comment">// 阈值</span></span><br><span class="line">    rules.add(rule);</span><br><span class="line">    FlowRuleManager.loadRules(rules);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h5 id="3-熔断降级配置"><a href="#3-熔断降级配置" class="headerlink" title="3. 熔断降级配置"></a><strong>3. 熔断降级配置</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(name = <span class="string">"user-service"</span>, fallback = UserServiceFallback<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">interface</span> <span class="title">UserServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/user/&#123;id&#125;"</span>)</span><br><span class="line">    <span class="function">User <span class="title">getUser</span><span class="params">(@PathVariable Long id)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserServiceFallback</span> <span class="keyword">implements</span> <span class="title">UserServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> User <span class="title">getUser</span><span class="params">(Long id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> User(<span class="string">"fallback-user"</span>);  <span class="comment">// 降级响应</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h5 id="4-动态规则持久化（可选）"><a href="#4-动态规则持久化（可选）" class="headerlink" title="4. 动态规则持久化（可选）"></a><strong>4. 动态规则持久化（可选）</strong></h5><ul>
-<li><strong>Nacos 持久化</strong><br>将规则存储到 Nacos 配置中心，实现动态更新：<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">sentinel:</span></span><br><span class="line">      <span class="attr">datasource:</span></span><br><span class="line">        <span class="attr">ds1:</span></span><br><span class="line">          <span class="attr">nacos:</span></span><br><span class="line">            <span class="attr">server-addr:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span><span class="string">:8848</span></span><br><span class="line">            <span class="attr">dataId:</span> <span class="string">sentinel-rules</span></span><br><span class="line">            <span class="attr">groupId:</span> <span class="string">DEFAULT_GROUP</span></span><br><span class="line">            <span class="attr">rule-type:</span> <span class="string">flow</span>  <span class="comment"># 规则类型（flow、degrade）</span></span><br></pre></td></tr></table></figure>
-</li>
-</ul>
-<hr>
-<h4 id="五、使用场景与最佳实践"><a href="#五、使用场景与最佳实践" class="headerlink" title="五、使用场景与最佳实践"></a><strong>五、使用场景与最佳实践</strong></h4><h5 id="1-Ribbon-使用场景"><a href="#1-Ribbon-使用场景" class="headerlink" title="1. Ribbon 使用场景"></a><strong>1. Ribbon 使用场景</strong></h5><ul>
-<li><strong>多实例负载均衡</strong><br>当服务提供者有多个实例时，自动分配请求压力。</li>
-<li><strong>灰度发布</strong><br>结合自定义策略，将流量导向特定版本实例。</li>
-<li><strong>故障隔离</strong><br>通过重试机制避免请求发送到故障实例。</li>
-</ul>
-<h5 id="2-Sentinel-使用场景"><a href="#2-Sentinel-使用场景" class="headerlink" title="2. Sentinel 使用场景"></a><strong>2. Sentinel 使用场景</strong></h5><ul>
-<li><strong>API 限流</strong><br>防止高并发场景下服务被突发流量击溃。</li>
-<li><strong>服务熔断</strong><br>当依赖服务不可用时，快速失败避免雪崩效应。</li>
-<li><strong>热点参数限流</strong><br>对特定参数（如用户 ID）的请求进行精准控制。</li>
-</ul>
-<h5 id="3-最佳实践"><a href="#3-最佳实践" class="headerlink" title="3. 最佳实践"></a><strong>3. 最佳实践</strong></h5><ul>
-<li><strong>Ribbon</strong>  <ul>
-<li>合理设置超时时间（避免因下游服务延迟拖垮上游）。</li>
-<li>生产环境建议使用 <code>WeightedResponseTimeRule</code> 动态调整权重。</li>
-</ul>
-</li>
-<li><strong>Sentinel</strong>  <ul>
-<li>在控制台配置规则而非硬编码，便于动态调整。</li>
-<li>结合 <code>@SentinelResource</code> 的 <code>blockHandler</code> 和 <code>fallback</code> 分别处理流控和异常。</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h4 id="六、常见问题排查"><a href="#六、常见问题排查" class="headerlink" title="六、常见问题排查"></a><strong>六、常见问题排查</strong></h4><h5 id="1-Ribbon-无法选择实例"><a href="#1-Ribbon-无法选择实例" class="headerlink" title="1. Ribbon 无法选择实例"></a><strong>1. Ribbon 无法选择实例</strong></h5><ul>
-<li><strong>检查点</strong>  <ul>
-<li>Nacos 中服务实例是否注册成功。</li>
-<li>服务名称是否与 <code>@FeignClient</code> 或 <code>@RibbonClient</code> 一致。</li>
-<li>依赖是否包含 <code>spring-cloud-starter-alibaba-nacos-discovery</code>。</li>
-</ul>
-</li>
-</ul>
-<h5 id="2-Sentinel-规则未生效"><a href="#2-Sentinel-规则未生效" class="headerlink" title="2. Sentinel 规则未生效"></a><strong>2. Sentinel 规则未生效</strong></h5><ul>
-<li><strong>检查点</strong>  <ul>
-<li>是否添加 <code>@EnableSentinel</code> 注解（Spring Cloud 2020 后通常自动启用）。</li>
-<li>资源名称是否与规则中定义的完全匹配。</li>
-<li>控制台是否成功推送规则到客户端。</li>
-</ul>
-</li>
-</ul>
-<hr>
-<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h4><ul>
-<li><strong>Ribbon</strong>：核心是客户端负载均衡，需关注策略选择与超时配置。</li>
-<li><strong>Sentinel</strong>：核心是流量控制与熔断，需熟练规则配置与动态管理。</li>
-<li><strong>整合价值</strong>：二者结合可实现服务调用的高可用性与稳定性，是微服务架构的关键基础设施。</li>
-</ul>
-]]></content>
-      <categories>
-        <category>微服务</category>
-      </categories>
-      <tags>
-        <tag>Ribbon</tag>
-        <tag>Sentinel</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Maven中问题点滴记录</title>
-    <url>/2016/06/19/Maven%E4%B8%AD%E9%97%AE%E9%A2%98%E7%82%B9%E6%BB%B4%E8%AE%B0%E5%BD%95/</url>
-    <content><![CDATA[<p>Maven项目在进行maven install时中出现：<br>    Failed to execute goal on project …: Could not resolve dependencies for project …</p>
-<p>解决方式：</p>
-<p>1.项目结构为一个父项目，多个子项目目录如下：</p>
-<p><img src="/images/maven_0001/maven_00001.jpg" alt="Alt text"></p>
-<p>2.举个栗子：应用的是account、gateway这两个项目</p>
-<p>3.这两个项目都继承父项目 xpay</p>
-<p>4.在模块中gateway依赖与xxaccount,在xxaccount中执行完clean和install之后，本地仓库也存在依赖，但是在domain中进行install就会出现</p>
-<pre><code>Failed to execute goal on project ...: Could not resolve dependencies for project ...
-</code></pre><p>这样的错误，后来发现是自己没有首先对父项目也就是xpay项目尽心clean和install。</p>
-<p>5.总结：在父项目下有子项目在首次运行clean和install前应该先运行父项目的clean和install。</p>
-]]></content>
-      <categories>
-        <category>maven</category>
-      </categories>
-      <tags>
-        <tag>maven</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>spring中项目中静态资源处理七种方式</title>
-    <url>/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/</url>
-    <content><![CDATA[<p>在Web应用开发中，静态资源（如CSS、JavaScript、图片等）的处理是一个基础但重要的环节。SpringBoot作为一个强大的应用框架，为开发者提供了多种灵活处理静态资源的方式。本文将介绍SpringBoot中7种静态资源处理技巧。</p>
-<ol>
-<li>利用默认静态资源位置SpringBoot默认提供了四个静态资源目录：<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">/static</span><br><span class="line"></span><br><span class="line">/public</span><br><span class="line"></span><br><span class="line">/resources</span><br><span class="line"></span><br><span class="line">/META-INF/resources</span><br></pre></td></tr></table></figure>
-</li>
-</ol>
-<p>这些目录都位于classpath下，按照上述顺序优先级依次降低。将资源放入这些目录，即可通过<a href="http://localhost:8080/资源名直接访问。" target="_blank" rel="noopener">http://localhost:8080/资源名直接访问。</a></p>
-<p>// 示例：放在/static/css/main.css的资源</p>
-<p>// 可通过以下URL访问</p>
-<p>// <a href="http://localhost:8080/css/main.css" target="_blank" rel="noopener">http://localhost:8080/css/main.css</a></p>
-<ol start="2">
-<li>自定义静态资源位置可以通过配置修改默认的静态资源位置：</li>
-</ol>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      static-locations:</span><br><span class="line"></span><br><span class="line">        - classpath:/custom/</span><br><span class="line"></span><br><span class="line">        - classpath:/static/</span><br><span class="line"></span><br><span class="line">        - file:/path/to/external/resources/这样可以添加自定义目录，甚至是服务器上的绝对路径。</span><br></pre></td></tr></table></figure>
-<ol start="3">
-<li>使用WebJars管理前端依赖WebJars提供了一种通过Maven或Gradle管理前端资源的方式，使它们像Java依赖一样易于管理。<!-- pom.xml中添加依赖 --></li>
-</ol>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line"></span><br><span class="line">    &lt;groupId&gt;org.webjars&lt;/groupId&gt;</span><br><span class="line"></span><br><span class="line">    &lt;artifactId&gt;jquery&lt;/artifactId&gt;</span><br><span class="line"></span><br><span class="line">    &lt;version&gt;3.6.0&lt;/version&gt;</span><br><span class="line"></span><br><span class="line">&lt;/dependency&gt;然后可以这样访问：&lt;script src=&quot;/webjars/jquery/3.6.0/jquery.min.js&quot;&gt;&lt;/script&gt;</span><br></pre></td></tr></table></figure>
-<ol start="4">
-<li>资源版本控制SpringBoot支持静态资源的版本控制，可以解决浏览器缓存问题：</li>
-</ol>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      chain:</span><br><span class="line"></span><br><span class="line">        strategy:</span><br><span class="line"></span><br><span class="line">          content:</span><br><span class="line"></span><br><span class="line">            enabled: true</span><br><span class="line"></span><br><span class="line">            paths: /**这样SpringBoot会基于内容生成指纹，如：&lt;link href=&quot;/css/main-a2b3c4d5e6.css&quot; rel=&quot;stylesheet&quot;&gt;</span><br></pre></td></tr></table></figure>
-<ol start="5">
-<li><p>配置静态资源缓存可以为静态资源配置缓存控制：</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      cache:</span><br><span class="line"></span><br><span class="line">        period: 3600</span><br><span class="line"></span><br><span class="line">        cachecontrol:</span><br><span class="line"></span><br><span class="line">          max-age: 3600</span><br><span class="line"></span><br><span class="line">          must-revalidate: true  //这将为静态资源添加适当的HTTP缓存头，提高性能。</span><br></pre></td></tr></table></figure>
-</li>
-<li><p>配置静态资源访问路径前缀可以为所有静态资源添加统一的访问前缀：</p>
-</li>
-</ol>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  mvc:</span><br><span class="line"></span><br><span class="line">    static-path-pattern: /resources/**</span><br><span class="line"></span><br><span class="line">配置后，所有静态资源都需要通过/resources/前缀访问：http://localhost:8080/resources/css/main.css这有助于区分API和静态资源，便于管理。</span><br></pre></td></tr></table></figure>
-<ol start="7">
-<li>使用ResourceHandlers自定义资源处理对于更复杂的需求，可以通过实现WebMvcConfigurer接口自定义资源处理器：</li>
-</ol>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Configuration</span><br><span class="line"></span><br><span class="line">public class WebConfig implements WebMvcConfigurer &#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line"></span><br><span class="line">    public void addResourceHandlers(ResourceHandlerRegistry registry) &#123;</span><br><span class="line"></span><br><span class="line">        // 将/files/**映射到file:/var/www/files/</span><br><span class="line"></span><br><span class="line">        registry.addResourceHandler(&quot;/files/**&quot;)</span><br><span class="line"></span><br><span class="line">                .addResourceLocations(&quot;file:/var/www/files/&quot;)</span><br><span class="line"></span><br><span class="line">                .setCachePeriod(3600)</span><br><span class="line"></span><br><span class="line">                .resourceChain(true)</span><br><span class="line"></span><br><span class="line">                .addResolver(new VersionResourceResolver()</span><br><span class="line"></span><br><span class="line">                        .addContentVersionStrategy(&quot;/**&quot;));</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        // 特定版本的资源处理</span><br><span class="line"></span><br><span class="line">        registry.addResourceHandler(&quot;/js/**&quot;)</span><br><span class="line"></span><br><span class="line">                .addResourceLocations(&quot;classpath:/static/js/&quot;)</span><br><span class="line"></span><br><span class="line">                .resourceChain(true)</span><br><span class="line"></span><br><span class="line">                .addResolver(new VersionResourceResolver()</span><br><span class="line"></span><br><span class="line">                        .addFixedVersionStrategy(&quot;v1&quot;, &quot;/**&quot;));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这种方式提供了最大的灵活性，可以为不同路径配置不同的处理策略。</p>
-<blockquote>
-<p>总结SpringBoot为静态资源处理提供了丰富的功能和灵活的配置选项，可以根据项目需求，选择使用默认配置、简单自定义或高级配置方式。合理利用这些技巧，可以在SpringBoot项目中更好地管理静态资源，同时保证开发的便捷性。</p>
-</blockquote>
-]]></content>
-      <categories>
-        <category>静态资源</category>
-      </categories>
-      <tags>
-        <tag>静态资源</tag>
-        <tag>spring boot</tag>
       </tags>
   </entry>
   <entry>
@@ -1953,99 +1889,114 @@ public class QuartzDemo{
         <category>Redis</category>
       </categories>
       <tags>
-        <tag>Sentinel</tag>
         <tag>Redis</tag>
+        <tag>Sentinel</tag>
         <tag>高可用</tag>
       </tags>
   </entry>
   <entry>
-    <title>MySQL三大日志(bin log、redo log、undo log)</title>
-    <url>/2020/09/05/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97(bin%20log%E3%80%81redo%20log%E3%80%81undo%20log)/</url>
-    <content><![CDATA[<p>日志是mysql数据库的重要组成部分，记录着数据库运行期间各种状态信息。mysql日志主要包括错误日志、查询日志、慢查询日志、事务日志、二进制日志几大类。作为后端开发，需要重点关注的是二进制日志(binlog)和事务日志(包括redo log和undo log)，接下来会详细介绍</p>
-<p><strong>binlog</strong></p>
-<p>binlog用于记录数据库执行的写入性操作（不包括查询）信息，以二进制的形式保存在磁盘中。binlog是mysql的逻辑日志，并且由Server层进行记录，使用任何存储引擎的mysql数据库都会记录binlog日志。</p>
+    <title>Ribbon及Sentinel解析</title>
+    <url>/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/</url>
+    <content><![CDATA[<h3 id="Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南"><a href="#Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南" class="headerlink" title="Spring Cloud Alibaba 中 Ribbon LoadBalancer 与 Sentinel 原理解析及配置指南"></a>Spring Cloud Alibaba 中 Ribbon LoadBalancer 与 Sentinel 原理解析及配置指南</h3><hr>
+<h4 id="一、Ribbon-LoadBalancer-原理解析"><a href="#一、Ribbon-LoadBalancer-原理解析" class="headerlink" title="一、Ribbon LoadBalancer 原理解析"></a><strong>一、Ribbon LoadBalancer 原理解析</strong></h4><h5 id="1-核心原理"><a href="#1-核心原理" class="headerlink" title="1. 核心原理"></a><strong>1. 核心原理</strong></h5><p>Ribbon 是 Netflix 开源的 <strong>客户端负载均衡器</strong>，在 Spring Cloud Alibaba 中与 Nacos 深度集成，实现服务实例的动态选择。其工作原理如下：</p>
 <ul>
-<li><p>逻辑日志： 记录的就是sql语句。</p>
-</li>
-<li><p>物理日志： 因为mysql数据最终是保存在数据页中的，屋里日志记录的就是数据页变更。</p>
+<li><strong>服务实例获取</strong><br>从 Nacos 注册中心拉取服务实例列表（如 <code>service-A</code> 的多个实例 IP+Port）。</li>
+<li><strong>负载均衡策略</strong><br>根据预设策略（如轮询、随机、加权等）选择一个目标实例。</li>
+<li><strong>请求转发</strong><br>将 HTTP 请求发送到选中的实例，并处理失败重试逻辑。</li>
+</ul>
+<h5 id="2-负载均衡策略"><a href="#2-负载均衡策略" class="headerlink" title="2. 负载均衡策略"></a><strong>2. 负载均衡策略</strong></h5><p>Ribbon 内置多种策略，常见的有：</p>
+<ul>
+<li><strong>RoundRobinRule</strong>：轮询（默认策略）。</li>
+<li><strong>RandomRule</strong>：随机选择。</li>
+<li><strong>WeightedResponseTimeRule</strong>：根据响应时间动态调整权重。</li>
+<li><strong>RetryRule</strong>：在选定策略基础上添加重试机制。</li>
+</ul>
+<h5 id="3-与-Nacos-的集成"><a href="#3-与-Nacos-的集成" class="headerlink" title="3. 与 Nacos 的集成"></a><strong>3. 与 Nacos 的集成</strong></h5><ul>
+<li><strong>服务发现</strong><br>通过 <code>spring-cloud-starter-alibaba-nacos-discovery</code> 自动从 Nacos 获取服务实例列表。</li>
+<li><strong>动态更新</strong><br>Nacos 服务实例变化时，Ribbon 自动刷新本地缓存。</li>
+</ul>
+<hr>
+<h4 id="二、Ribbon-配置详解"><a href="#二、Ribbon-配置详解" class="headerlink" title="二、Ribbon 配置详解"></a><strong>二、Ribbon 配置详解</strong></h4><h5 id="1-基础配置"><a href="#1-基础配置" class="headerlink" title="1. 基础配置"></a><strong>1. 基础配置</strong></h5><p>在 <code>application.yml</code> 中配置 Ribbon 参数：<br><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 全局配置</span></span><br><span class="line"><span class="attr">ribbon:</span></span><br><span class="line">  <span class="attr">ConnectTimeout:</span> <span class="number">2000</span>   <span class="comment"># 连接超时（ms）</span></span><br><span class="line">  <span class="attr">ReadTimeout:</span> <span class="number">5000</span>      <span class="comment"># 读取超时（ms）</span></span><br><span class="line">  <span class="attr">MaxAutoRetries:</span> <span class="number">1</span>      <span class="comment"># 同一实例重试次数</span></span><br><span class="line">  <span class="attr">MaxAutoRetriesNextServer:</span> <span class="number">2</span>  <span class="comment"># 切换实例重试次数</span></span><br><span class="line">  <span class="attr">OkToRetryOnAllOperations:</span> <span class="literal">true</span>  <span class="comment"># 对所有操作重试</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 针对特定服务的配置</span></span><br><span class="line"><span class="attr">service-A:</span></span><br><span class="line">  <span class="attr">ribbon:</span></span><br><span class="line">    <span class="attr">NFLoadBalancerRuleClassName:</span> <span class="string">com.netflix.loadbalancer.RandomRule</span>  <span class="comment"># 指定策略</span></span><br></pre></td></tr></table></figure></p>
+<h5 id="2-自定义负载均衡策略"><a href="#2-自定义负载均衡策略" class="headerlink" title="2. 自定义负载均衡策略"></a><strong>2. 自定义负载均衡策略</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RibbonConfig</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 为特定服务定义策略</span></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> IRule <span class="title">ribbonRule</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> RandomRule();  <span class="comment">// 随机策略</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="3-启用配置"><a href="#3-启用配置" class="headerlink" title="3. 启用配置"></a><strong>3. 启用配置</strong></h5><p>在启动类或配置类添加 <code>@RibbonClient</code>：<br><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RibbonClient</span>(name = <span class="string">"service-A"</span>, configuration = RibbonConfig<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">class</span> <span class="title">AppConfig</span> </span>&#123; &#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h4 id="三、Sentinel-原理解析"><a href="#三、Sentinel-原理解析" class="headerlink" title="三、Sentinel 原理解析"></a><strong>三、Sentinel 原理解析</strong></h4><h5 id="1-核心功能"><a href="#1-核心功能" class="headerlink" title="1. 核心功能"></a><strong>1. 核心功能</strong></h5><p>Sentinel 是 Alibaba 开源的 <strong>流量控制与熔断降级组件</strong>，主要功能：</p>
+<ul>
+<li><strong>流量控制</strong>：限制资源的 QPS 或并发线程数。</li>
+<li><strong>熔断降级</strong>：当资源响应时间过长或异常比例过高时，自动熔断。</li>
+<li><strong>系统保护</strong>：根据系统负载（如 CPU、请求数）动态调整入口流量。</li>
+</ul>
+<h5 id="2-工作原理"><a href="#2-工作原理" class="headerlink" title="2. 工作原理"></a><strong>2. 工作原理</strong></h5><ul>
+<li><strong>资源定义</strong><br>通过注解（如 <code>@SentinelResource</code>）或 HTTP 请求路径定义受保护的资源。</li>
+<li><strong>规则管理</strong><br>配置流量控制规则（FlowRule）、熔断规则（DegradeRule）等，支持动态推送。</li>
+<li><strong>实时监控</strong><br>统计资源访问的 QPS、响应时间、异常比例等指标。</li>
+<li><strong>拦截机制</strong><br>对超出规则的请求进行拦截，触发降级逻辑或直接拒绝。</li>
+</ul>
+<h5 id="3-与-Feign-的集成"><a href="#3-与-Feign-的集成" class="headerlink" title="3. 与 Feign 的集成"></a><strong>3. 与 Feign 的集成</strong></h5><ul>
+<li><strong>自动熔断</strong><br>通过 <code>@FeignClient(fallback = ...)</code> 指定降级类。</li>
+<li><strong>埋点支持</strong><br>Sentinel 自动为 Feign 客户端生成资源名称（如 <code>GET:http://service-A/api</code>）。</li>
+</ul>
+<hr>
+<h4 id="四、Sentinel-配置详解"><a href="#四、Sentinel-配置详解" class="headerlink" title="四、Sentinel 配置详解"></a><strong>四、Sentinel 配置详解</strong></h4><h5 id="1-基础配置-1"><a href="#1-基础配置-1" class="headerlink" title="1. 基础配置"></a><strong>1. 基础配置</strong></h5><figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">sentinel:</span></span><br><span class="line">      <span class="attr">transport:</span></span><br><span class="line">        <span class="attr">dashboard:</span> <span class="string">localhost:8080</span>  <span class="comment"># Sentinel 控制台地址</span></span><br><span class="line">      <span class="attr">eager:</span> <span class="literal">true</span>  <span class="comment"># 启动时立即连接控制台</span></span><br><span class="line">      <span class="attr">feign:</span></span><br><span class="line">        <span class="attr">enabled:</span> <span class="literal">true</span>  <span class="comment"># 启用 Feign 支持</span></span><br></pre></td></tr></table></figure>
+<h5 id="2-定义流量控制规则"><a href="#2-定义流量控制规则" class="headerlink" title="2. 定义流量控制规则"></a><strong>2. 定义流量控制规则</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@PostConstruct</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initRules</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;FlowRule&gt; rules = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    FlowRule rule = <span class="keyword">new</span> FlowRule();</span><br><span class="line">    rule.setResource(<span class="string">"GET:/user/&#123;id&#125;"</span>);  <span class="comment">// 资源名称</span></span><br><span class="line">    rule.setGrade(RuleConstant.FLOW_GRADE_QPS);  <span class="comment">// 限流类型（QPS）</span></span><br><span class="line">    rule.setCount(<span class="number">100</span>);  <span class="comment">// 阈值</span></span><br><span class="line">    rules.add(rule);</span><br><span class="line">    FlowRuleManager.loadRules(rules);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="3-熔断降级配置"><a href="#3-熔断降级配置" class="headerlink" title="3. 熔断降级配置"></a><strong>3. 熔断降级配置</strong></h5><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@FeignClient</span>(name = <span class="string">"user-service"</span>, fallback = UserServiceFallback<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class"><span class="title">public</span> <span class="title">interface</span> <span class="title">UserServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@GetMapping</span>(<span class="string">"/user/&#123;id&#125;"</span>)</span><br><span class="line">    <span class="function">User <span class="title">getUser</span><span class="params">(@PathVariable Long id)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UserServiceFallback</span> <span class="keyword">implements</span> <span class="title">UserServiceClient</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> User <span class="title">getUser</span><span class="params">(Long id)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> User(<span class="string">"fallback-user"</span>);  <span class="comment">// 降级响应</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="4-动态规则持久化（可选）"><a href="#4-动态规则持久化（可选）" class="headerlink" title="4. 动态规则持久化（可选）"></a><strong>4. 动态规则持久化（可选）</strong></h5><ul>
+<li><strong>Nacos 持久化</strong><br>将规则存储到 Nacos 配置中心，实现动态更新：<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">sentinel:</span></span><br><span class="line">      <span class="attr">datasource:</span></span><br><span class="line">        <span class="attr">ds1:</span></span><br><span class="line">          <span class="attr">nacos:</span></span><br><span class="line">            <span class="attr">server-addr:</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span><span class="string">:8848</span></span><br><span class="line">            <span class="attr">dataId:</span> <span class="string">sentinel-rules</span></span><br><span class="line">            <span class="attr">groupId:</span> <span class="string">DEFAULT_GROUP</span></span><br><span class="line">            <span class="attr">rule-type:</span> <span class="string">flow</span>  <span class="comment"># 规则类型（flow、degrade）</span></span><br></pre></td></tr></table></figure>
 </li>
 </ul>
-<p>binlog是以追加的方式进行写入的，可通过max_binlog_size参数设置每个binlog文件的大小，当文件大小达到给定值后，会生成新的文件来保存日志。</p>
-<p><strong>binlog使用场景</strong></p>
-<p>在实际应用中，binlog的主要是用场景有两个，分别是主从复制和数据恢复。</p>
-<ul>
-<li><p>主从复制：在Master端开启binlog,然后将binlog发送到各个slave端，slave端重放binlog从而达到主从一致。</p>
-</li>
-<li><p>数据恢复：通过使用mysqlbinlog工具来恢复数据。</p>
-</li>
+<hr>
+<h4 id="五、使用场景与最佳实践"><a href="#五、使用场景与最佳实践" class="headerlink" title="五、使用场景与最佳实践"></a><strong>五、使用场景与最佳实践</strong></h4><h5 id="1-Ribbon-使用场景"><a href="#1-Ribbon-使用场景" class="headerlink" title="1. Ribbon 使用场景"></a><strong>1. Ribbon 使用场景</strong></h5><ul>
+<li><strong>多实例负载均衡</strong><br>当服务提供者有多个实例时，自动分配请求压力。</li>
+<li><strong>灰度发布</strong><br>结合自定义策略，将流量导向特定版本实例。</li>
+<li><strong>故障隔离</strong><br>通过重试机制避免请求发送到故障实例。</li>
 </ul>
-<p><strong>binlog刷盘时机</strong></p>
-<p>对于InnoDB存储引擎，只有在事务提交时才会记录binlog，此时记录还在内存中，那binlog是什么时候刷到磁盘中的？mysql通过sync_binlog参数控制binlog的刷盘时机，其值范围0-N：</p>
-<p>0：不强制要求，由系统自行判断何时写入磁盘。<br>1：每次commit时都要将binlog写入磁盘。<br>N: 每N个事务，才会将binlog写入磁盘。</p>
-<p>由此可见，sync_binlog最安全是设置1，这也是MySQL5.7.7版本后的默认值，但是设置一个大一些的值可以提升数据库性能，因此实际情况也可将值适当调大，牺牲一定的一致性来获取更好的性能。</p>
-<p><strong>binlog日志格式</strong></p>
-<p>binlog日志有三种格式，分为为STATEMENT、ROW和MIXED。</p>
-<p>MySQL5.7.7前，默认格式是STATEMENT，MySQL5.7.7后，默认是ROW。日志格式通过binlog-format指定。</p>
-<ul>
-<li><p>STATEMENT<br>：基于SQL语句复制(statement-based replication,SBR），每一条会修改数据的sql语句会记录到binlog中。</p>
-<ul>
-<li><p>优点</p>
-<pre><code>不需要记录每一行的变化，减少了binlog日志量，节约了IO，从而提高性能。
-</code></pre></li>
-<li><p>缺点：</p>
-<pre><code>某些情况下会导致主从数据不一致，比如执行sysdate()、sleep()等。
-</code></pre></li>
+<h5 id="2-Sentinel-使用场景"><a href="#2-Sentinel-使用场景" class="headerlink" title="2. Sentinel 使用场景"></a><strong>2. Sentinel 使用场景</strong></h5><ul>
+<li><strong>API 限流</strong><br>防止高并发场景下服务被突发流量击溃。</li>
+<li><strong>服务熔断</strong><br>当依赖服务不可用时，快速失败避免雪崩效应。</li>
+<li><strong>热点参数限流</strong><br>对特定参数（如用户 ID）的请求进行精准控制。</li>
+</ul>
+<h5 id="3-最佳实践"><a href="#3-最佳实践" class="headerlink" title="3. 最佳实践"></a><strong>3. 最佳实践</strong></h5><ul>
+<li><strong>Ribbon</strong>  <ul>
+<li>合理设置超时时间（避免因下游服务延迟拖垮上游）。</li>
+<li>生产环境建议使用 <code>WeightedResponseTimeRule</code> 动态调整权重。</li>
+</ul>
+</li>
+<li><strong>Sentinel</strong>  <ul>
+<li>在控制台配置规则而非硬编码，便于动态调整。</li>
+<li>结合 <code>@SentinelResource</code> 的 <code>blockHandler</code> 和 <code>fallback</code> 分别处理流控和异常。</li>
 </ul>
 </li>
 </ul>
-<ul>
-<li><p>ROW</p>
-<p>  基于行的复制(row-based replication,RBR),不记录每条sql语句的上下文信息，仅需记录哪条数据被修改了。</p>
-<ul>
-<li><p>优点：<br>不会出现某些特定情况下的存储过程、function、trigger的调用触发无法被正常赋值的问题。</p>
-</li>
-<li><p>缺点：会产生大量的日志，尤其是alter table的时候会让日志暴涨。</p>
-</li>
+<hr>
+<h4 id="六、常见问题排查"><a href="#六、常见问题排查" class="headerlink" title="六、常见问题排查"></a><strong>六、常见问题排查</strong></h4><h5 id="1-Ribbon-无法选择实例"><a href="#1-Ribbon-无法选择实例" class="headerlink" title="1. Ribbon 无法选择实例"></a><strong>1. Ribbon 无法选择实例</strong></h5><ul>
+<li><strong>检查点</strong>  <ul>
+<li>Nacos 中服务实例是否注册成功。</li>
+<li>服务名称是否与 <code>@FeignClient</code> 或 <code>@RibbonClient</code> 一致。</li>
+<li>依赖是否包含 <code>spring-cloud-starter-alibaba-nacos-discovery</code>。</li>
 </ul>
 </li>
-<li><p>MIXED<br>基于STATEMENT和ROW两种模式的混合赋值(mixed-based replication, MBR),一般的赋值使用STATEMENT模式保存binlog,对于STATEMENT模式无法复制的操作使用ROW模式来保存binlog。</p>
+</ul>
+<h5 id="2-Sentinel-规则未生效"><a href="#2-Sentinel-规则未生效" class="headerlink" title="2. Sentinel 规则未生效"></a><strong>2. Sentinel 规则未生效</strong></h5><ul>
+<li><strong>检查点</strong>  <ul>
+<li>是否添加 <code>@EnableSentinel</code> 注解（Spring Cloud 2020 后通常自动启用）。</li>
+<li>资源名称是否与规则中定义的完全匹配。</li>
+<li>控制台是否成功推送规则到客户端。</li>
+</ul>
 </li>
 </ul>
-<p><strong>redo log</strong></p>
-<p>事务的四大特性有一个是持久性，只要数据提交成功，那么对数据库做的修改就被永久保存下来了。不可能因为任何原因再回到原来的状态。mysql是怎样保证一致性的呢？简单的做法是每次事务提交时，将事务设计修改的数据页全部刷新到磁盘中。但是这么做再在两方面有严重的性能问题：</p>
-<ul>
-<li><p>因为InnoDB是以页为单位进行磁盘交互的，一个事务很可能只修改一个数据页里的几个字节，这时将完整的数据页刷新到磁盘，太浪费资源了。</p>
-</li>
-<li><p>一个事务可能涉及修改多个数据页，并且这些数据页在物理上并不连续，使用随机IO写入性能太差。</p>
-</li>
+<hr>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a><strong>总结</strong></h4><ul>
+<li><strong>Ribbon</strong>：核心是客户端负载均衡，需关注策略选择与超时配置。</li>
+<li><strong>Sentinel</strong>：核心是流量控制与熔断，需熟练规则配置与动态管理。</li>
+<li><strong>整合价值</strong>：二者结合可实现服务调用的高可用性与稳定性，是微服务架构的关键基础设施。</li>
 </ul>
-<p>因此mysql涉及了redo log，它就是只记录事务对数据页做了哪些修改，这样就能完美地解决性能问题了（相对而言文件更小且顺序IO）</p>
-<p><strong>redo log基本概念：</strong></p>
-<p>redo log 包括两部分,一个是内存中的日志缓冲（redo log buffer),另一个是磁盘上的日志文件（redo log file)。mysql每执行一条DML语句，先将记录写入redo log buffer,后续某个时间点再一次性将多个记录写到redo log file。这种先写日志，在写磁盘的技术就是mysql中常说的WAL（Write-Ahead Logging)技术。</p>
-<p>计算机中操作系统，用户空间(user space)下的缓冲区数据一般情况下是无法直接写入磁盘的，中间必须经过操作系统内核空间（kernel space)缓冲区（OS Buffer)。因此，redo log buffer 写入redo log file实际上是先写入OS Buffer,然后再通过系统调用fsync()将其刷到redo log file中，过程如：</p>
-<p><img src="/images/mysql_3_log/000001.png" alt="Alt text"></p>
-<p>mysql支持三种将redo log buffer写入 redo log file的时机，可通过innodb_flush_log_at_trx_commit参数设置，各参数值含义如下：</p>
-<p><img src="/images/mysql_3_log/000002.png" alt="Alt text"></p>
-<p><strong>redo log 记录形式</strong></p>
-<p>redo log实际上记录数据页的变更，这种变更是没必要全部保存，因此redo log实现上采用了大小固定，循环写入的方式，当写到结尾时，会回到开头循环写日志。如下：</p>
-<p><img src="/images/mysql_3_log/000003.png" alt="Alt text"></p>
-<p>同时在InnoDB中，既有redo log需要刷盘，还有数据页也需要刷盘，redo log存在的含义主要是降低对数据页刷盘的要求。如上图，write pos标识redo log当前记录的LSN（逻辑序列号)位置，check point标识数据页更改记录刷盘后对应redo log所处的LSN（逻辑序列号)位置。</p>
-<p>write pos到check point之间的部分是redo log空着的部分，用于记录新的记录；check point到write pos之间是redo log待落盘的数据页更改记录。当write pos追上check point时，会先推动check point向前移动，空出位置在记录新的日志。</p>
-<p>启动InnoDB时，不管上次是否正常关闭，总是会进行恢复操作。因为redo log记录的是数据页的物理变化，因此恢复的时候速度比逻辑日志（binlog）要快很多。</p>
-<p>重启InnoDB时，首先会检查磁盘中数据页的LSN，如数据页的LSN小于日志中的LSN,则会从checkpoint开始恢复。</p>
-<p>还有一种情况，在宕机前正处于checkpoint的刷盘过程，且数据页的刷盘进度超过了日志页的刷盘进度，此时会出现数据页中记录的LSN大于日志中的LSN，这时超出日志进度的部分将不会重做，因为这本身就表示已经做过的事情，无需再重做。</p>
-<p><img src="/images/mysql_3_log/000004.png" alt="Alt text"></p>
-<p><strong>redo log与binlog区别</strong></p>
-<p>由binlog和redo log的区别可知：binlog日志只用于归档，只依靠binlog是没有crash-safe能力的。但只有redo log也不行，因为redo log是InnoDB特有的，且日志上的记录落盘后会被覆盖掉。因此需要binlog和redo log二者同时记录，才能保证当数据库发生宕机重启时，数据不会丢失。</p>
-<p><strong>undo log</strong></p>
-<p>数据库事务四大特性中有一个是原子性，具体来说就是 原子性是指对数据库的一系列操作，要么全部成功，要么全部失败，不可能出现部分成功的情况。<br>实际上，原子性底层就是通过undo log实现的。undo log主要记录了数据的逻辑变化，比如一条INSERT语句，对应一条DELETE的undo log，对于每个UPDATE语句，对应一条相反的UPDATE的undo log，这样在发生错误时，就能回滚到事务之前的数据状态。推荐阅读：Java面试题拆解<br>同时，undo log也是MVCC(多版本并发控制)实现的关键，这部分内容在面试中的老大难-mysql事务和锁，一次性讲清楚！中有介绍，不再赘述。</p>
 ]]></content>
       <categories>
-        <category>mysql</category>
+        <category>微服务</category>
       </categories>
       <tags>
-        <tag>mysql</tag>
-        <tag>log</tag>
+        <tag>Sentinel</tag>
+        <tag>Ribbon</tag>
       </tags>
   </entry>
   <entry>
@@ -2123,6 +2074,55 @@ addFilterAt(Filter filter, Class atFilter) 在 atFilter 相同位置添加 filte
       <tags>
         <tag>spring</tag>
         <tag>springSecurity</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>spring中项目中静态资源处理七种方式</title>
+    <url>/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/</url>
+    <content><![CDATA[<p>在Web应用开发中，静态资源（如CSS、JavaScript、图片等）的处理是一个基础但重要的环节。SpringBoot作为一个强大的应用框架，为开发者提供了多种灵活处理静态资源的方式。本文将介绍SpringBoot中7种静态资源处理技巧。</p>
+<ol>
+<li>利用默认静态资源位置SpringBoot默认提供了四个静态资源目录：<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">/static</span><br><span class="line"></span><br><span class="line">/public</span><br><span class="line"></span><br><span class="line">/resources</span><br><span class="line"></span><br><span class="line">/META-INF/resources</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>这些目录都位于classpath下，按照上述顺序优先级依次降低。将资源放入这些目录，即可通过<a href="http://localhost:8080/资源名直接访问。" target="_blank" rel="noopener">http://localhost:8080/资源名直接访问。</a></p>
+<p>// 示例：放在/static/css/main.css的资源</p>
+<p>// 可通过以下URL访问</p>
+<p>// <a href="http://localhost:8080/css/main.css" target="_blank" rel="noopener">http://localhost:8080/css/main.css</a></p>
+<ol start="2">
+<li>自定义静态资源位置可以通过配置修改默认的静态资源位置：</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      static-locations:</span><br><span class="line"></span><br><span class="line">        - classpath:/custom/</span><br><span class="line"></span><br><span class="line">        - classpath:/static/</span><br><span class="line"></span><br><span class="line">        - file:/path/to/external/resources/这样可以添加自定义目录，甚至是服务器上的绝对路径。</span><br></pre></td></tr></table></figure>
+<ol start="3">
+<li>使用WebJars管理前端依赖WebJars提供了一种通过Maven或Gradle管理前端资源的方式，使它们像Java依赖一样易于管理。<!-- pom.xml中添加依赖 --></li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line"></span><br><span class="line">    &lt;groupId&gt;org.webjars&lt;/groupId&gt;</span><br><span class="line"></span><br><span class="line">    &lt;artifactId&gt;jquery&lt;/artifactId&gt;</span><br><span class="line"></span><br><span class="line">    &lt;version&gt;3.6.0&lt;/version&gt;</span><br><span class="line"></span><br><span class="line">&lt;/dependency&gt;然后可以这样访问：&lt;script src=&quot;/webjars/jquery/3.6.0/jquery.min.js&quot;&gt;&lt;/script&gt;</span><br></pre></td></tr></table></figure>
+<ol start="4">
+<li>资源版本控制SpringBoot支持静态资源的版本控制，可以解决浏览器缓存问题：</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      chain:</span><br><span class="line"></span><br><span class="line">        strategy:</span><br><span class="line"></span><br><span class="line">          content:</span><br><span class="line"></span><br><span class="line">            enabled: true</span><br><span class="line"></span><br><span class="line">            paths: /**这样SpringBoot会基于内容生成指纹，如：&lt;link href=&quot;/css/main-a2b3c4d5e6.css&quot; rel=&quot;stylesheet&quot;&gt;</span><br></pre></td></tr></table></figure>
+<ol start="5">
+<li><p>配置静态资源缓存可以为静态资源配置缓存控制：</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line"></span><br><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  web:</span><br><span class="line"></span><br><span class="line">    resources:</span><br><span class="line"></span><br><span class="line">      cache:</span><br><span class="line"></span><br><span class="line">        period: 3600</span><br><span class="line"></span><br><span class="line">        cachecontrol:</span><br><span class="line"></span><br><span class="line">          max-age: 3600</span><br><span class="line"></span><br><span class="line">          must-revalidate: true  //这将为静态资源添加适当的HTTP缓存头，提高性能。</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>配置静态资源访问路径前缀可以为所有静态资源添加统一的访问前缀：</p>
+</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">spring:</span><br><span class="line"></span><br><span class="line">  mvc:</span><br><span class="line"></span><br><span class="line">    static-path-pattern: /resources/**</span><br><span class="line"></span><br><span class="line">配置后，所有静态资源都需要通过/resources/前缀访问：http://localhost:8080/resources/css/main.css这有助于区分API和静态资源，便于管理。</span><br></pre></td></tr></table></figure>
+<ol start="7">
+<li>使用ResourceHandlers自定义资源处理对于更复杂的需求，可以通过实现WebMvcConfigurer接口自定义资源处理器：</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">@Configuration</span><br><span class="line"></span><br><span class="line">public class WebConfig implements WebMvcConfigurer &#123;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line"></span><br><span class="line">    public void addResourceHandlers(ResourceHandlerRegistry registry) &#123;</span><br><span class="line"></span><br><span class="line">        // 将/files/**映射到file:/var/www/files/</span><br><span class="line"></span><br><span class="line">        registry.addResourceHandler(&quot;/files/**&quot;)</span><br><span class="line"></span><br><span class="line">                .addResourceLocations(&quot;file:/var/www/files/&quot;)</span><br><span class="line"></span><br><span class="line">                .setCachePeriod(3600)</span><br><span class="line"></span><br><span class="line">                .resourceChain(true)</span><br><span class="line"></span><br><span class="line">                .addResolver(new VersionResourceResolver()</span><br><span class="line"></span><br><span class="line">                        .addContentVersionStrategy(&quot;/**&quot;));</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        // 特定版本的资源处理</span><br><span class="line"></span><br><span class="line">        registry.addResourceHandler(&quot;/js/**&quot;)</span><br><span class="line"></span><br><span class="line">                .addResourceLocations(&quot;classpath:/static/js/&quot;)</span><br><span class="line"></span><br><span class="line">                .resourceChain(true)</span><br><span class="line"></span><br><span class="line">                .addResolver(new VersionResourceResolver()</span><br><span class="line"></span><br><span class="line">                        .addFixedVersionStrategy(&quot;v1&quot;, &quot;/**&quot;));</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这种方式提供了最大的灵活性，可以为不同路径配置不同的处理策略。</p>
+<blockquote>
+<p>总结SpringBoot为静态资源处理提供了丰富的功能和灵活的配置选项，可以根据项目需求，选择使用默认配置、简单自定义或高级配置方式。合理利用这些技巧，可以在SpringBoot项目中更好地管理静态资源，同时保证开发的便捷性。</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>静态资源</category>
+      </categories>
+      <tags>
+        <tag>静态资源</tag>
+        <tag>spring boot</tag>
       </tags>
   </entry>
   <entry>
@@ -2517,6 +2517,49 @@ resize();
       </tags>
   </entry>
   <entry>
+    <title>java中日期格式规范</title>
+    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
+    <content><![CDATA[<p>日期格式的规范：</p>
+<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
+<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
+<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
+<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
+<p>desc: 日期格式中的这两对字母表示意义：</p>
+<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
+<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
+<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
+<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
+<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
+<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
+<pre><code>正例:
+//获取今年的天数
+int dayOfThisYear = LocalDate.now().lengthOfYear();
+
+//获取指定某年的天数
+LocalDate.of(2011,1,1).lengthOfYear();
+
+反例：
+
+// 第一种情况：在闰年366天时，出现数组越界异常
+int[] dayArray = new int[365];
+
+// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
+Calendar calendar = Calendar.getInstance();
+calendar.set(2020, 1, 26);
+calendar.add(Calendar.DATE, 365);
+</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
+<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
+<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
+<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
+]]></content>
+      <categories>
+        <category>日期格式</category>
+      </categories>
+      <tags>
+        <tag>日期格式</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>java中创建对象的五种形式</title>
     <url>/2015/06/18/java%E4%B8%AD%E5%88%9B%E5%BB%BA%E5%AF%B9%E8%B1%A1%E7%9A%84%E4%BA%94%E7%A7%8D%E5%BD%A2%E5%BC%8F/</url>
     <content><![CDATA[<p>我们每天创建很多对象，通常使用依赖管理，比如Spring去创建对象。然而这里有很多创建对象的方法，我们会在这篇文章中学到。</p>
@@ -2662,49 +2705,6 @@ Employee [name=Akash], hashcode : 63313419
       </categories>
       <tags>
         <tag>java</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>java中日期格式规范</title>
-    <url>/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</url>
-    <content><![CDATA[<p>日期格式的规范：</p>
-<p><strong>1.日期格式化时，传入pattern中表示年份统一使用小写的y。</strong></p>
-<p>desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的概念)，意思是当天所在的周属于的年份，一周从周日开始，周六结束，只要本周跨年，返回的YYYY就是下一年。</p>
-<p>例如：<br>new SimpleDateFormat(“yyyy-MM-dd HH:mm:ss”);<br>反例：<br>某业务因使用YYYY/MM/dd进行日期格式化，2017/12/31执行结果为2018/12/31，导致在2017年12月31日当日实时消耗跌0，造成P2故障。</p>
-<p><strong>2.日期格式中大写M和小写m，大写的H和小写的h指代的意义。</strong></p>
-<p>desc: 日期格式中的这两对字母表示意义：</p>
-<p>表示月份大写M；<br>表示分钟小写m；<br>24小时制的是大写H；<br>12小时制的是小写h；</p>
-<p><strong>3.获取当前毫秒数：System.currentTimeMillis()；而不是new Date().getTime();</strong></p>
-<p>desc:如果想要获取更加精确纳秒级时间值，使用System.nanoTime的方式。在JDK8中，针对统计时间等场景，推荐使用Instant类。</p>
-<p><strong>4.不允许在程序中使用java.sql.Date和java.sql.Time。</strong></p>
-<p>desc:前者不记录时间，getHours()抛出异常。后者不记录日期，getYear()抛出异常。</p>
-<p><strong>5.不要在程序中写死一年为365天，避免在闰年时出现日期转换错误或程序逻辑错误。</strong></p>
-<pre><code>正例:
-//获取今年的天数
-int dayOfThisYear = LocalDate.now().lengthOfYear();
-
-//获取指定某年的天数
-LocalDate.of(2011,1,1).lengthOfYear();
-
-反例：
-
-// 第一种情况：在闰年366天时，出现数组越界异常
-int[] dayArray = new int[365];
-
-// 第二种情况：一年有效期的会员制，今年1月26日注册，硬编码365返回的却是1月25日
-Calendar calendar = Calendar.getInstance();
-calendar.set(2020, 1, 26);
-calendar.add(Calendar.DATE, 365);
-</code></pre><p><strong>6.避免闰年二月问题。闰年的二月份有29天，一周年后的那天不可能是2月29日。</strong></p>
-<p><strong>7.使用枚举值来指代月份。如果使用数字，注意Date,Calendar等日期的相关类的月份month取值在0-11之间。</strong></p>
-<p>说明：参考JDK原生注释：Month value is 0-based. e.g., 0 for January.</p>
-<p>正例： Calendar.JANUARY，Calendar.FEBRUARY，Calendar.MARCH等来指代相应月份来进行传参或比较。</p>
-]]></content>
-      <categories>
-        <category>日期格式</category>
-      </categories>
-      <tags>
-        <tag>日期格式</tag>
       </tags>
   </entry>
   <entry>
@@ -3230,6 +3230,21 @@ for(int i=0;i&lt;10;i++){
       </tags>
   </entry>
   <entry>
+    <title>linux开放新端口</title>
+    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
+    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
+<p>2.查找iptables的位置<br>find -name iptables</p>
+<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
+]]></content>
+      <categories>
+        <category>开放端口</category>
+      </categories>
+      <tags>
+        <tag>linux</tag>
+        <tag>port</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>linux配置调度任务</title>
     <url>/2015/06/20/linux%E8%B0%83%E5%BA%A6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE/</url>
     <content><![CDATA[<p>1.linux crontab yum 安装<br>  1.1 检查是否安装crontab</p>
@@ -3263,21 +3278,6 @@ java -jar /project/apps/project-job/project-job.jar &gt;/dev/null 2&gt;&amp;1
       <tags>
         <tag>linux</tag>
         <tag>crontab</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>linux开放新端口</title>
-    <url>/2017/12/18/linux%E5%BC%80%E6%94%BE%E6%96%B0%E7%AB%AF%E5%8F%A3/</url>
-    <content><![CDATA[<p>1.到linux根目录<br> cd /</p>
-<p>2.查找iptables的位置<br>find -name iptables</p>
-<p>编辑器打开iptables文件即可查看已经开放的端口，并可以添加新的规则<br>方法1：直接编辑器加入新的规则保存: -A INPUT -p tcp -m tcp –dport 13389 -j ACCEPT<br>方法2：通过命令：<br>/sbin/iptables -I INPUT -p tcp –dport 13389 -j ACCEPT</p>
-]]></content>
-      <categories>
-        <category>开放端口</category>
-      </categories>
-      <tags>
-        <tag>linux</tag>
-        <tag>port</tag>
       </tags>
   </entry>
   <entry>
@@ -3602,54 +3602,6 @@ drop PRIMARY KEY
       </tags>
   </entry>
   <entry>
-    <title>redis内存管理及数据淘汰机制</title>
-    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
-    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
-<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
- 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
- 的问题。
-
- 通过如下配置控制redis使用的最大内存：
- maxmemory 100mb
-
- 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
-
-* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
-* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
-  请求仍然可以正常执行。
-
- 在为redis设置maxmemory时，需要注意：
-
-* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
-maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
-主机可用的内存，留出一部分预留用作主从同步。
-</code></pre><p>  数据淘汰机制</p>
-<pre><code>  redis提供了5中数据淘汰策略：
-
-*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
-   只淘汰设定了有效期的key。
-
-*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
-
-*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
-
-*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
-
-*  volatile-ttl： 淘汰剩余有效期最短的key。
-</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
-<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
-</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
-<pre><code>配置方法：
-  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
-</code></pre>]]></content>
-      <categories>
-        <category>redis</category>
-      </categories>
-      <tags>
-        <tag>redis</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>java中Orderd接口</title>
     <url>/2018/04/17/ordered%E6%8E%A5%E5%8F%A3%E5%92%8Corder%E6%B3%A8%E8%A7%A3/</url>
     <content><![CDATA[<p><strong>ordered接口和order注解</strong></p>
@@ -3714,6 +3666,54 @@ public class OrderTest {
       </categories>
       <tags>
         <tag>orderd</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>redis内存管理及数据淘汰机制</title>
+    <url>/2017/03/18/redis%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E5%8F%8A%E6%95%B0%E6%8D%AE%E6%B7%98%E6%B1%B0%E6%9C%BA%E5%88%B6/</url>
+    <content><![CDATA[<p>  最大内存设置<br>     默认情况下，32为OS中，redis最大使用3G的内存，在64为OS中则没有限制。</p>
+<pre><code> 在使用redis时，应该对数据占用的最大空间有一个基本准确的预估，并为redis设定最大使用的内存。
+ 否则在64位OS中reids会无限制的占用内存（物理内存被占满后会使用swap空间），容易引起各种各样
+ 的问题。
+
+ 通过如下配置控制redis使用的最大内存：
+ maxmemory 100mb
+
+ 在内存占用达到了maxmemory后，再向redis写入数据时，redis会：
+
+* 根据配置的数据淘汰策略尝试淘汰数据，释放空间。
+* 如果没有数据可以淘汰，或者没有配置数据淘汰策略，那么redis会对所有写请求返回错误，但读
+  请求仍然可以正常执行。
+
+ 在为redis设置maxmemory时，需要注意：
+
+* 如果采用了redis的主从同步，主节点向从节点同步数据时，会占用掉一部分内存空间，如果
+maxmemory过于接近主机的可用内存，导致数据同步时内存不足。所以设置的maxmemory不要过于接近
+主机可用的内存，留出一部分预留用作主从同步。
+</code></pre><p>  数据淘汰机制</p>
+<pre><code>  redis提供了5中数据淘汰策略：
+
+*  volatile-lru: 使用LRU算法进行数据淘汰（淘汰上次使用时间最早且使用次数最少的key)，
+   只淘汰设定了有效期的key。
+
+*  allkeys-lru: 使用LRU算法进行数据淘汰，所有的key都可以被淘汰。
+
+*  volatile-random: 随机淘汰数据，只淘汰设定了有效期的key.
+
+*  allkeys-random:  随机淘汰数据，所有的key都可以被淘汰。
+
+*  volatile-ttl： 淘汰剩余有效期最短的key。
+</code></pre><p>   为redis制定一种有效的数据淘汰策略以配合maxmemory设置，避免在内存使用满后发生写入失败的情况。</p>
+<pre><code>一般情况推荐使用的策略是 volatile-lru，并辨识redis中保存的数据的重要性。对于那些重要的，
+</code></pre><p>   绝对不能丢弃的，数据（如配置类数据等），应该不设置有效期，这样redis就永远不会淘汰这些数据。<br>   对于那些相对不是那么重要的，并且能够热加载的数据（比如缓存最近登录的用户信息，当redis中找不<br>   到时，程序会从DB中获取），可以设置有效期，这样在内存不够时reids就会淘汰这部分数据。</p>
+<pre><code>配置方法：
+  maxmemory-policy volatile-lru #默认是 noeviction,即不进行数据淘汰。
+</code></pre>]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
       </tags>
   </entry>
   <entry>
@@ -3863,6 +3863,65 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </tags>
   </entry>
   <entry>
+    <title>window中将redis注册为本地服务</title>
+    <url>/2016/08/06/window%E4%B8%AD%E5%B0%86redis%E6%B3%A8%E5%86%8C%E4%B8%BA%E6%9C%8D%E5%8A%A1/</url>
+    <content><![CDATA[<p><strong>在window中将redis注册为本地服务</strong></p>
+<p>一般可以通过 redis-server.exe 和配置文件启动redis服务 :</p>
+<p>redis-server.exe  redis.windows.conf </p>
+<p>另外开启一个命令行窗口 redis-cli.exe 即可做一些简单的操作命令行</p>
+<p>但我们关闭控制台，Redis服务也跟随着一起关闭了，想使用的时候又得执行命令重新开启动redis 服务，是非常低效又麻烦的。</p>
+<p>在Windows中有个本地服务的概念，我们的目标就是将Redis注册成这里面的一个服务，然后就可以不受控制台退出的影响了。</p>
+<p><strong>注册为本地服务</strong></p>
+<p>redis-server.exe –service-install redis.windows.conf </p>
+<p><img src="/images/window_install_redis_001/00001.png" alt="图1"></p>
+<p>从图中看到已成功授权并且注册成功，接下来，我们到windows服务中去看一下是否有redis服务：</p>
+<p><img src="/images/window_install_redis_001/00002.png" alt="图2"></p>
+<p>查看已在</p>
+<p><strong>开启Redis服务</strong></p>
+<ul>
+<li>方法一：选中Redis项右击-》启动</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00003.png" alt="图3"></p>
+<ul>
+<li>方法二：redis-server –service-start</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00004.png" alt="图4"></p>
+<p><strong>常用命令：</strong></p>
+<ul>
+<li><p>注册服务   redis-server –service-install redis.windows.conf</p>
+</li>
+<li><p>删除服务   redis-server –service-uninstall</p>
+</li>
+<li><p>开启服务   redis-server –service-start</p>
+</li>
+<li><p>停止服务   redis-server –service-stop</p>
+</li>
+</ul>
+<p><strong>创建多个Redis实例</strong></p>
+<ul>
+<li>1.复制一份redis.windows.conf 配置文件，改名为 redis.windows10001.conf</li>
+</ul>
+<p><img src="/images/window_install_redis_001/00005.png" alt="图5"></p>
+<ul>
+<li>2.更改 redis.windows10001.conf 配置文件的信息 端口号 port 为 10001</li>
+</ul>
+<ul>
+<li>3.注册为window服务</li>
+</ul>
+<p>redis-server.exe –service-install redis.windows10001.conf –service-name redis10001 –port 10001</p>
+<p><img src="/images/window_install_redis_001/00006.png" alt="图6"></p>
+<p>从windows服务中可以看到，有两个redis服务，刚才注册的是redis10001，服务还未开启，如下图所示：</p>
+<p><img src="/images/window_install_redis_001/00007.png" alt="图7"></p>
+]]></content>
+      <categories>
+        <category>redis</category>
+      </categories>
+      <tags>
+        <tag>redis</tag>
+        <tag>window</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>事务传播机制及隔离级别</title>
     <url>/2016/08/20/%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%E6%96%B9%E5%BC%8F%E5%8F%8A%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB/</url>
     <content><![CDATA[<ul>
@@ -3937,100 +3996,6 @@ Caused by: java.lang.NoSuchMethodError: org.springframework.orm.jpa.JpaTransacti
       </categories>
       <tags>
         <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>window中将redis注册为本地服务</title>
-    <url>/2016/08/06/window%E4%B8%AD%E5%B0%86redis%E6%B3%A8%E5%86%8C%E4%B8%BA%E6%9C%8D%E5%8A%A1/</url>
-    <content><![CDATA[<p><strong>在window中将redis注册为本地服务</strong></p>
-<p>一般可以通过 redis-server.exe 和配置文件启动redis服务 :</p>
-<p>redis-server.exe  redis.windows.conf </p>
-<p>另外开启一个命令行窗口 redis-cli.exe 即可做一些简单的操作命令行</p>
-<p>但我们关闭控制台，Redis服务也跟随着一起关闭了，想使用的时候又得执行命令重新开启动redis 服务，是非常低效又麻烦的。</p>
-<p>在Windows中有个本地服务的概念，我们的目标就是将Redis注册成这里面的一个服务，然后就可以不受控制台退出的影响了。</p>
-<p><strong>注册为本地服务</strong></p>
-<p>redis-server.exe –service-install redis.windows.conf </p>
-<p><img src="/images/window_install_redis_001/00001.png" alt="图1"></p>
-<p>从图中看到已成功授权并且注册成功，接下来，我们到windows服务中去看一下是否有redis服务：</p>
-<p><img src="/images/window_install_redis_001/00002.png" alt="图2"></p>
-<p>查看已在</p>
-<p><strong>开启Redis服务</strong></p>
-<ul>
-<li>方法一：选中Redis项右击-》启动</li>
-</ul>
-<p><img src="/images/window_install_redis_001/00003.png" alt="图3"></p>
-<ul>
-<li>方法二：redis-server –service-start</li>
-</ul>
-<p><img src="/images/window_install_redis_001/00004.png" alt="图4"></p>
-<p><strong>常用命令：</strong></p>
-<ul>
-<li><p>注册服务   redis-server –service-install redis.windows.conf</p>
-</li>
-<li><p>删除服务   redis-server –service-uninstall</p>
-</li>
-<li><p>开启服务   redis-server –service-start</p>
-</li>
-<li><p>停止服务   redis-server –service-stop</p>
-</li>
-</ul>
-<p><strong>创建多个Redis实例</strong></p>
-<ul>
-<li>1.复制一份redis.windows.conf 配置文件，改名为 redis.windows10001.conf</li>
-</ul>
-<p><img src="/images/window_install_redis_001/00005.png" alt="图5"></p>
-<ul>
-<li>2.更改 redis.windows10001.conf 配置文件的信息 端口号 port 为 10001</li>
-</ul>
-<ul>
-<li>3.注册为window服务</li>
-</ul>
-<p>redis-server.exe –service-install redis.windows10001.conf –service-name redis10001 –port 10001</p>
-<p><img src="/images/window_install_redis_001/00006.png" alt="图6"></p>
-<p>从windows服务中可以看到，有两个redis服务，刚才注册的是redis10001，服务还未开启，如下图所示：</p>
-<p><img src="/images/window_install_redis_001/00007.png" alt="图7"></p>
-]]></content>
-      <categories>
-        <category>redis</category>
-      </categories>
-      <tags>
-        <tag>redis</tag>
-        <tag>window</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>多线程中ThreadLocal</title>
-    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
-    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
-<p><strong><em>变量的种类：</em></strong> </p>
-<ol>
-<li>成员变量：整个类中可以访问</li>
-<li>局部变量：代码块中可以访问</li>
-<li>线程局部的变量</li>
-</ol>
-<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
-<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
-<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
-<p><strong>ThreadLocal中的方法</strong></p>
-<ul>
-<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
-</li>
-<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
-</li>
-<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
-</li>
-<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
-</li>
-</ul>
-<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
-<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
-<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
-]]></content>
-      <categories>
-        <category>ThreadLocal</category>
-      </categories>
-      <tags>
-        <tag>ThreadLocal</tag>
       </tags>
   </entry>
   <entry>
@@ -4168,6 +4133,41 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </categories>
       <tags>
         <tag>线程池</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>多线程中ThreadLocal</title>
+    <url>/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</url>
+    <content><![CDATA[<p><strong>一、ThreadLocal介绍</strong>：</p>
+<p><strong><em>变量的种类：</em></strong> </p>
+<ol>
+<li>成员变量：整个类中可以访问</li>
+<li>局部变量：代码块中可以访问</li>
+<li>线程局部的变量</li>
+</ol>
+<p>Thread并不是一个Thread（线程)，而是Thread的局部变量（ThreadLocalVariable),当时用<br>ThreadLocal维护变量时，ThreadLocal为每个使用该变量的线程提供了独立的变量副本，所以没<br>个线程都可以改变独立的改变线程内自己的变量副本，而不会影响其他线程所对应的副本。</p>
+<p>   从线程的角度看，目标变量就像是线程的本地变量，这也是“local”所要表达的意思！</p>
+<p> ThreadLocal不是一个线程，它是一个容器，就是像是hashMap一样，用来保存数据的。<br>它的key值，不用你指定，它的key值默认是Thread.currentThread();<br>对于threadlLocal来说，一个项目中只要有一个就可以了。可以缓存所有线程。</p>
+<p><strong>ThreadLocal中的方法</strong></p>
+<ul>
+<li><p>void set（Object value):设置当前线程的线程局部变量的值！</p>
+</li>
+<li><p>public Object get():该方法返回当前线程所对应的线程局部变量！</p>
+</li>
+<li><p>public void remove():将当前线程局部变量的值删除，目的是为了减少内存的占用，该方法是JDK1,5新增的方法。当线程结束后，对应线程的局部变量将自动被垃圾回收，所以显示调用该方法清除线程的局部变量并不是必须的操作，但它可以加快内存回收的速度！</p>
+</li>
+<li><p>protected Object initialValue():返回该线程局部变量的初始值。这个方法是一个延迟调用方法，在线程第一次调用get()或set(Object)时才执行，并且仅执行一次。ThreadLocal中的缺省实现直接返回一个Null</p>
+</li>
+</ul>
+<p><strong>ThreadLocal是如何为每个线程维护变量的副本</strong></p>
+<p>  在ThreadLocal中定义了一个ThreadLocalMap，每一个Thread中都有一个该类型的变量–Threadlocals—用于存储每一个线程的变量副本，Map中元素的键为线程对象，而值为对应线程的变量副本！</p>
+<p>  <img src="/images/threadLocal_01/00001.jpg" alt="Alt text"></p>
+]]></content>
+      <categories>
+        <category>ThreadLocal</category>
+      </categories>
+      <tags>
+        <tag>ThreadLocal</tag>
       </tags>
   </entry>
   <entry>
@@ -4351,6 +4351,58 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       </tags>
   </entry>
   <entry>
+    <title>并发编程设置合适线程数</title>
+    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
+    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
+<ul>
+<li>并发编程在所有场景下都是快的吗？</li>
+<li>快怎样度量</li>
+</ul>
+<p>需要从定性—-&gt;定量的分析过程。</p>
+<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
+<ul>
+<li><p>CPU密集型程序</p>
+<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
+<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
+</li>
+</ul>
+<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
+<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
+<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
+<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
+<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
+<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
+<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
+<ul>
+<li>I/O密集型程序</li>
+</ul>
+<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
+<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
+<p>同样的单核CPU情况下：</p>
+<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
+<p>综合两种情况可总结：</p>
+<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
+<ul>
+<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
+</ul>
+<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
+<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
+<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
+<p> 对于单核CPU计算：</p>
+<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
+<p> 对于多核CPU计算：</p>
+<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
+<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
+<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
+]]></content>
+      <categories>
+        <category>thread</category>
+      </categories>
+      <tags>
+        <tag>线程数</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>排序算法-冒泡</title>
     <url>/2015/05/17/%E6%8E%92%E5%BA%8F%E7%AE%97%E6%B3%95-%E5%86%92%E6%B3%A1%E6%8E%92%E5%BA%8F/</url>
     <content><![CDATA[<ul>
@@ -4440,58 +4492,6 @@ private ThreadPoolExecutor executor  = new ThreadPoolExecutor(corePoolSize, core
       <tags>
         <tag>mysql</tag>
         <tag>B+tree</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>并发编程设置合适线程数</title>
-    <url>/2020/09/06/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%88%9B%E5%BB%BA%E5%A4%9A%E5%B0%91%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%88%E9%80%82/</url>
-    <content><![CDATA[<p>并发编程创建多少个线程合适？</p>
-<ul>
-<li>并发编程在所有场景下都是快的吗？</li>
-<li>快怎样度量</li>
-</ul>
-<p>需要从定性—-&gt;定量的分析过程。</p>
-<p>正确的场景下、设置正确个数才能达到最优运行（充分利用CPU和I/O的利用率）</p>
-<ul>
-<li><p>CPU密集型程序</p>
-<p>  一个完成的请求，I/O操作可以在很短时间内完成，CPU还有很多运算要处理。也就是说CPU计算的比例占很大一部分。</p>
-<p>  如我们要计算1+2+3….+10000亿的总和，这就是一个CPU密集型程序。<br>  单核CPU下，我们创建4个线程来分段计算，如：<br>   1.线程1计算[1，2500亿）<br>   2.线程2计算…<br>   3.线程3计算…<br>   4.线程4计算[7500亿，10000亿]</p>
-</li>
-</ul>
-<p><img src="/images/threadNumber/000001.png" alt="Alt text"></p>
-<p>   因为是单核CPU，所有线程都在等待CPU时间片。按照理想状态，四个线程执行的时间总和与一个线程5独自完成是相等的。（在忽略四个线程上线文切换的开销情况下）</p>
-<p>  <strong>所以单核CPU处理CPU密集型程序并不太适合使用多线程。</strong>  </p>
-<p>如果在四核CPU下，同样创建四个线程来分段计算，如图：</p>
-<p><img src="/images/threadNumber/000002.png" alt="Alt text"></p>
-<p>每个线程都有CPU来运行，并不会发生等待CPU时间片的情况，也没有线程切换的开销。理论情况来看效率提升4倍。</p>
-<p><strong>所以，如果是多核CPU处理CPU密集型程序，完全可以最大化的利用CPU核心数，应用并发编程来提高效率</strong></p>
-<ul>
-<li>I/O密集型程序</li>
-</ul>
-<p>与CPU密集型程序相对，一个完整请求，CPU运算操作完成之后还有很多I/O操作要做，也就是说I/O操作占比很大。</p>
-<p>进行I/O操作时，CPU是空闲状态，所以我们要最大化利用CPU，不能让其是空闲状态。</p>
-<p>同样的单核CPU情况下：</p>
-<p><img src="/images/threadNumber/000003.png" alt="Alt text"></p>
-<p>综合两种情况可总结：</p>
-<p><strong>线程等待时间所占比例越高，需要越多线程；线程CPU时间所占比例越高，需要越少线程。</strong></p>
-<ul>
-<li>CPU密集型程序创建多少个线程？<br>理论上 <strong>线程数量 = CPU核数 (逻辑)</strong> 就可以了。但是实际数量一般会设置为CPU核数（逻辑）+1 。</li>
-</ul>
-<p>计算(CPU）密集型的线程恰好在某时因为发生一个页错误或者因其他原因而暂停，刚好有一个额外的线程，可以确保这种情况下CPU周期不会中断工作。</p>
-<p>对于CPU密集型程序，CPU核数(逻辑)+1个线程数是比较好的经验值的原因了。</p>
-<p><strong>I/O密集型程序创建多少个线程合适</strong></p>
-<p> 对于单核CPU计算：</p>
-<p>   最佳线程数 = （1/CPU利用率) = 1+(I/O耗时/CPU耗时）</p>
-<p> 对于多核CPU计算：</p>
-<p>   最佳线程数 = CPU核心数<em>（1/CPU利用率）= CPU核心数 </em> （1+（I/O耗时/CPU耗时)) </p>
-<p>在I/O密集型程序，不知CPU利用率的情况下。按照上面公式，假如几乎全是I/O耗时，所以纯理论可以认为：</p>
-<p> 线程数 = 2N(N=CPU核数)，也可认为 2N+1的（一个线程作为backup)</p>
-]]></content>
-      <categories>
-        <category>thread</category>
-      </categories>
-      <tags>
-        <tag>线程数</tag>
       </tags>
   </entry>
   <entry>

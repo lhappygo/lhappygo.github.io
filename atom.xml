@@ -36,9 +36,9 @@
     <category term="Redis" scheme="http://lhappygo.github.io/categories/Redis/"/>
     
     
-    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
-    
     <category term="Redis" scheme="http://lhappygo.github.io/tags/Redis/"/>
+    
+    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
     
     <category term="高可用" scheme="http://lhappygo.github.io/tags/高可用/"/>
     
@@ -112,9 +112,9 @@
     <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
     
     
-    <category term="Ribbon" scheme="http://lhappygo.github.io/tags/Ribbon/"/>
-    
     <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
+    
+    <category term="Ribbon" scheme="http://lhappygo.github.io/tags/Ribbon/"/>
     
   </entry>
   
