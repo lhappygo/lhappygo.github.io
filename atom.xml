@@ -6,7 +6,7 @@
   <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
   
   <link href="http://lhappygo.github.io/"/>
-  <updated>2025-06-09T08:49:29.002Z</updated>
+  <updated>2025-06-18T06:08:16.290Z</updated>
   <id>http://lhappygo.github.io/</id>
   
   <author>
@@ -15,6 +15,108 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Redis高可用架构解析</title>
+    <link href="http://lhappygo.github.io/2022/06/27/Redis%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/06/27/Redis%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-06-27T12:25:20.000Z</published>
+    <updated>2025-06-18T06:08:16.290Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Redis 高可用架构最常用、最成熟的方式是 &lt;strong&gt;哨兵模式（Sentinel）&lt;/strong&gt;。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。&lt;/p&gt;
+&lt;p&gt;以下是对哨兵模式的详细解读：&lt;/p&gt;
+&lt;h2 id=&quot;一、-基础：主</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://lhappygo.github.io/categories/Redis/"/>
+    
+    
+    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
+    
+    <category term="Redis" scheme="http://lhappygo.github.io/tags/Redis/"/>
+    
+    <category term="高可用" scheme="http://lhappygo.github.io/tags/高可用/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>spring中项目中静态资源处理七种方式</title>
+    <link href="http://lhappygo.github.io/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/"/>
+    <id>http://lhappygo.github.io/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/</id>
+    <published>2022-05-22T12:15:50.000Z</published>
+    <updated>2025-06-17T07:58:01.606Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在Web应用开发中，静态资源（如CSS、JavaScript、图片等）的处理是一个基础但重要的环节。SpringBoot作为一个强大的应用框架，为开发者提供了多种灵活处理静态资源的方式。本文将介绍SpringBoot中7种静态资源处理技巧。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;利用默</summary>
+      
+    
+    
+    
+    <category term="静态资源" scheme="http://lhappygo.github.io/categories/静态资源/"/>
+    
+    
+    <category term="静态资源" scheme="http://lhappygo.github.io/tags/静态资源/"/>
+    
+    <category term="spring boot" scheme="http://lhappygo.github.io/tags/spring-boot/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Feign与OpenFeign详解</title>
+    <link href="http://lhappygo.github.io/2022/03/27/Feign%E4%B8%8EOpenFeign%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/27/Feign%E4%B8%8EOpenFeign%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-03-27T12:25:20.000Z</published>
+    <updated>2025-06-10T08:42:29.747Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;Feign与OpenFeign详解&quot;&gt;&lt;a href=&quot;#Feign与OpenFeign详解&quot; class=&quot;headerlink&quot; title=&quot;Feign与OpenFeign详解&quot;&gt;&lt;/a&gt;Feign与OpenFeign详解&lt;/h3&gt;&lt;h4 id=&quot;底层原理&quot;</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="Feign" scheme="http://lhappygo.github.io/tags/Feign/"/>
+    
+    <category term="OpenFeign" scheme="http://lhappygo.github.io/tags/OpenFeign/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Ribbon及Sentinel解析</title>
+    <link href="http://lhappygo.github.io/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-03-25T12:25:20.000Z</published>
+    <updated>2025-06-10T08:29:34.555Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南&quot;&gt;&lt;a href=&quot;#Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="Ribbon" scheme="http://lhappygo.github.io/tags/Ribbon/"/>
+    
+    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
+    
+  </entry>
   
   <entry>
     <title>Feign和Dubbo组件分析</title>
@@ -80,6 +182,32 @@
     
     
     <category term="jdk8" scheme="http://lhappygo.github.io/tags/jdk8/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>HashMap各版本结构解读</title>
+    <link href="http://lhappygo.github.io/2021/02/27/HashMap%E5%90%84%E7%89%88%E7%BB%93%E6%9E%84%E8%A7%A3%E8%AF%BB/"/>
+    <id>http://lhappygo.github.io/2021/02/27/HashMap%E5%90%84%E7%89%88%E7%BB%93%E6%9E%84%E8%A7%A3%E8%AF%BB/</id>
+    <published>2021-02-27T12:25:20.000Z</published>
+    <updated>2025-06-17T07:29:07.981Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;以下是针对不同Java版本中HashMap与ConcurrentHashMap的实现原理及数据结构的详细解析，结合JDK 1.7和JDK 1.8的核心差异进行对比：&lt;/p&gt;
+&lt;p&gt;📊 一、HashMap 的实现演进&lt;br&gt;JDK 1.7：数组 + 链表&lt;/p&gt;
+&lt;p&gt;数据</summary>
+      
+    
+    
+    
+    <category term="HashMap" scheme="http://lhappygo.github.io/categories/HashMap/"/>
+    
+    
+    <category term="hashMap" scheme="http://lhappygo.github.io/tags/hashMap/"/>
+    
+    <category term="ConcurrentHashMap" scheme="http://lhappygo.github.io/tags/ConcurrentHashMap/"/>
     
   </entry>
   
@@ -393,130 +521,6 @@ public c</summary>
     
     
     <category term="lock" scheme="http://lhappygo.github.io/tags/lock/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>JMM中happen-before八大规则</title>
-    <link href="http://lhappygo.github.io/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/"/>
-    <id>http://lhappygo.github.io/2019/02/23/JMM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B-happen-before%E5%8E%9F%E5%88%99/</id>
-    <published>2019-02-23T07:19:50.000Z</published>
-    <updated>2025-06-09T08:49:28.998Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;JMM中happen-before八大规则&lt;/strong&gt;&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;java内存模型具备”有序性”，不需要其他方式就能保证有序性，称为先发生于原则。如果两个操作的执行次序无法从先发生于原则推导出，那么不能保证其有序性，这时j</summary>
-      
-    
-    
-    
-    <category term="JMM" scheme="http://lhappygo.github.io/categories/JMM/"/>
-    
-    
-    <category term="JMM" scheme="http://lhappygo.github.io/tags/JMM/"/>
-    
-    <category term="happen-before" scheme="http://lhappygo.github.io/tags/happen-before/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>多线程中ThreadLocal</title>
-    <link href="http://lhappygo.github.io/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/"/>
-    <id>http://lhappygo.github.io/2019/01/05/%E5%85%B3%E4%BA%8E%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%ADThreadLocal/</id>
-    <published>2019-01-05T06:25:30.000Z</published>
-    <updated>2025-06-09T08:49:28.979Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;一、ThreadLocal介绍&lt;/strong&gt;：&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;&lt;em&gt;变量的种类：&lt;/em&gt;&lt;/strong&gt; &lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;成员变量：整个类中可以访问&lt;/li&gt;
-&lt;li&gt;局部变量：代码块中可以访问&lt;/li&gt;
-&lt;li&gt;线程局</summary>
-      
-    
-    
-    
-    <category term="ThreadLocal" scheme="http://lhappygo.github.io/categories/ThreadLocal/"/>
-    
-    
-    <category term="ThreadLocal" scheme="http://lhappygo.github.io/tags/ThreadLocal/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Eureka的自我保护机制</title>
-    <link href="http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/"/>
-    <id>http://lhappygo.github.io/2019/01/05/Eureka%E7%9A%84%E8%87%AA%E6%88%91%E4%BF%9D%E6%8A%A4%E6%9C%BA%E5%88%B6/</id>
-    <published>2019-01-05T05:19:32.000Z</published>
-    <updated>2025-06-09T08:49:28.978Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;Eureka的自我保护机制&quot;&gt;&lt;a href=&quot;#Eureka的自我保护机制&quot; class=&quot;headerlink&quot; title=&quot;Eureka的自我保护机制&quot;&gt;&lt;/a&gt;Eureka的自我保护机制&lt;/h1&gt;&lt;ul&gt;
-&lt;li&gt;原理：&lt;ul&gt;
-&lt;li&gt;a、默认情况下,</summary>
-      
-    
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Eureka工作流程小记</title>
-    <link href="http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/"/>
-    <id>http://lhappygo.github.io/2018/12/30/Eureka%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B%E5%B0%8F%E8%AE%B0/</id>
-    <published>2018-12-30T04:39:50.000Z</published>
-    <updated>2025-06-09T08:49:28.994Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;Eureka保证AP（可用性、分区容错性）&lt;/p&gt;
-&lt;p&gt;Eureka Server各个节点都是平等的，几个节点挂掉不会影响正常节点的工作，剩余节点依然可以提供注册和查询服务。而Eureka Client在向某个Eureka注册时，如果发现连接失败，则会自动切换至其他节点。</summary>
-      
-    
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Eureka高可用及数据一致性</title>
-    <link href="http://lhappygo.github.io/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/"/>
-    <id>http://lhappygo.github.io/2018/12/29/Eureka%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7%E9%97%AE%E9%A2%98/</id>
-    <published>2018-12-29T02:21:19.000Z</published>
-    <updated>2025-06-09T08:49:28.992Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;一致性问题：&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;服务注册中心不可能是单点的，一定会有一个集群，集群中服务注册信息如何保持一致性呢。&lt;/p&gt;
-&lt;p&gt; &lt;img src=&quot;/images/eureka_01/0001.jpg&quot; alt=&quot;Alt text&quot;&gt;   </summary>
-      
-    
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/categories/eureka/"/>
-    
-    
-    <category term="eureka" scheme="http://lhappygo.github.io/tags/eureka/"/>
     
   </entry>
   

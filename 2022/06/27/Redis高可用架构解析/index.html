@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Sentinel,Redis,高可用,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="happygo's blog" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="Redis 高可用架构最常用、最成熟的方式是 哨兵模式（Sentinel）。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。 以下是对哨兵模式的详细解读： 一、 基础：主从复制（Replication）哨兵模式建立在主从复制之上，理解主从复制是前提：  核心结构： 主节点（Master）： 负责处理写操作（SET, DEL, INCR等）。数据变更会异步复制到从节点">
+<meta name="keywords" content="Sentinel,Redis,高可用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis高可用架构解析">
+<meta property="og:url" content="http://lhappygo.github.io/2022/06/27/Redis高可用架构解析/index.html">
+<meta property="og:site_name" content="happygo&#39;s blog">
+<meta property="og:description" content="Redis 高可用架构最常用、最成熟的方式是 哨兵模式（Sentinel）。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。 以下是对哨兵模式的详细解读： 一、 基础：主从复制（Replication）哨兵模式建立在主从复制之上，理解主从复制是前提：  核心结构： 主节点（Master）： 负责处理写操作（SET, DEL, INCR等）。数据变更会异步复制到从节点">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2025-06-18T06:08:16.290Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redis高可用架构解析">
+<meta name="twitter:description" content="Redis 高可用架构最常用、最成熟的方式是 哨兵模式（Sentinel）。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。 以下是对哨兵模式的详细解读： 一、 基础：主从复制（Replication）哨兵模式建立在主从复制之上，理解主从复制是前提：  核心结构： 主节点（Master）： 负责处理写操作（SET, DEL, INCR等）。数据变更会异步复制到从节点">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lhappygo.github.io/2022/06/27/Redis高可用架构解析/">
+
+
+
+
+
+  <title>Redis高可用架构解析 | happygo's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">happygo's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input">
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'y_LfGyHvCBYL1bZG5tke','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lhappygo.github.io/2022/06/27/Redis高可用架构解析/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="happygo">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="happygo's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redis高可用架构解析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-06-27T20:25:20+08:00">
+                2022-06-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index">
+                    <span itemprop="name">Redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>Redis 高可用架构最常用、最成熟的方式是 <strong>哨兵模式（Sentinel）</strong>。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。</p>
+<p>以下是对哨兵模式的详细解读：</p>
+<h2 id="一、-基础：主从复制（Replication）"><a href="#一、-基础：主从复制（Replication）" class="headerlink" title="一、 基础：主从复制（Replication）"></a>一、 基础：主从复制（Replication）</h2><p>哨兵模式建立在主从复制之上，理解主从复制是前提：</p>
+<ol>
+<li><strong>核心结构：</strong><ul>
+<li><strong>主节点（Master）：</strong> 负责处理写操作（<code>SET</code>, <code>DEL</code>, <code>INCR</code>等）。数据变更会异步复制到从节点。</li>
+<li><strong>从节点（Slave/Replica）：</strong> 连接主节点，接收并应用主节点发送的数据变更流（replication stream）。主要处理读操作（<code>GET</code>, <code>LRANGE</code>, <code>HGETALL</code>等），也可以配置为只读。一个主节点可以有多个从节点。</li>
+</ul>
+</li>
+</ol>
+<ol start="2">
+<li><strong>优点：</strong><ul>
+<li><strong>数据冗余：</strong> 数据在多个节点上有备份，提高数据安全性。</li>
+<li><strong>读扩展：</strong> 通过将读请求分发到多个从节点，可以显著提高系统的读吞吐量。</li>
+<li><strong>基础故障恢复：</strong> 如果从节点故障，影响较小（除非所有从节点都故障）。如果主节点故障… <strong>问题来了：需要人工干预！</strong></li>
+</ul>
+</li>
+<li><strong>缺点（高可用视角）：</strong><ul>
+<li><strong>主节点单点故障：</strong> 主节点故障意味着整个 Redis 服务<strong>无法写入</strong>。虽然有从节点持有数据，但需要<strong>手动</strong>执行<code>SLAVEOF no one</code>将一个从节点提升为主节点，并重新配置其他从节点和客户端指向新的主节点。这个过程慢、易出错、服务中断时间长。</li>
+</ul>
+</li>
+</ol>
+<h2 id="二、-哨兵模式（Sentinel）：解决主节点自动故障转移"><a href="#二、-哨兵模式（Sentinel）：解决主节点自动故障转移" class="headerlink" title="二、 哨兵模式（Sentinel）：解决主节点自动故障转移"></a>二、 哨兵模式（Sentinel）：解决主节点自动故障转移</h2><p>哨兵系统是一个<strong>分布式系统</strong>，通常由<strong>奇数个</strong>（3个或5个最常见）Sentinel 进程/节点组成。它不存储数据，只负责监控 Redis 节点（主节点和从节点）的状态，并在主节点故障时自动执行故障转移操作。</p>
+<h3 id="核心功能"><a href="#核心功能" class="headerlink" title="核心功能"></a>核心功能</h3><ol>
+<li><strong>监控（Monitoring）：</strong><ul>
+<li>Sentinel 节点会<strong>持续检查</strong>主节点和从节点的健康状态（是否可达、是否正常运行）。</li>
+<li>通过定期向所有被监控的节点发送 <code>PING</code> 命令并等待响应来判断节点状态。</li>
+</ul>
+</li>
+<li><strong>通知（Notification）：</strong><ul>
+<li>当某个被监控的 Redis 节点发生状态变化（如主观下线、客观下线、故障转移开始/结束、新主节点选出等）时，Sentinel 可以通过配置的 API 或脚本通知系统管理员或其他应用程序。</li>
+</ul>
+</li>
+<li><strong>自动故障转移（Automatic Failover）：</strong><ul>
+<li><strong>主观下线（SDOWN - Subjectively Down）：</strong> 当<strong>一个</strong> Sentinel 节点在配置的超时时间内（<code>down-after-milliseconds</code>）没有收到主节点的有效 <code>PING</code> 响应，它<strong>主观地</strong>认为该主节点下线了。</li>
+<li><strong>客观下线（ODOWN - Objectively Down）：</strong><ul>
+<li>当<strong>一个</strong> Sentinel 认为主节点主观下线后，它会询问集群中<strong>其他</strong> Sentinel 节点对该主节点状态的判断。</li>
+<li>如果达到配置的<strong>法定人数（quorum）</strong> (通常是 <code>Sentinel节点数/2 + 1</code>) 的 Sentinel 节点都报告该主节点主观下线，那么这个主节点就被标记为<strong>客观下线</strong>。</li>
+<li>这是触发自动故障转移的关键条件，避免了单个 Sentinel 误判导致不必要的切换。</li>
+</ul>
+</li>
+<li><strong>选举领导者 Sentinel（Leader Election）：</strong><ul>
+<li>一旦主节点被判定为客观下线，所有 Sentinel 节点会通过 <strong>Raft 算法</strong>选举出一个<strong>领导者 Sentinel</strong> 来负责执行本次故障转移操作。选举需要获得<strong>大多数（majority）</strong> Sentinel 的同意（通常是 <code>Sentinel节点数/2 + 1</code>）。</li>
+</ul>
+</li>
+<li><strong>选择新主节点（Promotion）：</strong><ul>
+<li>领导者 Sentinel 会从原主节点的从节点列表中，根据一定的规则（优先级<code>slave-priority</code>、复制偏移量<code>replication offset</code>、运行ID<code>run id</code>等，优先选择复制最完整、优先级高的）选出一个<strong>最合适</strong>的从节点。</li>
+<li>领导者 Sentinel 向选中的从节点发送 <code>SLAVEOF no one</code> 命令，将其提升为<strong>新的主节点</strong>。</li>
+</ul>
+</li>
+<li><strong>重新配置从节点（Reconfiguration）：</strong><ul>
+<li>领导者 Sentinel 向其他所有从节点发送新的 <code>SLAVEOF</code> 命令，让它们改为复制<strong>新的主节点</strong>。</li>
+</ul>
+</li>
+<li><strong>更新配置（Configuration Propagation）：</strong><ul>
+<li>领导者 Sentinel 将<strong>新的主节点信息</strong>广播给集群中的其他 Sentinel 节点。其他 Sentinel 节点会更新其内部配置。</li>
+<li>如果原主节点恢复（例如网络问题解决了），领导者 Sentinel 会向其发送 <code>SLAVEOF</code> 命令，让它成为新主节点的从节点。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>配置提供者（Configuration Provider）：</strong><ul>
+<li>客户端应用程序在启动时，不是直接连接主节点，而是连接 <strong>Sentinel 节点</strong>。</li>
+<li>客户端通过向 Sentinel 发送请求（如 <code>SENTINEL get-master-addr-by-name &lt;master-name&gt;</code>）来查询当前的主节点地址。</li>
+<li>当发生故障转移后，Sentinel 会更新其内部状态。客户端再次查询时，就能获取到<strong>新主节点</strong>的地址，从而实现自动重定向。</li>
+</ul>
+</li>
+</ol>
+<h3 id="哨兵模式部署架构图（示例：3-Sentinel-1-Master-2-Slaves）"><a href="#哨兵模式部署架构图（示例：3-Sentinel-1-Master-2-Slaves）" class="headerlink" title="哨兵模式部署架构图（示例：3 Sentinel + 1 Master + 2 Slaves）"></a>哨兵模式部署架构图（示例：3 Sentinel + 1 Master + 2 Slaves）</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">+----------------+       +----------------+       +----------------+</span><br><span class="line">|  Sentinel 1    |&lt;----&gt;|  Sentinel 2    |&lt;----&gt;|  Sentinel 3    |</span><br><span class="line">| (监控、决策、通知) |      | (监控、决策、通知) |      | (监控、决策、通知) |</span><br><span class="line">+-------+--------+       +-------+--------+       +-------+--------+</span><br><span class="line">        |                        |                        |</span><br><span class="line">        |                        |                        |</span><br><span class="line">        |         +--------------+-------------+          |</span><br><span class="line">        |         |                            |          |</span><br><span class="line">+-------v---------v----+             +---------v----------v--+</span><br><span class="line">|      Master         |&lt;------------|       Slave 1        |</span><br><span class="line">| (写, 复制数据给Slave) |  复制流       | (读, 复制Master数据)  |</span><br><span class="line">+---------------------+             +----------------------+</span><br><span class="line">        |                                 ^</span><br><span class="line">        |                                 |</span><br><span class="line">        |              +------------------+</span><br><span class="line">        |              |</span><br><span class="line">+-------v-------------v--+</span><br><span class="line">|       Slave 2         |</span><br><span class="line">| (读, 复制Master数据)    |</span><br><span class="line">+-----------------------+</span><br><span class="line"></span><br><span class="line">客户端 -&gt; 连接任意 Sentinel 查询主节点地址 -&gt; 连接当前主节点进行读写</span><br></pre></td></tr></table></figure>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><ol>
+<li><strong>高可用（HA）：</strong> 自动检测主节点故障并完成故障转移，大大减少服务中断时间（通常在秒级）。</li>
+<li><strong>自动化：</strong> 无需人工干预主节点故障恢复过程。</li>
+<li><strong>官方支持 &amp; 成熟稳定：</strong> Redis 官方原生支持，经过大量生产环境验证。</li>
+<li><strong>扩展性：</strong> 读能力可以通过添加从节点轻松扩展。</li>
+<li><strong>数据冗余：</strong> 数据在多个节点（主+从）上有副本。</li>
+</ol>
+<h3 id="缺点-注意事项"><a href="#缺点-注意事项" class="headerlink" title="缺点 / 注意事项"></a>缺点 / 注意事项</h3><ol>
+<li><strong>写能力无法扩展：</strong> 仍然只有一个主节点负责所有写操作。写性能瓶颈取决于单台主节点的能力。<strong>这是哨兵模式最主要的限制。</strong></li>
+<li><strong>故障转移期间的短暂不可用/数据丢失：</strong><ul>
+<li><strong>不可用：</strong> 从主节点故障被确认到选出并提升新主节点，再到客户端感知到新配置，期间写服务是中断的。部分读服务也可能受影响（取决于客户端库实现）。</li>
+<li><strong>异步复制导致数据丢失：</strong> 故障转移时，如果原主节点有部分数据还没来得及复制到被提升的新主节点，这些数据就会永久丢失。</li>
+</ul>
+</li>
+<li><strong>配置管理：</strong> 客户端需要配置 Sentinel 节点的地址列表，并能正确处理 Sentinel 返回的配置变更。</li>
+<li><strong>资源消耗：</strong> 运行多个 Sentinel 节点需要额外的服务器资源。</li>
+<li><strong>脑裂问题（Split-Brain）：</strong><ul>
+<li><strong>场景：</strong> 网络分区导致主节点和部分 Sentinel/客户端/从节点分隔在不同的网络区域。</li>
+<li><strong>风险：</strong> 被隔离的原主节点可能还在接受写操作（如果客户端也在这个分区内），而另一个分区已经选举出了新主节点也在接受写操作。网络恢复后，两个“主节点”的数据将发生严重冲突。</li>
+<li><strong>缓解措施：</strong><ul>
+<li><code>min-slaves-to-write</code> / <code>min-replicas-to-write</code>：主节点只有在至少有 N 个从节点连接时才能接受写操作。如果网络分区导致主节点连接的从节点少于 N，它会停止写入。</li>
+<li><code>min-slaves-max-lag</code> / <code>min-replicas-max-lag</code>：主节点只接受连接时间小于指定延迟的从节点计入 <code>min-slaves-to-write</code>。确保复制延迟过大的从节点不计入，保证数据一致性。</li>
+<li><strong>合理的部署：</strong> 将 Sentinel 和 Redis 节点部署在可靠的网络环境中，避免单点网络故障。将 Sentinel 部署在独立的、可靠的物理机/VM上。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="三、-其他高可用架构（对比与适用场景）"><a href="#三、-其他高可用架构（对比与适用场景）" class="headerlink" title="三、 其他高可用架构（对比与适用场景）"></a>三、 其他高可用架构（对比与适用场景）</h3><ol>
+<li><strong>Redis Cluster：</strong><ul>
+<li><strong>核心：</strong> 官方提供的分布式数据分片（Sharding）方案，<strong>同时实现了高可用和水平扩展（读写能力）</strong>。</li>
+<li><strong>结构：</strong> 数据自动分片到多个主节点（通常16384个槽）。每个主节点有1-N个从节点（副本）。</li>
+<li><strong>高可用：</strong> 每个分片（主+从）内部就是一个类似哨兵的单元（由集群自身管理故障转移，无需额外Sentinel进程）。主节点故障时，其从节点会自动提升。</li>
+<li><strong>优点：</strong> 读写均可水平扩展，无中心节点，自动分片和故障转移。</li>
+<li><strong>缺点：</strong> 配置和管理更复杂，客户端需要支持集群协议（重定向 <code>MOVED</code>/<code>ASK</code>），某些命令/事务/多键操作受限（键必须在同一槽位），迁移和扩容相对复杂。</li>
+<li><strong>适用场景：</strong> 数据量超大、读写并发极高、需要水平扩展能力的场景。</li>
+</ul>
+</li>
+<li><strong>基于代理的分片（如 Twemproxy, Codis）：</strong><ul>
+<li><strong>核心：</strong> 在客户端和 Redis 节点之间引入一个代理层。代理负责接收请求，根据分片规则（如一致性哈希）将请求路由到后端的 Redis 实例（通常是主从+哨兵构成的多个独立分片）。</li>
+<li><strong>高可用：</strong> 后端每个分片内部使用哨兵模式保证高可用。代理需要能感知后端分片的主节点变化。</li>
+<li><strong>优点：</strong> 对客户端透明（客户端像连接单节点一样连接代理），可以水平扩展（读写），分片策略灵活。</li>
+<li><strong>缺点：</strong> 增加代理层带来额外延迟和单点/性能瓶颈（代理本身需要高可用部署），运维复杂度增加（代理+后端集群），多跳网络开销。</li>
+<li><strong>适用场景：</strong> 在 Redis Cluster 成熟之前较流行，或需要特定分片策略/客户端兼容性时。现在通常更推荐 Redis Cluster。</li>
+</ul>
+</li>
+</ol>
+<h3 id="总结与选择建议"><a href="#总结与选择建议" class="headerlink" title="总结与选择建议"></a>总结与选择建议</h3><ul>
+<li><strong>哨兵模式（Sentinel）是最常用、最成熟的 Redis 高可用方案。</strong> 它解决了主从复制中主节点故障需要人工干预的核心问题，自动化程度高，配置相对简单，特别适合<strong>读多写少</strong>、<strong>数据量不是特别巨大（单主节点能承载）</strong>、需要高可用保障的场景。</li>
+<li><strong>选择哨兵模式时：</strong><ul>
+<li>确保部署<strong>至少3个（奇数个）</strong> Sentinel 节点（跨机架/可用区部署更佳）。</li>
+<li>仔细配置 <code>down-after-milliseconds</code>, <code>parallel-syncs</code>, <code>failover-timeout</code>, <code>quorum</code> 等关键参数以适应你的网络环境和容错需求。</li>
+<li>务必配置 <code>min-slaves-to-write</code> 和 <code>min-slaves-max-lag</code> 来缓解脑裂风险。</li>
+<li>使用支持 Sentinel 的客户端库，并正确实现故障转移后的重连逻辑。</li>
+</ul>
+</li>
+<li><strong>如果面临写性能瓶颈或数据量远超单节点容量：</strong> 应优先考虑 <strong>Redis Cluster</strong>。</li>
+<li><strong>如果需要特定的分片策略或对客户端完全透明，且能接受代理层的开销：</strong> 可以考虑 <strong>基于代理的分片（如 Codis）</strong>，但 Redis Cluster 通常是更原生的选择。</li>
+</ul>
+<p><strong>简单决策树：</strong></p>
+<ol>
+<li>需要高可用 + 单主节点能处理所有写负载 + 数据量在单节点容量内？ -&gt; <strong>哨兵模式 (首选)</strong></li>
+<li>需要高可用 + 单主节点写性能/容量不够？ -&gt; <strong>Redis Cluster</strong></li>
+<li>需要高可用 + 特定分片需求/客户端兼容性要求？ -&gt; <strong>基于代理的分片 (Codis等)</strong> (次选，优先评估 Redis Cluster 是否满足)</li>
+</ol>
+<p>哨兵模式因其成熟度、相对简单性和对大多数场景的适用性，无疑是 Redis 实现高可用的基石和最广泛采用的架构。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Sentinel/" rel="tag"># Sentinel</a>
+          
+            <a href="/tags/Redis/" rel="tag"># Redis</a>
+          
+            <a href="/tags/高可用/" rel="tag"># 高可用</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/05/22/SpringBoot中7种静态资源处理技巧/" rel="next" title="spring中项目中静态资源处理七种方式">
+                <i class="fa fa-chevron-left"></i> spring中项目中静态资源处理七种方式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="happygo">
+            
+              <p class="site-author-name" itemprop="name">happygo</p>
+              <p class="site-description motion-element" itemprop="description">Everthing will going to be all right.</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">58</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">42</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">72</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、-基础：主从复制（Replication）"><span class="nav-number">1.</span> <span class="nav-text">一、 基础：主从复制（Replication）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、-哨兵模式（Sentinel）：解决主节点自动故障转移"><span class="nav-number">2.</span> <span class="nav-text">二、 哨兵模式（Sentinel）：解决主节点自动故障转移</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#核心功能"><span class="nav-number">2.1.</span> <span class="nav-text">核心功能</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#哨兵模式部署架构图（示例：3-Sentinel-1-Master-2-Slaves）"><span class="nav-number">2.2.</span> <span class="nav-text">哨兵模式部署架构图（示例：3 Sentinel + 1 Master + 2 Slaves）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#优点"><span class="nav-number">2.3.</span> <span class="nav-text">优点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#缺点-注意事项"><span class="nav-number">2.4.</span> <span class="nav-text">缺点 / 注意事项</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#三、-其他高可用架构（对比与适用场景）"><span class="nav-number">2.5.</span> <span class="nav-text">三、 其他高可用架构（对比与适用场景）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#总结与选择建议"><span class="nav-number">2.6.</span> <span class="nav-text">总结与选择建议</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2025</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">happygo</span>
+
+  
+</div>
+
+
+  <div class="powered-by">  个人专属</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">博客 v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2157634"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
