@@ -6,7 +6,7 @@
   <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
   
   <link href="http://lhappygo.github.io/"/>
-  <updated>2026-06-18T08:51:26.132Z</updated>
+  <updated>2026-06-18T09:04:32.224Z</updated>
   <id>http://lhappygo.github.io/</id>
   
   <author>
@@ -15,6 +15,29 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>阿里分布式seata事务</title>
+    <link href="http://lhappygo.github.io/2026/06/18/%E9%98%BF%E9%87%8C%E5%88%86%E5%B8%83%E5%BC%8Fseata%E4%BA%8B%E5%8A%A1/"/>
+    <id>http://lhappygo.github.io/2026/06/18/%E9%98%BF%E9%87%8C%E5%88%86%E5%B8%83%E5%BC%8Fseata%E4%BA%8B%E5%8A%A1/</id>
+    <published>2026-06-18T09:03:32.000Z</published>
+    <updated>2026-06-18T09:04:32.224Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;阿里在分布式事务领域的代表性开源框架是 Seata（Simple Extensible Autonomous Transaction Architecture）。它并不是某一种单一的协议，而是一个“一站式”的分布式事务解决方案。&lt;/p&gt;
+&lt;p&gt;简单来说，我们上一轮讨论的 2</summary>
+      
+    
+    
+    
+    <category term="seata、分布式事务" scheme="http://lhappygo.github.io/categories/seata、分布式事务/"/>
+    
+    
+    <category term="seata" scheme="http://lhappygo.github.io/tags/seata/"/>
+    
+  </entry>
   
   <entry>
     <title>9个提升vibecoding设计感网站</title>
@@ -496,30 +519,6 @@
     
     
     <category term="AQS" scheme="http://lhappygo.github.io/tags/AQS/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>java中日期格式规范</title>
-    <link href="http://lhappygo.github.io/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/"/>
-    <id>http://lhappygo.github.io/2019/07/27/java%E4%B8%AD%E6%97%A5%E6%9C%9F%E6%A0%BC%E5%BC%8F%E8%A7%84%E8%8C%83/</id>
-    <published>2019-07-27T06:32:30.000Z</published>
-    <updated>2025-06-09T08:49:29.007Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;日期格式的规范：&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;1.日期格式化时，传入pattern中表示年份统一使用小写的y。&lt;/strong&gt;&lt;/p&gt;
-&lt;p&gt;desc:日期格式化，yyyy表示当天所在的年，而大写的YYYY代表是 week in which year（jdk7之后引入的</summary>
-      
-    
-    
-    
-    <category term="日期格式" scheme="http://lhappygo.github.io/categories/日期格式/"/>
-    
-    
-    <category term="日期格式" scheme="http://lhappygo.github.io/tags/日期格式/"/>
     
   </entry>
   
