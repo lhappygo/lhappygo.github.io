@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="Lock,Redisson,看门狗机制,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="happygo's blog" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。看门狗机制特别适用于任务执行时间较长、但又不确定的场景，确保锁在客户端存活时不会意外失效。它通过后台定时任务实现续期，避免了开发者手动管理锁超时的复杂性。 01 工作原理Red">
+<meta name="keywords" content="Lock,Redisson,看门狗机制">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redisson看门狗机制">
+<meta property="og:url" content="http://lhappygo.github.io/2022/07/21/Redisson看门狗机制/index.html">
+<meta property="og:site_name" content="happygo&#39;s blog">
+<meta property="og:description" content="看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。看门狗机制特别适用于任务执行时间较长、但又不确定的场景，确保锁在客户端存活时不会意外失效。它通过后台定时任务实现续期，避免了开发者手动管理锁超时的复杂性。 01 工作原理Red">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://lhappygo.github.io/images/watchDog/redisson.png">
+<meta property="og:updated_time" content="2025-06-18T10:37:29.154Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Redisson看门狗机制">
+<meta name="twitter:description" content="看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。看门狗机制特别适用于任务执行时间较长、但又不确定的场景，确保锁在客户端存活时不会意外失效。它通过后台定时任务实现续期，避免了开发者手动管理锁超时的复杂性。 01 工作原理Red">
+<meta name="twitter:image" content="http://lhappygo.github.io/images/watchDog/redisson.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lhappygo.github.io/2022/07/21/Redisson看门狗机制/">
+
+
+
+
+
+  <title>Redisson看门狗机制 | happygo's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">happygo's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input">
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'y_LfGyHvCBYL1bZG5tke','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lhappygo.github.io/2022/07/21/Redisson看门狗机制/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="happygo">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="happygo's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Redisson看门狗机制</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2022-07-21T16:23:34+08:00">
+                2022-07-21
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Lock/" itemprop="url" rel="index">
+                    <span itemprop="name">Lock</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。<br>看门狗机制特别适用于任务执行时间较长、但又不确定的场景，确保锁在客户端存活时不会意外失效。它通过后台定时任务实现续期，避免了开发者手动管理锁超时的复杂性。</p>
+<h2 id="01-工作原理"><a href="#01-工作原理" class="headerlink" title="01 工作原理"></a>01 工作原理</h2><p>Redisson的看门狗机制通过定时任务和 Redis 的 TTL 管理以实现锁的自动续期，如下图所示：</p>
+<p><img src="/images/watchDog/redisson.png" alt="Alt text"></p>
+<p>主要工作流程如下：</p>
+<h3 id="1-锁的获取与看门狗初始化"><a href="#1-锁的获取与看门狗初始化" class="headerlink" title="1. 锁的获取与看门狗初始化"></a>1. 锁的获取与看门狗初始化</h3><p>当客户端调用 lock() 方法且未指定过期时间（leaseTime）时：</p>
+<p>默认有效期：Redisson 为锁设置初始 TTL，默认值为 30,000 毫秒（30 秒）。锁记录存储在 Redis 中，使用哈希结构（HSET）保存锁名称、所有者标识（UUID + 线程 ID）及重入计数。</p>
+<p>看门狗触发：锁获取成功后，若未指定 leaseTime，Redisson 调用 scheduleExpirationRenewal 初始化看门狗任务。</p>
+<h3 id="2-定时任务的启动与续期间隔"><a href="#2-定时任务的启动与续期间隔" class="headerlink" title="2. 定时任务的启动与续期间隔"></a>2. 定时任务的启动与续期间隔</h3><p>续期间隔：看门狗默认为“每隔 TTL/ 3（30,000 / 3 = 10,000 毫秒，即 10 秒）”检查一次锁状态。这是通过 ConnectionManager 的 newTimeout 方法调度实现的。</p>
+<p>任务调度：定时任务基于 Netty 的 HashedWheelTimer，首次延迟 10 秒后执行，之后根据续期结果递归调度。</p>
+<h3 id="3-锁的续期过程"><a href="#3-锁的续期过程" class="headerlink" title="3. 锁的续期过程"></a>3. 锁的续期过程</h3><p>每次任务触发时：</p>
+<p>状态检查：从本地 EXPIRATION_RENEWAL_MAP 获取锁的 ExpirationEntry，确认锁是否仍由当前客户端持有。</p>
+<p>续期命令：通过 renewExpirationAsync 发送 Lua 脚本到 Redis：</p>
+<p>if (redis.call(‘hexists’, KEYS[1], ARGV[2]) == 1) then<br>    redis.call(‘pexpire’, KEYS[1], ARGV[1]);<br>    return 1;<br>end;<br>return 0;<br>    检查锁的所有者是否匹配，若匹配则更新 TTL 为 30 秒。</p>
+<p>异步执行：续期操作异步完成，成功后调度下一次续期。</p>
+<h3 id="4-续期的循环机制"><a href="#4-续期的循环机制" class="headerlink" title="4. 续期的循环机制"></a>4. 续期的循环机制</h3><p>只要锁未被释放、且客户端与 Redis 连接正常，则续期任务持续运行。如下所示：</p>
+<p>T=0 秒：锁获取，TTL=30 秒。<br>T=10 秒：续期，TTL 重置为 30 秒。<br>T=20 秒：续期，TTL 重置为 30 秒。<br>……以此类推。</p>
+<h3 id="5-锁的释放与看门狗停止"><a href="#5-锁的释放与看门狗停止" class="headerlink" title="5. 锁的释放与看门狗停止"></a>5. 锁的释放与看门狗停止</h3><p>主动释放：调用 unlock() 删除 Redis 锁记录，并清理本地续期任务。</p>
+<p>客户端崩溃：若客户端断连，续期停止，锁在最后一次续期后的 30 秒内释放。</p>
+<h3 id="6-其他事项"><a href="#6-其他事项" class="headerlink" title="6. 其他事项"></a>6. 其他事项</h3><p>网络延迟：续期请求延迟可能导致锁短暂过期，Redisson 通过异步重试缓解。</p>
+<p>配置影响：TTL 是看门狗机制中锁的默认有效期，其值的大小会直接影响系统行为：</p>
+<p>如果设置得太短（例如几秒钟），看门狗需要更频繁地执行续期操作（ TTL / 3 ），这会增加客户端和 Redis 服务器的负载，影响系统的性能。</p>
+<p>如果设置得太长（例如几分钟），续期间隔也会相应变长（例如每分钟检查一次），可能导致锁在客户端意外中断后无法及时释放，影响系统的响应速度和资源利用效率。</p>
+<h2 id="02-关键源码分析"><a href="#02-关键源码分析" class="headerlink" title="02 关键源码分析"></a>02 关键源码分析</h2><p>以下代码以 Redisson 3.43.0为例，详见GitHub:<br><a href="https://github.com/redisson/redisson" target="_blank" rel="noopener">https://github.com/redisson/redisson</a></p>
+<h3 id="1-锁的自动续期逻辑"><a href="#1-锁的自动续期逻辑" class="headerlink" title="1. 锁的自动续期逻辑"></a>1. 锁的自动续期逻辑</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">scheduleExpirationRenewal方法负责调度锁的续期任务，如下面的所示：</span><br><span class="line">protected final void scheduleExpirationRenewal(long threadId) &#123;</span><br><span class="line">    ExpirationEntry entry = new ExpirationEntry();</span><br><span class="line">    entry.addThreadId(threadId);</span><br><span class="line">    ExpirationEntry oldEntry = EXPIRATION_RENEWAL_MAP.putIfAbsent(getEntryName(), entry);</span><br><span class="line">    if (oldEntry != null) &#123;</span><br><span class="line">        oldEntry.addThreadId(threadId);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            renewExpiration();</span><br><span class="line">        &#125; finally &#123;</span><br><span class="line">            if (Thread.currentThread().isInterrupted()) &#123;</span><br><span class="line">                cancelExpirationRenewal(threadId, null);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中：</p>
+<p>EXPIRATION_RENEWAL_MAP 是一个并发安全的 Map，用于跟踪锁的续期状态，键是锁的名称（getEntryName()），值是 ExpirationEntry 对象。  </p>
+<p>如果该锁已有续期任务（oldEntry != null），则添加当前线程 ID；否则，创建新任务并调用 renewExpiration() 启动续期。</p>
+<h3 id="2-续期定时任务"><a href="#2-续期定时任务" class="headerlink" title="2. 续期定时任务"></a>2. 续期定时任务</h3><p>renewExpiration 负责创建并调度续期任务，如下面的所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">private void renewExpiration() &#123;</span><br><span class="line">    ExpirationEntry ee = EXPIRATION_RENEWAL_MAP.get(getEntryName());</span><br><span class="line">    if (ee == null) &#123;</span><br><span class="line">        return;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    Timeout task = getServiceManager().newTimeout(new TimerTask() &#123;</span><br><span class="line">        @Override</span><br><span class="line">        public void run(Timeout timeout) throws Exception &#123;</span><br><span class="line">            ExpirationEntry ent = EXPIRATION_RENEWAL_MAP.get(getEntryName());</span><br><span class="line">            if (ent == null) &#123;</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line">            Long threadId = ent.getFirstThreadId();</span><br><span class="line">            if (threadId == null) &#123;</span><br><span class="line">                return;</span><br><span class="line">            &#125;</span><br><span class="line">            </span><br><span class="line">            CompletionStage&lt;Boolean&gt; future = renewExpirationAsync(threadId);</span><br><span class="line">            future.whenComplete((res, e) -&gt; &#123;</span><br><span class="line">                if (e != null) &#123;</span><br><span class="line">                    if (getServiceManager().isShuttingDown(e)) &#123;</span><br><span class="line">                        return;</span><br><span class="line">                    &#125;</span><br><span class="line">                    log.error(&quot;Can&apos;t update lock &#123;&#125; expiration&quot;, getRawName(), e);</span><br><span class="line">                    EXPIRATION_RENEWAL_MAP.remove(getEntryName());</span><br><span class="line">                    return;</span><br><span class="line">                &#125;</span><br><span class="line">                </span><br><span class="line">                if (res) &#123;</span><br><span class="line">                    // reschedule itself</span><br><span class="line">                    renewExpiration();</span><br><span class="line">                &#125; else &#123;</span><br><span class="line">                    cancelExpirationRenewal(null, null);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, internalLockLeaseTime / 3, TimeUnit.MILLISECONDS);</span><br><span class="line">    </span><br><span class="line">    ee.setTimeout(task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中：<br>检查 EXPIRATION_RENEWAL_MAP 是否存在对应锁的续期条目，若无则退出。<br>获取首个线程 ID 后，异步调用 renewExpirationAsync 续期。异常时清理条目，成功则递归调度，失败则取消任务，任务引用存入 ExpirationEntry。</p>
+<h3 id="3-续期异步实现"><a href="#3-续期异步实现" class="headerlink" title="3. 续期异步实现"></a>3. 续期异步实现</h3><p>如下代码所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">protected CompletionStage&lt;Boolean&gt; renewExpirationAsync(long threadId) &#123;</span><br><span class="line">    return commandExecutor.syncedEval(getRawName(), LongCodec.INSTANCE, RedisCommands.EVAL_BOOLEAN,</span><br><span class="line">            &quot;if (redis.call(&apos;hexists&apos;, KEYS[1], ARGV[2]) == 1) then &quot; +</span><br><span class="line">                &quot;redis.call(&apos;pexpire&apos;, KEYS[1], ARGV[1]); &quot; +</span><br><span class="line">                &quot;return 1; &quot; +</span><br><span class="line">            &quot;end; &quot; +</span><br><span class="line">            &quot;return 0;&quot;,</span><br><span class="line">        Collections.singletonList(getRawName()),</span><br><span class="line">        internalLockLeaseTime, getLockName(threadId));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该方法通过 Lua 脚本实现原子续期。检查锁的所有者（ARGV[2]）是否匹配，若匹配则更新 TTL 为默认值（30 秒），返回 1 表示成功，否则返回 0。使用 CompletionStage 异步执行，确保不阻塞主线程。</p>
+<h2 id="03-相关配置"><a href="#03-相关配置" class="headerlink" title="03 相关配置"></a>03 相关配置</h2><h3 id="3-1-看门狗机制的启用和关闭"><a href="#3-1-看门狗机制的启用和关闭" class="headerlink" title="3.1 看门狗机制的启用和关闭"></a>3.1 看门狗机制的启用和关闭</h3><h4 id="1-启用看门狗机制（默认）"><a href="#1-启用看门狗机制（默认）" class="headerlink" title="1. 启用看门狗机制（默认）"></a>1. 启用看门狗机制（默认）</h4><p>如下面的示例代码所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">RLock lock = redisson.getLock(&quot;myLock&quot;);</span><br><span class="line">// 不指定过期时间，默认启用看门狗机制</span><br><span class="line">lock.lock();</span><br><span class="line">未指定过期时间时，锁初始 TTL 为 30 秒，看门狗自动续期。</span><br></pre></td></tr></table></figure>
+<h4 id="2-禁用看门狗机制"><a href="#2-禁用看门狗机制" class="headerlink" title="2. 禁用看门狗机制"></a>2. 禁用看门狗机制</h4><p>如下面的示例代码所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">RLock lock = redisson.getLock(&quot;myLock&quot;);</span><br><span class="line">// 指定过期时间，看门狗机制被禁用</span><br><span class="line">lock.lock(10, TimeUnit.SECONDS);</span><br><span class="line">指定 leaseTime（如 10 秒）后，锁将在固定时间后释放，不触发续期。</span><br></pre></td></tr></table></figure>
+<h3 id="3-2-看门够参数配置"><a href="#3-2-看门够参数配置" class="headerlink" title="3.2 看门够参数配置"></a>3.2 看门够参数配置</h3><p>可以通过 Config 类修改看门狗的默认行为，如下面的示例代码所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Config config = new Config();</span><br><span class="line">// 单位：毫秒，设置为 30 秒</span><br><span class="line">config.setLockWatchdogTimeout(30000); </span><br><span class="line">RedissonClient redisson = Redisson.create(config);</span><br><span class="line"></span><br><span class="line">RLock lock = redisson.getLock(&quot;myLock&quot;);</span><br><span class="line">// 使用配置的 30 秒作为默认 TTL，续期间隔 10 秒</span><br><span class="line">lock.lock();</span><br></pre></td></tr></table></figure>
+<p>这里将setLockWatchdogTimeout设置为30,000 毫秒（即为30秒），此时的定时任务执行间隔为 TTL/ 3（即为10 秒）。  </p>
+<p>最后需要注意的是：此配置仅对未指定 leaseTime 的 lock() 调用生效。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Lock/" rel="tag"># Lock</a>
+          
+            <a href="/tags/Redisson/" rel="tag"># Redisson</a>
+          
+            <a href="/tags/看门狗机制/" rel="tag"># 看门狗机制</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/06/27/Redis高可用架构解析/" rel="next" title="Redis高可用架构解析">
+                <i class="fa fa-chevron-left"></i> Redis高可用架构解析
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/08/15/SpringRetry集成Resilience4J重试机制/" rel="prev" title="Springboot重试机制集成Resilience4j">
+                Springboot重试机制集成Resilience4j <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="happygo">
+            
+              <p class="site-author-name" itemprop="name">happygo</p>
+              <p class="site-description motion-element" itemprop="description">Everthing will going to be all right.</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">61</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">45</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">78</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#01-工作原理"><span class="nav-number">1.</span> <span class="nav-text">01 工作原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-锁的获取与看门狗初始化"><span class="nav-number">1.1.</span> <span class="nav-text">1. 锁的获取与看门狗初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-定时任务的启动与续期间隔"><span class="nav-number">1.2.</span> <span class="nav-text">2. 定时任务的启动与续期间隔</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-锁的续期过程"><span class="nav-number">1.3.</span> <span class="nav-text">3. 锁的续期过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-续期的循环机制"><span class="nav-number">1.4.</span> <span class="nav-text">4. 续期的循环机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-锁的释放与看门狗停止"><span class="nav-number">1.5.</span> <span class="nav-text">5. 锁的释放与看门狗停止</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-其他事项"><span class="nav-number">1.6.</span> <span class="nav-text">6. 其他事项</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#02-关键源码分析"><span class="nav-number">2.</span> <span class="nav-text">02 关键源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-锁的自动续期逻辑"><span class="nav-number">2.1.</span> <span class="nav-text">1. 锁的自动续期逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-续期定时任务"><span class="nav-number">2.2.</span> <span class="nav-text">2. 续期定时任务</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-续期异步实现"><span class="nav-number">2.3.</span> <span class="nav-text">3. 续期异步实现</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#03-相关配置"><span class="nav-number">3.</span> <span class="nav-text">03 相关配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-看门狗机制的启用和关闭"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 看门狗机制的启用和关闭</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-启用看门狗机制（默认）"><span class="nav-number">3.1.1.</span> <span class="nav-text">1. 启用看门狗机制（默认）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-禁用看门狗机制"><span class="nav-number">3.1.2.</span> <span class="nav-text">2. 禁用看门狗机制</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-看门够参数配置"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 看门够参数配置</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">happygo</span>
+
+  
+</div>
+
+
+  <div class="powered-by">  个人专属</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">博客 v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2157634"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

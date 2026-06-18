@@ -6,7 +6,7 @@
   <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
   
   <link href="http://lhappygo.github.io/"/>
-  <updated>2025-06-18T06:08:16.290Z</updated>
+  <updated>2026-06-18T08:51:26.132Z</updated>
   <id>http://lhappygo.github.io/</id>
   
   <author>
@@ -15,6 +15,85 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>9个提升vibecoding设计感网站</title>
+    <link href="http://lhappygo.github.io/2026/03/21/9%E4%B8%AA%E6%8F%90%E5%8D%87vibecoding%E8%AE%BE%E8%AE%A1%E6%84%9F%E7%BD%91%E7%AB%99/"/>
+    <id>http://lhappygo.github.io/2026/03/21/9%E4%B8%AA%E6%8F%90%E5%8D%87vibecoding%E8%AE%BE%E8%AE%A1%E6%84%9F%E7%BD%91%E7%AB%99/</id>
+    <published>2026-03-21T02:20:12.000Z</published>
+    <updated>2026-06-18T08:51:26.132Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;9个网站能帮你提升vibecoding设计感，覆盖网页、导航、移动端等场景，直接给AI参考超方便～ &lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;curated.design：网页灵感+落地页案例，快速搭框架；&lt;/li&gt;
+&lt;li&gt;saaspo.com：SaaS官网设计参考；&lt;/li&gt;
+&lt;li</summary>
+      
+    
+    
+    
+    <category term="vibecoding" scheme="http://lhappygo.github.io/categories/vibecoding/"/>
+    
+    
+    <category term="vibecoding、ai" scheme="http://lhappygo.github.io/tags/vibecoding、ai/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Springboot重试机制集成Resilience4j</title>
+    <link href="http://lhappygo.github.io/2022/08/15/SpringRetry%E9%9B%86%E6%88%90Resilience4J%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2022/08/15/SpringRetry%E9%9B%86%E6%88%90Resilience4J%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/</id>
+    <published>2022-08-15T13:19:29.000Z</published>
+    <updated>2025-06-19T06:17:48.221Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;以下基于 Spring Retry 与 Resilience4j 的集成方案，结合&lt;strong&gt;指数退避算法&lt;/strong&gt;，提供详细原理解析和完整代码示例。内容综合了多个技术文档的最佳实践，重点突出随机化指数退避的实现和避坑指南。&lt;/p&gt;
+&lt;p&gt;🌟 一、集成原理与核</summary>
+      
+    
+    
+    
+    <category term="Resilience4J" scheme="http://lhappygo.github.io/categories/Resilience4J/"/>
+    
+    
+    <category term="SpringRetry" scheme="http://lhappygo.github.io/tags/SpringRetry/"/>
+    
+    <category term="Resilience4J" scheme="http://lhappygo.github.io/tags/Resilience4J/"/>
+    
+    <category term="重试机制" scheme="http://lhappygo.github.io/tags/重试机制/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Redisson看门狗机制</title>
+    <link href="http://lhappygo.github.io/2022/07/21/Redisson%E7%9C%8B%E9%97%A8%E7%8B%97%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2022/07/21/Redisson%E7%9C%8B%E9%97%A8%E7%8B%97%E6%9C%BA%E5%88%B6/</id>
+    <published>2022-07-21T08:23:34.000Z</published>
+    <updated>2025-06-18T10:37:29.154Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。&lt;br&gt;看门狗机制特别适用于任务执行时间较长、但又</summary>
+      
+    
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/categories/Lock/"/>
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/tags/Lock/"/>
+    
+    <category term="Redisson" scheme="http://lhappygo.github.io/tags/Redisson/"/>
+    
+    <category term="看门狗机制" scheme="http://lhappygo.github.io/tags/看门狗机制/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis高可用架构解析</title>
@@ -441,86 +520,6 @@
     
     
     <category term="日期格式" scheme="http://lhappygo.github.io/tags/日期格式/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>SpringBoot中定时任务配置多线程</title>
-    <link href="http://lhappygo.github.io/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/"/>
-    <id>http://lhappygo.github.io/2019/05/18/SpringBoot%E4%B8%AD%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E9%85%8D%E7%BD%AE%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%89%A7%E8%A1%8C/</id>
-    <published>2019-05-18T10:19:23.000Z</published>
-    <updated>2025-06-09T08:49:28.997Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;SpringBoot中定时任务在不配置线程池时，默认是单线程执行的。系统中配置多个定时任务，会按照列队进行执行。这样执行效率低，可能对Corn配置的存在影响。&lt;/p&gt;
-&lt;pre&gt;&lt;code&gt;//多线程执行定时任务
-@Slf4j
-@Configuration
-public c</summary>
-      
-    
-    
-    
-    <category term="定时任务" scheme="http://lhappygo.github.io/categories/定时任务/"/>
-    
-    
-    <category term="定时任务" scheme="http://lhappygo.github.io/tags/定时任务/"/>
-    
-    <category term="多线程" scheme="http://lhappygo.github.io/tags/多线程/"/>
-    
-    <category term="SpringBoot" scheme="http://lhappygo.github.io/tags/SpringBoot/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>LockSuport简述-1</title>
-    <link href="http://lhappygo.github.io/2019/03/17/Java%20LockSupport/"/>
-    <id>http://lhappygo.github.io/2019/03/17/Java%20LockSupport/</id>
-    <published>2019-03-17T10:50:19.000Z</published>
-    <updated>2025-06-09T08:49:28.995Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;blockquote&gt;
-&lt;p&gt;LockSupport是线程阻塞原语，用来阻塞线程和唤醒线程。每个使用LockSupport的线程都会与一个许可permit关联：&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;p&gt;如果该许可可用，并且可在线程中使用，则调用park()将</summary>
-      
-    
-    
-    
-    <category term="lock" scheme="http://lhappygo.github.io/categories/lock/"/>
-    
-    
-    <category term="lock" scheme="http://lhappygo.github.io/tags/lock/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>java中的锁(偏向锁、轻量锁..）</title>
-    <link href="http://lhappygo.github.io/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/"/>
-    <id>http://lhappygo.github.io/2019/03/09/java%E4%B8%AD%E7%9A%84%E9%94%81(%E5%81%8F%E5%90%91%E9%94%81%E3%80%81%E8%BD%BB%E9%87%8F%E9%94%81..%EF%BC%89/</id>
-    <published>2019-03-09T07:29:15.000Z</published>
-    <updated>2025-06-09T08:49:28.963Z</updated>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;CAS操作：&lt;/strong&gt;&lt;br&gt;compareAndSwap,比较并替换，实现并发算法常用技术&lt;/p&gt;
-&lt;p&gt;CAS需要有3个操作数：&lt;br&gt;内存地址V,旧预期值A，即将更新的目标值B。&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;锁的升级：&lt;/strong&gt;&lt;/p</summary>
-      
-    
-    
-    
-    <category term="lock" scheme="http://lhappygo.github.io/categories/lock/"/>
-    
-    
-    <category term="lock" scheme="http://lhappygo.github.io/tags/lock/"/>
     
   </entry>
   
