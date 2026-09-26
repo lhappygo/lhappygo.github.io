@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>happygo&#39;s blog</title>
+  
+  
+  <link href="http://lhappygo.github.io/atom.xml" rel="self"/>
+  
+  <link href="http://lhappygo.github.io/"/>
+  <updated>2026-09-26T09:14:26.680Z</updated>
+  <id>http://lhappygo.github.io/</id>
+  
+  <author>
+    <name>happygo</name>
+    
+  </author>
+  
+  <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>集合概述</title>
+    <link href="http://lhappygo.github.io/2026/09/26/%E9%9B%86%E5%90%88%E6%A6%82%E8%BF%B0/"/>
+    <id>http://lhappygo.github.io/2026/09/26/%E9%9B%86%E5%90%88%E6%A6%82%E8%BF%B0/</id>
+    <published>2026-09-26T09:13:46.000Z</published>
+    <updated>2026-09-26T09:14:26.680Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;/images/集合概述/001.jpg&quot; alt=&quot;IMG_2324.JPG&quot;&gt;&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="集合" scheme="http://lhappygo.github.io/categories/集合/"/>
+    
+    
+    <category term="集合" scheme="http://lhappygo.github.io/tags/集合/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>设计模式概述</title>
+    <link href="http://lhappygo.github.io/2026/09/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E6%A6%82%E8%BF%B0/"/>
+    <id>http://lhappygo.github.io/2026/09/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E6%A6%82%E8%BF%B0/</id>
+    <published>2026-09-26T09:12:04.000Z</published>
+    <updated>2026-09-26T09:12:43.834Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;/images/设计模式概述/001.jpg&quot; alt=&quot;IMG_2324.JPG&quot;&gt;&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="设计模式" scheme="http://lhappygo.github.io/categories/设计模式/"/>
+    
+    
+    <category term="设计模式" scheme="http://lhappygo.github.io/tags/设计模式/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>分布式一致性概述</title>
+    <link href="http://lhappygo.github.io/2026/09/26/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E6%A6%82%E8%BF%B0/"/>
+    <id>http://lhappygo.github.io/2026/09/26/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E6%A6%82%E8%BF%B0/</id>
+    <published>2026-09-26T09:10:05.000Z</published>
+    <updated>2026-09-26T09:10:56.274Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;/images/分布式一致性概述/001.jpg&quot; alt=&quot;IMG_2324.JPG&quot;&gt;&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="分布式" scheme="http://lhappygo.github.io/categories/分布式/"/>
+    
+    
+    <category term="分布式" scheme="http://lhappygo.github.io/tags/分布式/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>本地锁到分布式锁演进Redisson</title>
+    <link href="http://lhappygo.github.io/2026/09/26/%E6%9C%AC%E5%9C%B0%E9%94%81%E5%88%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E6%BC%94%E8%BF%9BRedisson/"/>
+    <id>http://lhappygo.github.io/2026/09/26/%E6%9C%AC%E5%9C%B0%E9%94%81%E5%88%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%E6%BC%94%E8%BF%9BRedisson/</id>
+    <published>2026-09-26T09:03:48.000Z</published>
+    <updated>2026-09-26T09:08:53.951Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;/images/本地锁到分布式锁演进Redisson/001.png&quot; alt=&quot;IMG_8064.PNG&quot;&gt;&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/categories/Lock/"/>
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/tags/Lock/"/>
+    
+    <category term="Redisson" scheme="http://lhappygo.github.io/tags/Redisson/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>mysql思维导图-1</title>
+    <link href="http://lhappygo.github.io/2026/09/20/mysql%E6%80%9D%E7%BB%B4%E5%AF%BC%E5%9B%BE-1/"/>
+    <id>http://lhappygo.github.io/2026/09/20/mysql%E6%80%9D%E7%BB%B4%E5%AF%BC%E5%9B%BE-1/</id>
+    <published>2026-09-20T08:41:10.000Z</published>
+    <updated>2026-09-26T09:00:40.353Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;img src=&quot;/images/mysql思维导图-1/001.png&quot; alt=&quot;mysql-1&quot;&gt;&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://lhappygo.github.io/categories/MySQL/"/>
+    
+    
+    <category term="MySQL" scheme="http://lhappygo.github.io/tags/MySQL/"/>
+    
+    <category term="InnoDB" scheme="http://lhappygo.github.io/tags/InnoDB/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>金蝶云星空采购业务节点与下推流程图</title>
+    <link href="http://lhappygo.github.io/2026/09/20/%E9%87%91%E8%9D%B6%E4%BA%91%E6%98%9F%E7%A9%BA%E9%87%87%E8%B4%AD%E4%B8%9A%E5%8A%A1%E8%8A%82%E7%82%B9%E4%B8%8E%E4%B8%8B%E6%8E%A8%E6%B5%81%E7%A8%8B%E5%9B%BE/"/>
+    <id>http://lhappygo.github.io/2026/09/20/%E9%87%91%E8%9D%B6%E4%BA%91%E6%98%9F%E7%A9%BA%E9%87%87%E8%B4%AD%E4%B8%9A%E5%8A%A1%E8%8A%82%E7%82%B9%E4%B8%8E%E4%B8%8B%E6%8E%A8%E6%B5%81%E7%A8%8B%E5%9B%BE/</id>
+    <published>2026-09-20T07:21:52.000Z</published>
+    <updated>2026-09-20T07:53:37.479Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;金蝶云星空采购业务节点与下推流程图&quot;&gt;&lt;a href=&quot;#金蝶云星空采购业务节点与下推流程图&quot; class=&quot;headerlink&quot; title=&quot;金蝶云星空采购业务节点与下推流程图&quot;&gt;&lt;/a&gt;金蝶云星空采购业务节点与下推流程图&lt;/h1&gt;&lt;h2 id=&quot;图例说明&quot;</summary>
+      
+    
+    
+    
+    <category term="erp" scheme="http://lhappygo.github.io/categories/erp/"/>
+    
+    
+    <category term="erp" scheme="http://lhappygo.github.io/tags/erp/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>金蝶云星空财务业务逻辑梳理</title>
+    <link href="http://lhappygo.github.io/2026/09/18/%E9%87%91%E8%9D%B6%E4%BA%91%E6%98%9F%E7%A9%BA%E8%B4%A2%E5%8A%A1%E4%B8%9A%E5%8A%A1%E9%80%BB%E8%BE%91%E6%A2%B3%E7%90%86/"/>
+    <id>http://lhappygo.github.io/2026/09/18/%E9%87%91%E8%9D%B6%E4%BA%91%E6%98%9F%E7%A9%BA%E8%B4%A2%E5%8A%A1%E4%B8%9A%E5%8A%A1%E9%80%BB%E8%BE%91%E6%A2%B3%E7%90%86/</id>
+    <published>2026-09-18T11:30:29.000Z</published>
+    <updated>2026-09-20T08:38:02.078Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;金蝶云星空财务业务逻辑梳理&quot;&gt;&lt;a href=&quot;#金蝶云星空财务业务逻辑梳理&quot; class=&quot;headerlink&quot; title=&quot;金蝶云星空财务业务逻辑梳理&quot;&gt;&lt;/a&gt;金蝶云星空财务业务逻辑梳理&lt;/h1&gt;&lt;blockquote&gt;
+&lt;p&gt;图例：&lt;br&gt;&lt;code&gt;</summary>
+      
+    
+    
+    
+    <category term="ERP" scheme="http://lhappygo.github.io/categories/ERP/"/>
+    
+    
+    <category term="ERP" scheme="http://lhappygo.github.io/tags/ERP/"/>
+    
+    <category term="财务" scheme="http://lhappygo.github.io/tags/财务/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>阿里分布式seata事务</title>
+    <link href="http://lhappygo.github.io/2026/06/18/%E9%98%BF%E9%87%8C%E5%88%86%E5%B8%83%E5%BC%8Fseata%E4%BA%8B%E5%8A%A1/"/>
+    <id>http://lhappygo.github.io/2026/06/18/%E9%98%BF%E9%87%8C%E5%88%86%E5%B8%83%E5%BC%8Fseata%E4%BA%8B%E5%8A%A1/</id>
+    <published>2026-06-18T09:03:32.000Z</published>
+    <updated>2026-06-18T09:04:32.224Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;阿里在分布式事务领域的代表性开源框架是 Seata（Simple Extensible Autonomous Transaction Architecture）。它并不是某一种单一的协议，而是一个“一站式”的分布式事务解决方案。&lt;/p&gt;
+&lt;p&gt;简单来说，我们上一轮讨论的 2</summary>
+      
+    
+    
+    
+    <category term="seata、分布式事务" scheme="http://lhappygo.github.io/categories/seata、分布式事务/"/>
+    
+    
+    <category term="seata" scheme="http://lhappygo.github.io/tags/seata/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>9个提升vibecoding设计感网站</title>
+    <link href="http://lhappygo.github.io/2026/03/21/9%E4%B8%AA%E6%8F%90%E5%8D%87vibecoding%E8%AE%BE%E8%AE%A1%E6%84%9F%E7%BD%91%E7%AB%99/"/>
+    <id>http://lhappygo.github.io/2026/03/21/9%E4%B8%AA%E6%8F%90%E5%8D%87vibecoding%E8%AE%BE%E8%AE%A1%E6%84%9F%E7%BD%91%E7%AB%99/</id>
+    <published>2026-03-21T02:20:12.000Z</published>
+    <updated>2026-06-18T08:51:26.132Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;9个网站能帮你提升vibecoding设计感，覆盖网页、导航、移动端等场景，直接给AI参考超方便～ &lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;curated.design：网页灵感+落地页案例，快速搭框架；&lt;/li&gt;
+&lt;li&gt;saaspo.com：SaaS官网设计参考；&lt;/li&gt;
+&lt;li</summary>
+      
+    
+    
+    
+    <category term="vibecoding" scheme="http://lhappygo.github.io/categories/vibecoding/"/>
+    
+    
+    <category term="vibecoding、ai" scheme="http://lhappygo.github.io/tags/vibecoding、ai/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Springboot重试机制集成Resilience4j</title>
+    <link href="http://lhappygo.github.io/2022/08/15/SpringRetry%E9%9B%86%E6%88%90Resilience4J%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2022/08/15/SpringRetry%E9%9B%86%E6%88%90Resilience4J%E9%87%8D%E8%AF%95%E6%9C%BA%E5%88%B6/</id>
+    <published>2022-08-15T13:19:29.000Z</published>
+    <updated>2025-06-19T06:17:48.221Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;以下基于 Spring Retry 与 Resilience4j 的集成方案，结合&lt;strong&gt;指数退避算法&lt;/strong&gt;，提供详细原理解析和完整代码示例。内容综合了多个技术文档的最佳实践，重点突出随机化指数退避的实现和避坑指南。&lt;/p&gt;
+&lt;p&gt;🌟 一、集成原理与核</summary>
+      
+    
+    
+    
+    <category term="Resilience4J" scheme="http://lhappygo.github.io/categories/Resilience4J/"/>
+    
+    
+    <category term="SpringRetry" scheme="http://lhappygo.github.io/tags/SpringRetry/"/>
+    
+    <category term="Resilience4J" scheme="http://lhappygo.github.io/tags/Resilience4J/"/>
+    
+    <category term="重试机制" scheme="http://lhappygo.github.io/tags/重试机制/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Redisson看门狗机制</title>
+    <link href="http://lhappygo.github.io/2022/07/21/Redisson%E7%9C%8B%E9%97%A8%E7%8B%97%E6%9C%BA%E5%88%B6/"/>
+    <id>http://lhappygo.github.io/2022/07/21/Redisson%E7%9C%8B%E9%97%A8%E7%8B%97%E6%9C%BA%E5%88%B6/</id>
+    <published>2022-07-21T08:23:34.000Z</published>
+    <updated>2025-06-18T10:37:29.154Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;看门狗（Watchdog）机制是 Redisson 为分布式锁提供的一种自动续期功能。它能够在客户端持有锁期间，自动延长分布式锁的有效期，以防止因任务执行时间过长、而导致锁提前过期被其他客户端获取，从而破坏分布式锁的互斥性。&lt;br&gt;看门狗机制特别适用于任务执行时间较长、但又</summary>
+      
+    
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/categories/Lock/"/>
+    
+    
+    <category term="Lock" scheme="http://lhappygo.github.io/tags/Lock/"/>
+    
+    <category term="Redisson" scheme="http://lhappygo.github.io/tags/Redisson/"/>
+    
+    <category term="看门狗机制" scheme="http://lhappygo.github.io/tags/看门狗机制/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Redis高可用架构解析</title>
+    <link href="http://lhappygo.github.io/2022/06/27/Redis%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/06/27/Redis%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-06-27T12:25:20.000Z</published>
+    <updated>2025-06-18T06:08:16.290Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Redis 高可用架构最常用、最成熟的方式是 &lt;strong&gt;哨兵模式（Sentinel）&lt;/strong&gt;。它是在主从复制基础上发展而来，专门为了解决主节点故障自动切换问题的官方解决方案。&lt;/p&gt;
+&lt;p&gt;以下是对哨兵模式的详细解读：&lt;/p&gt;
+&lt;h2 id=&quot;一、-基础：主</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://lhappygo.github.io/categories/Redis/"/>
+    
+    
+    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
+    
+    <category term="Redis" scheme="http://lhappygo.github.io/tags/Redis/"/>
+    
+    <category term="高可用" scheme="http://lhappygo.github.io/tags/高可用/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>spring中项目中静态资源处理七种方式</title>
+    <link href="http://lhappygo.github.io/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/"/>
+    <id>http://lhappygo.github.io/2022/05/22/SpringBoot%E4%B8%AD7%E7%A7%8D%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90%E5%A4%84%E7%90%86%E6%8A%80%E5%B7%A7/</id>
+    <published>2022-05-22T12:15:50.000Z</published>
+    <updated>2025-06-17T07:58:01.606Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在Web应用开发中，静态资源（如CSS、JavaScript、图片等）的处理是一个基础但重要的环节。SpringBoot作为一个强大的应用框架，为开发者提供了多种灵活处理静态资源的方式。本文将介绍SpringBoot中7种静态资源处理技巧。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;利用默</summary>
+      
+    
+    
+    
+    <category term="静态资源" scheme="http://lhappygo.github.io/categories/静态资源/"/>
+    
+    
+    <category term="静态资源" scheme="http://lhappygo.github.io/tags/静态资源/"/>
+    
+    <category term="spring boot" scheme="http://lhappygo.github.io/tags/spring-boot/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Feign与OpenFeign详解</title>
+    <link href="http://lhappygo.github.io/2022/03/27/Feign%E4%B8%8EOpenFeign%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/27/Feign%E4%B8%8EOpenFeign%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-03-27T12:25:20.000Z</published>
+    <updated>2025-06-10T08:42:29.747Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;Feign与OpenFeign详解&quot;&gt;&lt;a href=&quot;#Feign与OpenFeign详解&quot; class=&quot;headerlink&quot; title=&quot;Feign与OpenFeign详解&quot;&gt;&lt;/a&gt;Feign与OpenFeign详解&lt;/h3&gt;&lt;h4 id=&quot;底层原理&quot;</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="Feign" scheme="http://lhappygo.github.io/tags/Feign/"/>
+    
+    <category term="OpenFeign" scheme="http://lhappygo.github.io/tags/OpenFeign/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Ribbon及Sentinel解析</title>
+    <link href="http://lhappygo.github.io/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/25/Ribbon%E5%8F%8ASentinel%E8%A7%A3%E6%9E%90/</id>
+    <published>2022-03-25T12:25:20.000Z</published>
+    <updated>2025-06-10T08:29:34.555Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解析及配置指南&quot;&gt;&lt;a href=&quot;#Spring-Cloud-Alibaba-中-Ribbon-LoadBalancer-与-Sentinel-原理解</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="Ribbon" scheme="http://lhappygo.github.io/tags/Ribbon/"/>
+    
+    <category term="Sentinel" scheme="http://lhappygo.github.io/tags/Sentinel/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Feign和Dubbo组件分析</title>
+    <link href="http://lhappygo.github.io/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/"/>
+    <id>http://lhappygo.github.io/2022/03/22/Feign%E5%92%8CDubbo%E7%BB%84%E4%BB%B6%E5%88%86%E6%9E%90/</id>
+    <published>2022-03-22T12:15:50.000Z</published>
+    <updated>2025-06-09T08:49:29.002Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在 Spring Cloud Alibaba 中，&lt;strong&gt;Feign&lt;/strong&gt; 和 &lt;strong&gt;Dubbo&lt;/strong&gt; 都是实现微服务间通信的关键组件，但它们的设计目标、协议支持和使用场景有显著差异。以下是两者的对比及适用场景分析：&lt;/p&gt;
+&lt;hr</summary>
+      
+    
+    
+    
+    <category term="微服务" scheme="http://lhappygo.github.io/categories/微服务/"/>
+    
+    
+    <category term="微服务中间件" scheme="http://lhappygo.github.io/tags/微服务中间件/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Docker日志实时查看和清理</title>
+    <link href="http://lhappygo.github.io/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/"/>
+    <id>http://lhappygo.github.io/2021/09/25/docker%E6%97%A5%E5%BF%97%E5%AE%9E%E6%97%B6%E6%9F%A5%E7%9C%8B%E4%B8%8E%E6%B8%85%E7%90%86/</id>
+    <published>2021-09-25T12:25:20.000Z</published>
+    <updated>2025-06-09T08:49:28.996Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Docker日志实时查看和清理&quot;&gt;&lt;a href=&quot;#Docker日志实时查看和清理&quot; class=&quot;headerlink&quot; title=&quot;Docker日志实时查看和清理&quot;&gt;&lt;/a&gt;Docker日志实时查看和清理&lt;/h1&gt;&lt;h2 id=&quot;一、docker-logs</summary>
+      
+    
+    
+    
+    <category term="docker" scheme="http://lhappygo.github.io/categories/docker/"/>
+    
+    
+    <category term="log" scheme="http://lhappygo.github.io/tags/log/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>jdk8链接mysql问题</title>
+    <link href="http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/"/>
+    <id>http://lhappygo.github.io/2021/09/22/jdk8%E9%93%BE%E6%8E%A5mysql%E9%97%AE%E9%A2%98/</id>
+    <published>2021-09-22T02:25:20.000Z</published>
+    <updated>2025-06-09T08:49:29.009Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;前几天发现一直跑的项目本地无法启动了：&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;lin</summary>
+      
+    
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/categories/jdk8/"/>
+    
+    
+    <category term="jdk8" scheme="http://lhappygo.github.io/tags/jdk8/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>HashMap各版本结构解读</title>
+    <link href="http://lhappygo.github.io/2021/02/27/HashMap%E5%90%84%E7%89%88%E7%BB%93%E6%9E%84%E8%A7%A3%E8%AF%BB/"/>
+    <id>http://lhappygo.github.io/2021/02/27/HashMap%E5%90%84%E7%89%88%E7%BB%93%E6%9E%84%E8%A7%A3%E8%AF%BB/</id>
+    <published>2021-02-27T12:25:20.000Z</published>
+    <updated>2025-06-17T07:29:07.981Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;以下是针对不同Java版本中HashMap与ConcurrentHashMap的实现原理及数据结构的详细解析，结合JDK 1.7和JDK 1.8的核心差异进行对比：&lt;/p&gt;
+&lt;p&gt;📊 一、HashMap 的实现演进&lt;br&gt;JDK 1.7：数组 + 链表&lt;/p&gt;
+&lt;p&gt;数据</summary>
+      
+    
+    
+    
+    <category term="HashMap" scheme="http://lhappygo.github.io/categories/HashMap/"/>
+    
+    
+    <category term="hashMap" scheme="http://lhappygo.github.io/tags/hashMap/"/>
+    
+    <category term="ConcurrentHashMap" scheme="http://lhappygo.github.io/tags/ConcurrentHashMap/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>spring-boot中关于jpa异常问题</title>
+    <link href="http://lhappygo.github.io/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/"/>
+    <id>http://lhappygo.github.io/2020/11/24/spring-boot%E4%B8%AD%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5%E8%AE%B0%E5%BD%95/</id>
+    <published>2020-11-24T09:12:43.000Z</published>
+    <updated>2025-06-09T08:49:29.004Z</updated>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;&lt;strong&gt;spring-boot异常问题记录&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;Bug in org.springframework.boot on 2.2.3.RELEASE version&lt;/p&gt;
+&lt;p&gt;当我们使用spring-boot 的版本为2.2.3.RELE</summary>
+      
+    
+    
+    
+    <category term="jpa" scheme="http://lhappygo.github.io/categories/jpa/"/>
+    
+    
+    <category term="spring-boot" scheme="http://lhappygo.github.io/tags/spring-boot/"/>
+    
+    <category term="jpa" scheme="http://lhappygo.github.io/tags/jpa/"/>
+    
+    <category term="bug" scheme="http://lhappygo.github.io/tags/bug/"/>
+    
+  </entry>
+  
+</feed>

@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="ERP,财务,">
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="happygo's blog" type="application/atom+xml">
+
+
+
+
+
+
+<meta name="description" content="金蝶云星空财务业务逻辑梳理 图例：--&amp;gt;|下推| = 源单下推目标单-.-&amp;gt;|核销/勾稽| = 核销、对账、勾稽-.-&amp;gt;|凭证| = 智能会计平台按凭证模板生成凭证  1. 总体业财一体化流程图flowchart LR   B[&amp;quot;业务单据&amp;lt;br/&amp;gt;销售/采购/库存/生产/资产/费用/资金&amp;quot;] --&amp;gt;|下推/审核| I[&amp;quot;智能会计平台">
+<meta name="keywords" content="ERP,财务">
+<meta property="og:type" content="article">
+<meta property="og:title" content="金蝶云星空财务业务逻辑梳理">
+<meta property="og:url" content="http://lhappygo.github.io/2026/09/18/金蝶云星空财务业务逻辑梳理/index.html">
+<meta property="og:site_name" content="happygo&#39;s blog">
+<meta property="og:description" content="金蝶云星空财务业务逻辑梳理 图例：--&amp;gt;|下推| = 源单下推目标单-.-&amp;gt;|核销/勾稽| = 核销、对账、勾稽-.-&amp;gt;|凭证| = 智能会计平台按凭证模板生成凭证  1. 总体业财一体化流程图flowchart LR   B[&amp;quot;业务单据&amp;lt;br/&amp;gt;销售/采购/库存/生产/资产/费用/资金&amp;quot;] --&amp;gt;|下推/审核| I[&amp;quot;智能会计平台">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2026-09-20T08:38:02.078Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="金蝶云星空财务业务逻辑梳理">
+<meta name="twitter:description" content="金蝶云星空财务业务逻辑梳理 图例：--&amp;gt;|下推| = 源单下推目标单-.-&amp;gt;|核销/勾稽| = 核销、对账、勾稽-.-&amp;gt;|凭证| = 智能会计平台按凭证模板生成凭证  1. 总体业财一体化流程图flowchart LR   B[&amp;quot;业务单据&amp;lt;br/&amp;gt;销售/采购/库存/生产/资产/费用/资金&amp;quot;] --&amp;gt;|下推/审核| I[&amp;quot;智能会计平台">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://lhappygo.github.io/2026/09/18/金蝶云星空财务业务逻辑梳理/">
+
+
+
+
+
+  <title>金蝶云星空财务业务逻辑梳理 | happygo's blog</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">happygo's blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input">
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'y_LfGyHvCBYL1bZG5tke','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://lhappygo.github.io/2026/09/18/金蝶云星空财务业务逻辑梳理/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="happygo">
+      <meta itemprop="description" content>
+      <meta itemprop="image" content="/images/avatar.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="happygo's blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">金蝶云星空财务业务逻辑梳理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2026-09-18T19:30:29+08:00">
+                2026-09-18
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ERP/" itemprop="url" rel="index">
+                    <span itemprop="name">ERP</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="金蝶云星空财务业务逻辑梳理"><a href="#金蝶云星空财务业务逻辑梳理" class="headerlink" title="金蝶云星空财务业务逻辑梳理"></a>金蝶云星空财务业务逻辑梳理</h1><blockquote>
+<p>图例：<br><code>--&gt;|下推|</code> = 源单下推目标单<br><code>-.-&gt;|核销/勾稽|</code> = 核销、对账、勾稽<br><code>-.-&gt;|凭证|</code> = 智能会计平台按凭证模板生成凭证</p>
+</blockquote>
+<h2 id="1-总体业财一体化流程图"><a href="#1-总体业财一体化流程图" class="headerlink" title="1. 总体业财一体化流程图"></a>1. 总体业财一体化流程图</h2><pre class="mermaid">flowchart LR
+  B[&quot;业务单据&lt;br/&gt;销售/采购/库存/生产/资产/费用/资金&quot;] --&gt;|下推/审核| I[&quot;智能会计平台&lt;br/&gt;凭证模板+会计政策&quot;]
+  I --&gt;|生成| V[&quot;业务凭证&quot;]
+  V --&gt;|生成| G[&quot;总账凭证&quot;]
+  G --&gt;|审核/过账| P[&quot;总账过账&quot;]
+  P --&gt;|期末处理| C[&quot;结转损益/期末结账&quot;]
+  B -.-&gt;|对账| R[&quot;业务与总账对账&quot;]</pre>
+<h2 id="2-应收管理下推流程图"><a href="#2-应收管理下推流程图" class="headerlink" title="2. 应收管理下推流程图"></a>2. 应收管理下推流程图</h2><pre class="mermaid">flowchart LR
+  S1[&quot;销售订单&quot;] --&gt;|下推| S2[&quot;发货通知单&quot;]
+  S2 --&gt;|下推| S3[&quot;销售出库单&quot;]
+  S3 --&gt;|下推| S4[&quot;应收单&quot;]
+  S4 --&gt;|下推/选单| S5[&quot;收款单&quot;]
+  S4 -.-&gt;|核销| S5
+  S4 -.-&gt;|凭证| V1[&quot;收入/应收凭证&quot;]
+  S5 -.-&gt;|凭证| V2[&quot;收款凭证&quot;]
+  S4 --&gt;|期末| S6[&quot;应收结账&quot;]
+  S4 -.-&gt;|对冲| H[&quot;应收应付对冲单&quot;]
+  P4[&quot;应付单&quot;] -.-&gt;|对冲| H</pre>
+<h2 id="3-应付管理下推流程图"><a href="#3-应付管理下推流程图" class="headerlink" title="3. 应付管理下推流程图"></a>3. 应付管理下推流程图</h2><pre class="mermaid">flowchart LR
+  P1[&quot;采购申请单&quot;] --&gt;|下推| P2[&quot;采购订单&quot;]
+  P2 --&gt;|下推| P3[&quot;收料通知单&quot;]
+  P3 --&gt;|下推| P4[&quot;采购入库单&quot;]
+  P4 --&gt;|下推| P5[&quot;应付单&quot;]
+  P5 --&gt;|下推/选单| P6[&quot;付款单&quot;]
+  P5 -.-&gt;|核销| P6
+  P4 -.-&gt;|暂估| P7[&quot;暂估应付单&quot;]
+  P7 -.-&gt;|冲回| P5
+  P5 -.-&gt;|凭证| V3[&quot;应付/暂估凭证&quot;]
+  P6 -.-&gt;|凭证| V4[&quot;付款凭证&quot;]
+  P5 --&gt;|期末| P8[&quot;应付结账&quot;]</pre>
+<h2 id="4-资金管理下推流程图"><a href="#4-资金管理下推流程图" class="headerlink" title="4. 资金管理下推流程图"></a>4. 资金管理下推流程图</h2><pre class="mermaid">flowchart TB
+  subgraph UP[&quot;资金上划&quot;]
+    F1[&quot;成员单位收入户&quot;] --&gt;|自动上划方案| F2[&quot;资金上划单&quot;]
+    F2 --&gt;|下推| F3[&quot;成员单位付款单&quot;]
+    F2 --&gt;|下推| F4[&quot;资金组织收款单&quot;]
+  end
+  subgraph DOWN[&quot;资金下拨&quot;]
+    F5[&quot;资金组织&quot;] --&gt;|下拨| F6[&quot;资金下拨单&quot;]
+    F6 --&gt;|下推| F7[&quot;成员单位收款单&quot;]
+  end
+  subgraph TRANS[&quot;资金调拨&quot;]
+    F8[&quot;资金调拨单&quot;] --&gt;|下推| F9[&quot;双方收付款单&quot;]
+  end
+  F3 -.-&gt;|凭证| V5[&quot;上划凭证&quot;]
+  F6 -.-&gt;|凭证| V6[&quot;下拨凭证&quot;]
+  F8 -.-&gt;|凭证| V7[&quot;调拨凭证&quot;]</pre>
+<h2 id="5-成本核算下推流程图"><a href="#5-成本核算下推流程图" class="headerlink" title="5. 成本核算下推流程图"></a>5. 成本核算下推流程图</h2><pre class="mermaid">flowchart LR
+  C1[&quot;生产订单/用料清单&quot;] --&gt;|下推| C2[&quot;生产领料单/退料单/补料单&quot;]
+  C1 --&gt;|下推| C3[&quot;生产汇报单&quot;]
+  C3 --&gt;|下推| C4[&quot;产品入库单&quot;]
+  C4 --&gt;|归集| C5[&quot;产量归集&quot;]
+  C2 --&gt;|耗用| C6[&quot;材料费用&quot;]
+  C5 --&gt; C7[&quot;成本计算&quot;]
+  C6 --&gt; C7
+  C7 --&gt;|结转| C8[&quot;完工成本结转单&quot;]
+  C8 --&gt;|下推/结转| C9[&quot;库存商品&quot;]
+  C7 --&gt;|期末| C10[&quot;产品成本核算结账&quot;]
+  subgraph INV[&quot;存货核算&quot;]
+    I1[&quot;库存关账&quot;] --&gt; I2[&quot;入库核算&quot;]
+    I2 --&gt; I3[&quot;出库核算&quot;]
+  end
+  I3 --&gt; C7</pre>
+<h2 id="6-固定资产下推流程图"><a href="#6-固定资产下推流程图" class="headerlink" title="6. 固定资产下推流程图"></a>6. 固定资产下推流程图</h2><pre class="mermaid">flowchart LR
+  A1[&quot;资产申请单&quot;] --&gt;|下推| A2[&quot;采购申请单&quot;]
+  A2 --&gt;|下推| A3[&quot;采购订单&quot;]
+  A3 --&gt;|下推| A4[&quot;收料通知单&quot;]
+  A4 --&gt;|下推| A5[&quot;标准应付单&quot;]
+  A5 --&gt;|下推| A6[&quot;采购发票&quot;]
+  A4 --&gt;|选单| A7[&quot;资产卡片&quot;]
+  A3 --&gt;|路径二| A8[&quot;采购入库单&quot;]
+  A8 --&gt;|下推| A9[&quot;其他出库单-资产出库&quot;]
+  A9 --&gt;|选单| A7
+  A7 --&gt;|折旧| A10[&quot;折旧管理&quot;]
+  A7 --&gt;|变更/调拨/处置| A11[&quot;资产变更/调拨/处置单&quot;]
+  A7 -.-&gt;|凭证| V8[&quot;固定资产/在建工程凭证&quot;]
+  A10 -.-&gt;|凭证| V9[&quot;折旧凭证&quot;]</pre>
+<h2 id="7-费用报销下推流程图"><a href="#7-费用报销下推流程图" class="headerlink" title="7. 费用报销下推流程图"></a>7. 费用报销下推流程图</h2><pre class="mermaid">flowchart LR
+  E1[&quot;费用申请单&quot;] --&gt;|下推| E2[&quot;费用报销单&quot;]
+  E2 --&gt;|下推| E3[&quot;费用报销其他应付单&quot;]
+  E3 --&gt;|下推/选单| E4[&quot;费用报销付款单&quot;]
+  E3 -.-&gt;|核销| E4
+  E3 -.-&gt;|凭证| V10[&quot;费用/应付凭证&quot;]
+  E4 -.-&gt;|凭证| V11[&quot;付款凭证&quot;]
+  E2 --&gt;|反审核| E3</pre>
+<h2 id="8-税务发票下推流程图"><a href="#8-税务发票下推流程图" class="headerlink" title="8. 税务发票下推流程图"></a>8. 税务发票下推流程图</h2><pre class="mermaid">flowchart LR
+  T1[&quot;应收单/销售出库单&quot;] --&gt;|下推| T2[&quot;开票申请单&quot;]
+  T2 --&gt;|开票| T3[&quot;销售发票&quot;]
+  T3 -.-&gt;|核销| T1
+  T4[&quot;进项发票采集&lt;br/&gt;扫码/扫描/OCR&quot;] --&gt;|识别| T5[&quot;发票池&quot;]
+  T5 --&gt;|下推| T6[&quot;应付单/费用报销单&quot;]
+  T5 --&gt;|查验/认证| T7[&quot;抵扣/记账&quot;]
+  T3 -.-&gt;|凭证| V12[&quot;销项发票凭证&quot;]
+  T6 -.-&gt;|凭证| V13[&quot;进项/费用凭证&quot;]</pre>
+<h2 id="9-多组织财务流程图"><a href="#9-多组织财务流程图" class="headerlink" title="9. 多组织财务流程图"></a>9. 多组织财务流程图</h2><pre class="mermaid">flowchart LR
+  M1[&quot;业务组织单据&quot;] --&gt;|内部结算| M2[&quot;结算清单&quot;]
+  M2 --&gt;|组织间交易| M3[&quot;组织间应收/应付&quot;]
+  M3 --&gt;|多核算体系| M4[&quot;多账簿凭证&quot;]
+  M4 --&gt;|合并| M5[&quot;合并报表/管理报表&quot;]</pre>
+<h2 id="10-期末结账顺序流程图"><a href="#10-期末结账顺序流程图" class="headerlink" title="10. 期末结账顺序流程图"></a>10. 期末结账顺序流程图</h2><pre class="mermaid">flowchart LR
+  Z1[&quot;库存关账&quot;] --&gt; Z2[&quot;存货核算关账&quot;] --&gt; Z3[&quot;应付结账&quot;] --&gt; Z4[&quot;应收结账&quot;] --&gt; Z5[&quot;出纳结账&quot;] --&gt; Z6[&quot;固定资产结账&quot;] --&gt; Z7[&quot;产品成本核算结账&quot;] --&gt; Z8[&quot;总账结转损益&quot;] --&gt; Z9[&quot;总账期末结账&quot;]</pre>
+<h2 id="整体逻辑归纳"><a href="#整体逻辑归纳" class="headerlink" title="整体逻辑归纳"></a>整体逻辑归纳</h2><p>业务前端下推形成财务单据，智能会计平台按模板生成凭证，往来通过核销清理，期末按“库存 → 存货 → 应付 → 应收 → 出纳 → 固定资产 → 成本 → 总账”顺序闭环结账。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/ERP/" rel="tag"># ERP</a>
+          
+            <a href="/tags/财务/" rel="tag"># 财务</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2026/06/18/阿里分布式seata事务/" rel="next" title="阿里分布式seata事务">
+                <i class="fa fa-chevron-left"></i> 阿里分布式seata事务
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2026/09/20/金蝶云星空采购业务节点与下推流程图/" rel="prev" title="金蝶云星空采购业务节点与下推流程图">
+                金蝶云星空采购业务节点与下推流程图 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      <div id="uyan_frame"></div>
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/avatar.jpg" alt="happygo">
+            
+              <p class="site-author-name" itemprop="name">happygo</p>
+              <p class="site-description motion-element" itemprop="description">Everthing will going to be all right.</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">69</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">50</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">86</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#金蝶云星空财务业务逻辑梳理"><span class="nav-number">1.</span> <span class="nav-text">金蝶云星空财务业务逻辑梳理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-总体业财一体化流程图"><span class="nav-number">1.1.</span> <span class="nav-text">1. 总体业财一体化流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-应收管理下推流程图"><span class="nav-number">1.2.</span> <span class="nav-text">2. 应收管理下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-应付管理下推流程图"><span class="nav-number">1.3.</span> <span class="nav-text">3. 应付管理下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-资金管理下推流程图"><span class="nav-number">1.4.</span> <span class="nav-text">4. 资金管理下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-成本核算下推流程图"><span class="nav-number">1.5.</span> <span class="nav-text">5. 成本核算下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-固定资产下推流程图"><span class="nav-number">1.6.</span> <span class="nav-text">6. 固定资产下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-费用报销下推流程图"><span class="nav-number">1.7.</span> <span class="nav-text">7. 费用报销下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-税务发票下推流程图"><span class="nav-number">1.8.</span> <span class="nav-text">8. 税务发票下推流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#9-多组织财务流程图"><span class="nav-number">1.9.</span> <span class="nav-text">9. 多组织财务流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#10-期末结账顺序流程图"><span class="nav-number">1.10.</span> <span class="nav-text">10. 期末结账顺序流程图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#整体逻辑归纳"><span class="nav-number">1.11.</span> <span class="nav-text">整体逻辑归纳</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">happygo</span>
+
+  
+</div>
+
+
+  <div class="powered-by">  个人专属</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">博客 v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+    
+
+    
+      <!-- UY BEGIN -->
+      <script type="text/javascript" src="http://v2.uyan.cc/code/uyan.js?uid=2157634"></script>
+      <!-- UY END -->
+    
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+  <script>
+    (function () {
+      if (!window.mermaid) return;
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        flowchart: { htmlLabels: true, curve: 'basis' }
+      });
+      function renderMermaid() {
+        var nodes = document.querySelectorAll('pre.mermaid, div.mermaid');
+        if (!nodes.length) return;
+        // mermaid.run expects elements containing raw diagram text
+        try {
+          mermaid.run({ nodes: nodes });
+        } catch (e) {
+          console.error('Mermaid render error:', e);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderMermaid);
+      } else {
+        renderMermaid();
+      }
+    })();
+  </script>
+  <style>
+    .post-body pre.mermaid,
+    .post-body div.mermaid {
+      margin: 1.2em 0;
+      text-align: center;
+      overflow-x: auto;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-family: inherit;
+      white-space: pre;
+    }
+    .post-body pre.mermaid svg,
+    .post-body div.mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+  
+
+
+  
+
+  
+
+</body>
+</html>
